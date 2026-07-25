@@ -48,11 +48,13 @@ export function buildRouteLines(
     type: 'FeatureCollection',
     features: routes.flatMap((route) =>
       route.directions.flatMap((direction) => {
-        const coordinates = direction.path
-          ? decodePolyline(direction.path.value, direction.path.precision)
-          : direction.stopIds
-              .map((stopId) => stopsById.get(stopId)?.geometry.coordinates)
-              .filter((coordinate): coordinate is number[] => Boolean(coordinate))
+        const coordinates = direction.geometry
+          ? direction.geometry.coordinates
+          : direction.path
+            ? decodePolyline(direction.path.value, direction.path.precision)
+            : direction.stopIds
+                .map((stopId) => stopsById.get(stopId)?.geometry.coordinates)
+                .filter((coordinate): coordinate is number[] => Boolean(coordinate))
 
         if (coordinates.length < 2) return []
 

@@ -1,4 +1,5 @@
 import type { ForecastsData, RouteStopsData, StopsCollection } from '@/types/transit'
+import { apiIsConfigured, apiUrl } from '@/lib/api'
 
 async function fetchJson<T>(filename: string): Promise<T> {
   const response = await fetch(`${import.meta.env.BASE_URL}data/${filename}`)
@@ -9,11 +10,35 @@ async function fetchJson<T>(filename: string): Promise<T> {
 }
 
 export async function loadTransitData() {
-  const [stops, routeStops, forecasts] = await Promise.all([
+  const [localStops, localRouteStops, forecasts] = await Promise.all([
     fetchJson<StopsCollection>('stops.geojson'),
     fetchJson<RouteStopsData>('route-stops.json'),
     fetchJson<ForecastsData>('mock-forecasts.json'),
   ])
 
-  return { stops, routeStops, forecasts }
+  if (!apiIsConfigured() || !navigator.onLine) {
+    return { stops: localStops, routeStops: localRouteStops, forecasts }
+  }
+
+  try {
+    const [stopsResponse, routesResponse] = await Promise.all([
+      fetch(apiUrl('/api/v1/stops')),
+      fetch(apiUrl('/api/v1/routes')),
+    ])
+    if (!stopsResponse.ok || !routesResponse.ok) throw new Error('Backend unavailable')
+    return {
+      stops: (await stopsResponse.json()) as StopsCollection,
+      routeStops: (await routesResponse.json()) as RouteStopsData,
+      forecasts,
+    }
+  } catch {
+    return { stops: localStops, routeStops: localRouteStops, forecasts }
+  }
+}
+
+export async function loadForecastsForStop(stopId: string) {
+  if (!apiIsConfigured() || !navigator.onLine) return null
+  const response = await fetch(apiUrl(`/api/v1/stops/${encodeURIComponent(stopId)}/forecasts`))
+  if (!response.ok) return null
+  return (await response.json()) as Omit<ForecastsData, 'isMock'>
 }

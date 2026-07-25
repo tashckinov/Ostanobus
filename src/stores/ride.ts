@@ -10,6 +10,7 @@ import {
   type TransitEvent,
 } from '@/lib/db'
 import { nextStopIndex } from '@/lib/forecast'
+import { syncPendingEvents } from '@/lib/sync'
 import type { ActiveRide, RouteDirection, TransitRoute } from '@/types/transit'
 
 export const useRideStore = defineStore('ride', () => {
@@ -29,6 +30,16 @@ export const useRideStore = defineStore('ride', () => {
     activeRide.value = storedRide ?? null
     events.value = storedEvents
     initialised.value = true
+    await trySync()
+  }
+
+  async function trySync() {
+    try {
+      const result = await syncPendingEvents()
+      if (result) await refreshEvents()
+    } catch {
+      // Offline-first: pending events stay queued for the next attempt.
+    }
   }
 
   async function refreshEvents() {
@@ -44,6 +55,7 @@ export const useRideStore = defineStore('ride', () => {
     })
     events.value = [saved, ...events.value].slice(0, 50)
     justSavedStopId.value = stopId
+    void trySync()
     return saved
   }
 
@@ -83,6 +95,7 @@ export const useRideStore = defineStore('ride', () => {
     activeRide.value = updatedRide
     events.value = [saved, ...events.value].slice(0, 50)
     justSavedStopId.value = stopId
+    void trySync()
     return saved
   }
 
@@ -104,5 +117,6 @@ export const useRideStore = defineStore('ride', () => {
     startRide,
     markNextStop,
     finishRide,
+    trySync,
   }
 })

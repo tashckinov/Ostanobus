@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { forecastsForStop } from '@/lib/forecast'
-import { loadTransitData } from '@/lib/transit-data'
+import { loadForecastsForStop, loadTransitData } from '@/lib/transit-data'
 import type { ForecastsData, RouteStopsData, StopFeature, StopsCollection } from '@/types/transit'
 
 const emptyStops: StopsCollection = {
@@ -56,6 +56,20 @@ export const useTransitStore = defineStore('transit', () => {
 
   function selectStop(stopId: string | null) {
     selectedStopId.value = stopId
+    if (stopId) void refreshForecasts(stopId)
+  }
+
+  async function refreshForecasts(stopId: string) {
+    const loaded = await loadForecastsForStop(stopId)
+    if (!loaded) return
+    forecasts.value = {
+      generatedAt: loaded.generatedAt,
+      isMock: false,
+      forecasts: [
+        ...forecasts.value.forecasts.filter((forecast) => forecast.stopId !== stopId),
+        ...loaded.forecasts,
+      ],
+    }
   }
 
   return {

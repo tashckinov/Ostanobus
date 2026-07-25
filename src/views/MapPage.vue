@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { LocateFixed, LoaderCircle, Search, X } from '@lucide/vue'
 import { computed, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount } from 'vue'
 
 import MapCanvas from '@/components/MapCanvas.vue'
 import TransitSheet from '@/components/TransitSheet.vue'
@@ -9,7 +10,7 @@ import Input from '@/components/ui/input/Input.vue'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 
-type SheetMode = 'idle' | 'search' | 'stop' | 'ride' | 'history'
+type SheetMode = 'idle' | 'search' | 'stop' | 'ride' | 'history' | 'support'
 
 interface MapCanvasExposed {
   showUserLocation(longitude: number, latitude: number): void
@@ -21,11 +22,13 @@ const mapCanvas = ref<MapCanvasExposed | null>(null)
 const searchQuery = ref('')
 const searchOpen = ref(false)
 const historyOpen = ref(false)
+const supportOpen = ref(false)
 const locating = ref(false)
 const locationMessage = ref('')
 
 const sheetMode = computed<SheetMode>(() => {
   if (ride.isActive) return 'ride'
+  if (supportOpen.value) return 'support'
   if (historyOpen.value) return 'history'
   if (searchOpen.value) return 'search'
   if (transit.selectedStop) return 'stop'
@@ -56,7 +59,9 @@ const searchResults = computed(() => {
 
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
+  window.addEventListener('online', ride.trySync)
 })
+onBeforeUnmount(() => window.removeEventListener('online', ride.trySync))
 
 watch(
   () => transit.selectedStopId,
@@ -66,6 +71,7 @@ watch(
     if (stop) searchQuery.value = stop.properties.name
     searchOpen.value = false
     historyOpen.value = false
+    supportOpen.value = false
   },
 )
 
@@ -75,6 +81,7 @@ function selectSearchResult(stopId: string) {
   transit.selectStop(stopId)
   searchOpen.value = false
   historyOpen.value = false
+  supportOpen.value = false
 }
 
 function clearSearch() {
@@ -101,10 +108,22 @@ function openHistory() {
   transit.selectStop(null)
   searchOpen.value = false
   historyOpen.value = true
+  supportOpen.value = false
+}
+
+function openSupport() {
+  searchOpen.value = false
+  historyOpen.value = false
+  supportOpen.value = true
+}
+
+function closeSupport() {
+  supportOpen.value = false
 }
 
 function closeHistory() {
   historyOpen.value = false
+  supportOpen.value = false
 }
 
 function onRideStarted() {
@@ -189,6 +208,8 @@ function locateUser() {
       @close-stop="closeStop"
       @open-history="openHistory"
       @close-history="closeHistory"
+      @open-support="openSupport"
+      @close-support="closeSupport"
       @ride-started="onRideStarted"
     />
   </main>

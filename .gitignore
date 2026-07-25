@@ -3,3 +3,8 @@ dist
 coverage
 .DS_Store
 *.local
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.tsbuildinfo
+backend/data

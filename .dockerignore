@@ -1,0 +1,16 @@
+.git
+.github
+.agents
+.codex
+node_modules
+dist
+coverage
+admin/node_modules
+admin/dist
+backend/node_modules
+backend/dist
+backend/data
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.tsbuildinfo

@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, Point } from 'geojson'
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson'
 
 export interface StopProperties {
   id: string
@@ -28,6 +28,16 @@ export interface RouteDirection {
   stopIds: string[]
   distanceMeters?: number
   path?: EncodedRoutePath
+  geometry?: LineString | null
+  schedules?: Array<{
+    id: string
+    days: number[]
+    type: 'exact' | 'interval'
+    departureTime: string | null
+    startTime: string | null
+    endTime: string | null
+    headwayMinutes: number | null
+  }>
 }
 
 export interface TransitRoute {
@@ -47,6 +57,7 @@ export type ForecastConfidence = 'high' | 'medium' | 'low'
 export interface Forecast {
   stopId: string
   routeId: string
+  directionId?: string | null
   minMinutes: number
   maxMinutes: number
   confidence: ForecastConfidence
@@ -57,6 +68,15 @@ export interface ForecastsData {
   generatedAt: string | null
   isMock: boolean
   forecasts: Forecast[]
+}
+
+export interface SupportTicketReference {
+  id: string
+  token: string
+  status: 'new' | 'in_progress' | 'resolved' | 'rejected'
+  adminReply: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface StopForecast extends Forecast {

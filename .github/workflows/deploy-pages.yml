@@ -28,18 +28,35 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            admin/package-lock.json
 
-      - name: Install dependencies
+      - name: Install PWA dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
 
-      - name: Test
-        run: npm run test
+      - name: Install admin dependencies
+        run: npm ci --prefix admin
 
-      - name: Build
+      - name: Check PWA
+        run: npm run check
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+
+      - name: Check backend
+        run: npm run check --prefix backend
+
+      - name: Check admin
+        run: npm run check --prefix admin
+
+      - name: Build Pages artifact
         run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
 
       - name: Configure Pages
         if: github.event_name != 'pull_request'
