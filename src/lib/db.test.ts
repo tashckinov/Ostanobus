@@ -1,40 +1,48 @@
 import 'fake-indexeddb/auto'
 
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
-const storage = new Map<string, string>()
+import { db, loadActiveRide, pendingEventCount, saveActiveRide, saveEvent } from './db'
 
-beforeAll(() => {
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => storage.set(key, value),
-      removeItem: (key: string) => storage.delete(key),
-    },
-  })
-})
-
-describe('offline event queue', () => {
+describe('offline data', () => {
   beforeEach(async () => {
-    storage.clear()
-    const { db } = await import('./db')
-    await db.stopPassages.clear()
+    await Promise.all([db.events.clear(), db.activeRide.clear(), db.settings.clear()])
   })
 
-  it('stores a stop passage as a pending local event', async () => {
-    const { db, pendingEventCount, saveStopPassage } = await import('./db')
-
-    const event = await saveStopPassage({
-      routeId: '14',
-      directionId: '14-outbound',
-      stopId: 'stop-druzhby',
+  it('stores an arrival as a pending event', async () => {
+    const event = await saveEvent({
+      type: 'bus_arrival',
+      routeId: '3k',
+      directionId: '3k-vzmeo-artemida',
+      stopId: 'osm-node-9054348906',
     })
 
-    expect(event.syncStatus).toBe('pending')
+    expect(event.status).toBe('pending')
     expect(await pendingEventCount()).toBe(1)
-    expect(await db.stopPassages.get(event.id)).toMatchObject({
-      routeId: '14',
-      stopId: 'stop-druzhby',
+    expect(await db.events.get(event.id)).toMatchObject({
+      type: 'bus_arrival',
+      routeId: '3k',
     })
+    expect(await db.settings.get('clientId')).toBeDefined()
+  })
+
+  it('persists the active ride separately from events', async () => {
+    await saveActiveRide({
+      id: 'current',
+      routeId: '3k',
+      directionId: '3k-vzmeo-artemida',
+      nextStopIndex: 2,
+      startedAt: '2026-07-25T19:30:00.000Z',
+    })
+
+    expect(await loadActiveRide()).toMatchObject({
+      id: 'current',
+      nextStopIndex: 2,
+    })
+    expect(db.tables.map((table) => table.name).sort()).toEqual([
+      'activeRide',
+      'events',
+      'settings',
+    ])
   })
 })

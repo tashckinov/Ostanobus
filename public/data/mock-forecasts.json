@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-07-25T19:30:00.000Z",
+  "isMock": true,
+  "forecasts": [
+    {
+      "stopId": "osm-node-9054348906",
+      "routeId": "3k",
+      "minMinutes": 3,
+      "maxMinutes": 6,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-6795669313",
+      "routeId": "3k",
+      "minMinutes": 5,
+      "maxMinutes": 8,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-4385410803",
+      "routeId": "3k",
+      "minMinutes": 7,
+      "maxMinutes": 11,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-6795669312",
+      "routeId": "3k",
+      "minMinutes": 9,
+      "maxMinutes": 14,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-9414899715",
+      "routeId": "3k",
+      "minMinutes": 12,
+      "maxMinutes": 17,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-9330015522",
+      "routeId": "3k",
+      "minMinutes": 14,
+      "maxMinutes": 20,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-9330015526",
+      "routeId": "3k",
+      "minMinutes": 17,
+      "maxMinutes": 23,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-9312535779",
+      "routeId": "3k",
+      "minMinutes": 19,
+      "maxMinutes": 26,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-9222336258",
+      "routeId": "3k",
+      "minMinutes": 22,
+      "maxMinutes": 30,
+      "confidence": "medium",
+      "sampleSize": 12
+    },
+    {
+      "stopId": "osm-node-9222336260",
+      "routeId": "3k",
+      "minMinutes": 24,
+      "maxMinutes": 33,
+      "confidence": "medium",
+      "sampleSize": 12
+    }
+  ]
+}

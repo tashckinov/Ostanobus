@@ -1,48 +1,65 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import {
+  listEvents,
+  loadActiveRide,
+  removeActiveRide,
+  saveActiveRide,
+  saveEvent,
+  type TransitEvent,
+} from '@/lib/db'
 import { nextStopIndex } from '@/lib/forecast'
-import { pendingEventCount, saveStopPassage } from '@/lib/db'
 import type { ActiveRide, RouteDirection, TransitRoute } from '@/types/transit'
 
-const activeRideKey = 'ostanobus-active-ride'
-
-function restoreRide(): ActiveRide | null {
-  try {
-    const stored = localStorage.getItem(activeRideKey)
-    return stored ? (JSON.parse(stored) as ActiveRide) : null
-  } catch {
-    return null
-  }
-}
-
 export const useRideStore = defineStore('ride', () => {
-  const activeRide = ref<ActiveRide | null>(restoreRide())
-  const pendingCount = ref(0)
+  const activeRide = ref<ActiveRide | null>(null)
+  const events = ref<TransitEvent[]>([])
   const justSavedStopId = ref<string | null>(null)
+  const initialised = ref(false)
 
   const isActive = computed(() => activeRide.value !== null)
+  const pendingCount = computed(
+    () => events.value.filter((event) => event.status === 'pending').length,
+  )
 
-  function persist() {
-    if (activeRide.value) {
-      localStorage.setItem(activeRideKey, JSON.stringify(activeRide.value))
-    } else {
-      localStorage.removeItem(activeRideKey)
-    }
+  async function initialise() {
+    if (initialised.value) return
+    const [storedRide, storedEvents] = await Promise.all([loadActiveRide(), listEvents()])
+    activeRide.value = storedRide ?? null
+    events.value = storedEvents
+    initialised.value = true
   }
 
-  async function refreshPendingCount() {
-    pendingCount.value = await pendingEventCount()
+  async function refreshEvents() {
+    events.value = await listEvents()
   }
 
-  function startRide(route: TransitRoute, direction: RouteDirection) {
-    activeRide.value = {
+  async function recordArrival(routeId: string, stopId: string, directionId: string | null) {
+    const saved = await saveEvent({
+      type: 'bus_arrival',
+      routeId,
+      directionId,
+      stopId,
+    })
+    events.value = [saved, ...events.value].slice(0, 50)
+    justSavedStopId.value = stopId
+    return saved
+  }
+
+  async function startRide(route: TransitRoute, direction: RouteDirection, startStopId: string) {
+    const startIndex = direction.stopIds.indexOf(startStopId)
+    const ride: ActiveRide = {
+      id: 'current',
       routeId: route.routeId,
       directionId: direction.id,
-      nextStopIndex: 0,
+      nextStopIndex: startIndex >= 0 ? startIndex + 1 : 0,
       startedAt: new Date().toISOString(),
     }
-    persist()
+
+    await saveActiveRide(ride)
+    activeRide.value = ride
+    justSavedStopId.value = null
   }
 
   async function markNextStop(direction: RouteDirection) {
@@ -51,34 +68,39 @@ export const useRideStore = defineStore('ride', () => {
     const stopId = direction.stopIds[activeRide.value.nextStopIndex]
     if (!stopId) return null
 
-    const saved = await saveStopPassage({
+    const saved = await saveEvent({
+      type: 'stop_passage',
       routeId: activeRide.value.routeId,
       directionId: activeRide.value.directionId,
       stopId,
     })
 
-    activeRide.value.nextStopIndex = nextStopIndex(
-      activeRide.value.nextStopIndex,
-      direction.stopIds.length,
-    )
+    const updatedRide: ActiveRide = {
+      ...activeRide.value,
+      nextStopIndex: nextStopIndex(activeRide.value.nextStopIndex, direction.stopIds.length),
+    }
+    await saveActiveRide(updatedRide)
+    activeRide.value = updatedRide
+    events.value = [saved, ...events.value].slice(0, 50)
     justSavedStopId.value = stopId
-    persist()
-    await refreshPendingCount()
     return saved
   }
 
-  function finishRide() {
+  async function finishRide() {
+    await removeActiveRide()
     activeRide.value = null
     justSavedStopId.value = null
-    persist()
   }
 
   return {
     activeRide,
-    pendingCount,
+    events,
     justSavedStopId,
     isActive,
-    refreshPendingCount,
+    pendingCount,
+    initialise,
+    refreshEvents,
+    recordArrival,
     startRide,
     markNextStop,
     finishRide,

@@ -3,6 +3,7 @@ import type { Feature, Point } from 'geojson'
 import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import { buildRouteLines } from '@/lib/route-geometry'
 import { useTransitStore } from '@/stores/transit'
 
 const transit = useTransitStore()
@@ -40,8 +41,8 @@ onMounted(() => {
   map = new maplibregl.Map({
     container: mapContainer.value,
     style: mapStyle,
-    center: [42.169, 47.512],
-    zoom: 13.5,
+    center: [42.216, 47.531],
+    zoom: 13.8,
     minZoom: 11,
     maxZoom: 18,
     attributionControl: false,
@@ -51,6 +52,34 @@ onMounted(() => {
 
   map.on('load', () => {
     if (!map) return
+    const routeStopIds = transit.routeStops.routes.flatMap((route) =>
+      route.directions.flatMap((direction) => direction.stopIds),
+    )
+
+    map.addSource('route-lines', {
+      type: 'geojson',
+      data: buildRouteLines(transit.routeStops.routes, transit.stopsById),
+    })
+    map.addLayer({
+      id: 'route-line-outline',
+      type: 'line',
+      source: 'route-lines',
+      paint: {
+        'line-color': '#ffffff',
+        'line-width': 7,
+        'line-opacity': 0.85,
+      },
+    })
+    map.addLayer({
+      id: 'route-lines',
+      type: 'line',
+      source: 'route-lines',
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': 4,
+        'line-opacity': 0.9,
+      },
+    })
 
     map.addSource('stops', {
       type: 'geojson',
@@ -75,6 +104,18 @@ onMounted(() => {
       paint: {
         'circle-radius': 5,
         'circle-color': '#1f2933',
+      },
+    })
+    map.addLayer({
+      id: 'route-stops',
+      type: 'circle',
+      source: 'stops',
+      filter: ['in', ['get', 'id'], ['literal', routeStopIds]],
+      paint: {
+        'circle-radius': 6,
+        'circle-color': '#0074dc',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2,
       },
     })
     map.addLayer({

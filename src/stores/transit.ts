@@ -3,31 +3,19 @@ import { computed, ref } from 'vue'
 
 import { forecastsForStop } from '@/lib/forecast'
 import { loadTransitData } from '@/lib/transit-data'
-import type {
-  HistoricalArrivalsData,
-  RouteFeature,
-  RoutesCollection,
-  RouteStopsData,
-  StopFeature,
-  StopsCollection,
-} from '@/types/transit'
+import type { ForecastsData, RouteStopsData, StopFeature, StopsCollection } from '@/types/transit'
 
 const emptyStops: StopsCollection = {
   type: 'FeatureCollection',
   features: [],
 }
 
-const emptyRoutes: RoutesCollection = {
-  type: 'FeatureCollection',
-  features: [],
-}
-
 export const useTransitStore = defineStore('transit', () => {
   const stops = ref<StopsCollection>(emptyStops)
-  const routes = ref<RoutesCollection>(emptyRoutes)
   const routeStops = ref<RouteStopsData>({ routes: [] })
-  const historicalArrivals = ref<HistoricalArrivalsData>({
+  const forecasts = ref<ForecastsData>({
     generatedAt: null,
+    isMock: true,
     forecasts: [],
   })
   const selectedStopId = ref<string | null>(null)
@@ -40,19 +28,8 @@ export const useTransitStore = defineStore('transit', () => {
 
   const selectedStopForecasts = computed(() =>
     selectedStopId.value
-      ? forecastsForStop(
-          selectedStopId.value,
-          historicalArrivals.value.forecasts,
-          routeStops.value.routes,
-        )
+      ? forecastsForStop(selectedStopId.value, forecasts.value.forecasts, routeStops.value.routes)
       : [],
-  )
-
-  const routeFeaturesById = computed(
-    () =>
-      new Map<string, RouteFeature>(
-        routes.value.features.map((route) => [route.properties.id, route]),
-      ),
   )
 
   const stopsById = computed(
@@ -68,9 +45,8 @@ export const useTransitStore = defineStore('transit', () => {
     try {
       const data = await loadTransitData()
       stops.value = data.stops
-      routes.value = data.routes
       routeStops.value = data.routeStops
-      historicalArrivals.value = data.historicalArrivals
+      forecasts.value = data.forecasts
     } catch (caught) {
       error.value = caught instanceof Error ? caught.message : 'Не удалось загрузить данные'
     } finally {
@@ -84,12 +60,10 @@ export const useTransitStore = defineStore('transit', () => {
 
   return {
     stops,
-    routes,
     routeStops,
     selectedStopId,
     selectedStop,
     selectedStopForecasts,
-    routeFeaturesById,
     stopsById,
     loading,
     error,

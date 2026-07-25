@@ -1,8 +1,8 @@
-import type { HistoricalForecast, StopForecast, TransitRoute } from '@/types/transit'
+import type { Forecast, StopForecast, TransitRoute } from '@/types/transit'
 
 export function forecastsForStop(
   stopId: string,
-  forecasts: HistoricalForecast[],
+  forecasts: Forecast[],
   routes: TransitRoute[],
 ): StopForecast[] {
   const routeById = new Map(routes.map((route) => [route.routeId, route]))

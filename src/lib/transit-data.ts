@@ -1,9 +1,4 @@
-import type {
-  HistoricalArrivalsData,
-  RoutesCollection,
-  RouteStopsData,
-  StopsCollection,
-} from '@/types/transit'
+import type { ForecastsData, RouteStopsData, StopsCollection } from '@/types/transit'
 
 async function fetchJson<T>(filename: string): Promise<T> {
   const response = await fetch(`${import.meta.env.BASE_URL}data/${filename}`)
@@ -14,12 +9,11 @@ async function fetchJson<T>(filename: string): Promise<T> {
 }
 
 export async function loadTransitData() {
-  const [stops, routes, routeStops, historicalArrivals] = await Promise.all([
+  const [stops, routeStops, forecasts] = await Promise.all([
     fetchJson<StopsCollection>('stops.geojson'),
-    fetchJson<RoutesCollection>('routes.geojson'),
     fetchJson<RouteStopsData>('route-stops.json'),
-    fetchJson<HistoricalArrivalsData>('historical-arrivals.json'),
+    fetchJson<ForecastsData>('mock-forecasts.json'),
   ])
 
-  return { stops, routes, routeStops, historicalArrivals }
+  return { stops, routeStops, forecasts }
 }

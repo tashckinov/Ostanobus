@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, LineString, Point } from 'geojson'
+import type { Feature, FeatureCollection, Point } from 'geojson'
 
 export interface StopProperties {
   id: string
@@ -12,18 +12,8 @@ export interface StopProperties {
   trolleybus?: string | null
 }
 
-export interface RouteProperties {
-  id: string
-  number: string
-  color: string
-  from: string
-  to: string
-}
-
 export type StopFeature = Feature<Point, StopProperties>
-export type RouteFeature = Feature<LineString, RouteProperties>
 export type StopsCollection = FeatureCollection<Point, StopProperties>
-export type RoutesCollection = FeatureCollection<LineString, RouteProperties>
 
 export interface RouteDirection {
   id: string
@@ -36,6 +26,7 @@ export interface TransitRoute {
   routeId: string
   number: string
   color: string
+  isMock?: boolean
   directions: RouteDirection[]
 }
 
@@ -45,7 +36,7 @@ export interface RouteStopsData {
 
 export type ForecastConfidence = 'high' | 'medium' | 'low'
 
-export interface HistoricalForecast {
+export interface Forecast {
   stopId: string
   routeId: string
   minMinutes: number
@@ -54,16 +45,18 @@ export interface HistoricalForecast {
   sampleSize: number
 }
 
-export interface HistoricalArrivalsData {
+export interface ForecastsData {
   generatedAt: string | null
-  forecasts: HistoricalForecast[]
+  isMock: boolean
+  forecasts: Forecast[]
 }
 
-export interface StopForecast extends HistoricalForecast {
+export interface StopForecast extends Forecast {
   route: TransitRoute
 }
 
 export interface ActiveRide {
+  id: 'current'
   routeId: string
   directionId: string
   nextStopIndex: number
