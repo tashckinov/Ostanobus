@@ -6,22 +6,27 @@ import MapCanvas from '@/components/MapCanvas.vue'
 import TransitSheet from '@/components/TransitSheet.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
+import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 
-type SheetMode = 'idle' | 'search' | 'stop'
+type SheetMode = 'idle' | 'search' | 'stop' | 'ride' | 'history'
 
 interface MapCanvasExposed {
   showUserLocation(longitude: number, latitude: number): void
 }
 
 const transit = useTransitStore()
+const ride = useRideStore()
 const mapCanvas = ref<MapCanvasExposed | null>(null)
 const searchQuery = ref('')
 const searchOpen = ref(false)
+const historyOpen = ref(false)
 const locating = ref(false)
 const locationMessage = ref('')
 
 const sheetMode = computed<SheetMode>(() => {
+  if (ride.isActive) return 'ride'
+  if (historyOpen.value) return 'history'
   if (searchOpen.value) return 'search'
   if (transit.selectedStop) return 'stop'
   return 'idle'
@@ -32,17 +37,25 @@ const searchResults = computed(() => {
   const stops = transit.stops.features
   if (!normalizedQuery) return stops.slice(0, 6)
 
+  const matchingRouteStopIds = new Set(
+    transit.routeStops.routes
+      .filter((route) => route.number.toLocaleLowerCase('ru').includes(normalizedQuery))
+      .flatMap((route) => route.directions.flatMap((direction) => direction.stopIds)),
+  )
+
   return stops
-    .filter((stop) =>
-      `${stop.properties.name} ${stop.properties.shortName}`
-        .toLocaleLowerCase('ru')
-        .includes(normalizedQuery),
+    .filter(
+      (stop) =>
+        matchingRouteStopIds.has(stop.properties.id) ||
+        `${stop.properties.name} ${stop.properties.shortName}`
+          .toLocaleLowerCase('ru')
+          .includes(normalizedQuery),
     )
     .slice(0, 6)
 })
 
 onMounted(async () => {
-  await transit.initialise()
+  await Promise.all([transit.initialise(), ride.initialise()])
 })
 
 watch(
@@ -52,6 +65,7 @@ watch(
     const stop = transit.stopsById.get(stopId)
     if (stop) searchQuery.value = stop.properties.name
     searchOpen.value = false
+    historyOpen.value = false
   },
 )
 
@@ -60,6 +74,7 @@ function selectSearchResult(stopId: string) {
   if (stop) searchQuery.value = stop.properties.name
   transit.selectStop(stopId)
   searchOpen.value = false
+  historyOpen.value = false
 }
 
 function clearSearch() {
@@ -75,6 +90,27 @@ function closeSearch() {
 
 function closeStop() {
   searchQuery.value = ''
+  transit.selectStop(null)
+}
+
+function openSearch() {
+  if (!ride.isActive) searchOpen.value = true
+}
+
+function openHistory() {
+  transit.selectStop(null)
+  searchOpen.value = false
+  historyOpen.value = true
+}
+
+function closeHistory() {
+  historyOpen.value = false
+}
+
+function onRideStarted() {
+  searchQuery.value = ''
+  searchOpen.value = false
+  historyOpen.value = false
   transit.selectStop(null)
 }
 
@@ -118,7 +154,8 @@ function locateUser() {
           class="border-border bg-background pl-10 pr-10 shadow-sm"
           placeholder="Остановка или маршрут"
           autocomplete="off"
-          @focus="searchOpen = true"
+          :disabled="ride.isActive"
+          @focus="openSearch"
         />
         <button
           v-if="searchQuery"
@@ -150,6 +187,9 @@ function locateUser() {
       @select-stop="selectSearchResult"
       @close-search="closeSearch"
       @close-stop="closeStop"
+      @open-history="openHistory"
+      @close-history="closeHistory"
+      @ride-started="onRideStarted"
     />
   </main>
 </template>

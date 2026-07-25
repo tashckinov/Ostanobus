@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { forecastsForStop, nextStopIndex } from './forecast'
-import type { HistoricalForecast, TransitRoute } from '@/types/transit'
+import type { Forecast, TransitRoute } from '@/types/transit'
 
 const routes: TransitRoute[] = [
   {
@@ -18,7 +18,7 @@ const routes: TransitRoute[] = [
   },
 ]
 
-const forecasts: HistoricalForecast[] = [
+const forecasts: Forecast[] = [
   {
     stopId: 'a',
     routeId: '18',

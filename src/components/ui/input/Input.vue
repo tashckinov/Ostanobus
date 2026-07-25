@@ -9,6 +9,7 @@ const props = defineProps<{
   placeholder?: string
   class?: InputHTMLAttributes['class']
   autocomplete?: string
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -23,9 +24,10 @@ const emit = defineEmits<{
     :type="props.type ?? 'text'"
     :placeholder="props.placeholder"
     :autocomplete="props.autocomplete"
+    :disabled="props.disabled"
     :class="
       cn(
-        'h-11 w-full rounded-md border border-input bg-background px-3 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary',
+        'h-11 w-full rounded-md border border-input bg-background px-3 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-muted',
         props.class,
       )
     "

@@ -1,3 +1,29 @@
 {
-  "routes": []
+  "routes": [
+    {
+      "routeId": "3k",
+      "number": "3К",
+      "color": "#0074dc",
+      "isMock": true,
+      "directions": [
+        {
+          "id": "3k-vzmeo-artemida",
+          "name": "к магазину «Артемида»",
+          "terminal": "Магазин Артемида",
+          "stopIds": [
+            "osm-node-9054348906",
+            "osm-node-6795669313",
+            "osm-node-4385410803",
+            "osm-node-6795669312",
+            "osm-node-9414899715",
+            "osm-node-9330015522",
+            "osm-node-9330015526",
+            "osm-node-9312535779",
+            "osm-node-9222336258",
+            "osm-node-9222336260"
+          ]
+        }
+      ]
+    }
+  ]
 }
