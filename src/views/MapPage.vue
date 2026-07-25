@@ -25,6 +25,7 @@ const historyOpen = ref(false)
 const supportOpen = ref(false)
 const locating = ref(false)
 const locationMessage = ref('')
+let healthTimer: number | undefined
 
 const sheetMode = computed<SheetMode>(() => {
   if (ride.isActive) return 'ride'
@@ -59,9 +60,15 @@ const searchResults = computed(() => {
 
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
-  window.addEventListener('online', ride.trySync)
+  window.addEventListener('online', handleOnline)
+  window.addEventListener('offline', handleOffline)
+  healthTimer = window.setInterval(transit.refreshApiHealth, 60_000)
 })
-onBeforeUnmount(() => window.removeEventListener('online', ride.trySync))
+onBeforeUnmount(() => {
+  window.removeEventListener('online', handleOnline)
+  window.removeEventListener('offline', handleOffline)
+  if (healthTimer !== undefined) window.clearInterval(healthTimer)
+})
 
 watch(
   () => transit.selectedStopId,
@@ -82,6 +89,14 @@ function selectSearchResult(stopId: string) {
   searchOpen.value = false
   historyOpen.value = false
   supportOpen.value = false
+}
+
+async function handleOnline() {
+  if (await transit.refreshApiHealth()) await ride.trySync()
+}
+
+function handleOffline() {
+  void transit.refreshApiHealth()
 }
 
 function clearSearch() {
@@ -170,12 +185,19 @@ function locateUser() {
         />
         <Input
           v-model="searchQuery"
-          class="border-border bg-background pl-10 pr-10 shadow-sm"
+          class="border-border bg-background pl-10 pr-28 shadow-sm"
           placeholder="Остановка или маршрут"
           autocomplete="off"
           :disabled="ride.isActive"
           @focus="openSearch"
         />
+        <span
+          v-if="!transit.apiOnline"
+          class="pointer-events-none absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600"
+          :class="searchQuery ? 'right-11' : 'right-3'"
+        >
+          Оффлайн
+        </span>
         <button
           v-if="searchQuery"
           class="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted"

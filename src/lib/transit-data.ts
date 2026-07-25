@@ -1,5 +1,5 @@
 import type { ForecastsData, RouteStopsData, StopsCollection } from '@/types/transit'
-import { apiIsConfigured, apiUrl } from '@/lib/api'
+import { apiIsConfigured, apiUrl, checkApiHealth } from '@/lib/api'
 
 async function fetchJson<T>(filename: string): Promise<T> {
   const response = await fetch(`${import.meta.env.BASE_URL}data/${filename}`)
@@ -17,10 +17,14 @@ export async function loadTransitData() {
   ])
 
   if (!apiIsConfigured() || !navigator.onLine) {
-    return { stops: localStops, routeStops: localRouteStops, forecasts }
+    return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false }
   }
 
   try {
+    if (!(await checkApiHealth())) {
+      return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false }
+    }
+
     const [stopsResponse, routesResponse] = await Promise.all([
       fetch(apiUrl('/api/v1/stops')),
       fetch(apiUrl('/api/v1/routes')),
@@ -30,15 +34,20 @@ export async function loadTransitData() {
       stops: (await stopsResponse.json()) as StopsCollection,
       routeStops: (await routesResponse.json()) as RouteStopsData,
       forecasts,
+      apiOnline: true,
     }
   } catch {
-    return { stops: localStops, routeStops: localRouteStops, forecasts }
+    return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false }
   }
 }
 
 export async function loadForecastsForStop(stopId: string) {
   if (!apiIsConfigured() || !navigator.onLine) return null
-  const response = await fetch(apiUrl(`/api/v1/stops/${encodeURIComponent(stopId)}/forecasts`))
-  if (!response.ok) return null
-  return (await response.json()) as Omit<ForecastsData, 'isMock'>
+  try {
+    const response = await fetch(apiUrl(`/api/v1/stops/${encodeURIComponent(stopId)}/forecasts`))
+    if (!response.ok) return null
+    return (await response.json()) as Omit<ForecastsData, 'isMock'>
+  } catch {
+    return null
+  }
 }
