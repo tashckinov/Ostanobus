@@ -6,8 +6,8 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #17212b;
-  background: #f3f4f5;
+  color: #18212b;
+  background: #f4f6f8;
   font-synthesis: none;
 }
 
@@ -16,7 +16,8 @@
 }
 body {
   margin: 0;
-  min-width: 1024px;
+  min-width: 0;
+  background: #f4f6f8;
 }
 button,
 input,
@@ -30,19 +31,22 @@ button {
 
 .shell {
   display: grid;
-  grid-template-columns: 210px 1fr;
+  grid-template-columns: 196px minmax(0, 1fr);
   min-height: 100vh;
 }
 .sidebar {
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
+  height: 100vh;
   border-right: 1px solid #d8dde2;
   background: #fff;
-  padding: 20px 12px;
+  padding: 22px 10px 14px;
 }
 .brand {
-  padding: 0 10px 20px;
-  font-size: 19px;
+  padding: 0 10px 24px;
+  font-size: 18px;
   font-weight: 700;
 }
 .brand small {
@@ -54,14 +58,14 @@ button {
 }
 .sidebar nav {
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 .sidebar nav button,
 .logout {
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
-  padding: 10px 12px;
+  padding: 10px;
   text-align: left;
 }
 .sidebar nav button:hover,
@@ -75,19 +79,21 @@ button {
 }
 .workspace {
   min-width: 0;
+  min-height: 100vh;
 }
 .page-header {
-  min-height: 74px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #d8dde2;
   background: #fff;
-  padding: 14px 24px;
+  padding: 14px 22px;
 }
 .page-header h1 {
   margin: 0;
-  font-size: 21px;
+  font-size: 22px;
+  letter-spacing: -0.02em;
 }
 .page-header p {
   margin: 4px 0 0;
@@ -103,10 +109,12 @@ button {
 
 button {
   border: 1px solid #006fca;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #006fca;
   color: white;
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 8px 13px;
+  font-weight: 550;
 }
 button:hover {
   background: #005ca8;
@@ -139,11 +147,20 @@ button.text-danger {
 input,
 select,
 textarea {
+  min-width: 0;
   width: 100%;
   border: 1px solid #b9c1c9;
-  border-radius: 4px;
+  border-radius: 5px;
   background: #fff;
-  padding: 8px 9px;
+  padding: 9px 10px;
+  color: #18212b;
+  outline: none;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #006fca;
+  box-shadow: 0 0 0 2px rgb(0 111 202 / 12%);
 }
 label {
   display: grid;
@@ -164,6 +181,9 @@ label.check input {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+.row > * {
+  min-width: 0;
 }
 
 .editor-grid {
@@ -192,7 +212,8 @@ label.check input {
   font-size: 17px;
 }
 .route-panel {
-  padding-bottom: 50px;
+  padding: 18px;
+  padding-bottom: 24px;
 }
 .section-title {
   display: flex;
@@ -218,6 +239,14 @@ button.tab.active {
   display: flex;
   gap: 6px;
 }
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.days button {
+  min-width: 0;
+  padding-inline: 5px;
+}
 .mode-switch button,
 .days button {
   flex: 1;
@@ -233,7 +262,7 @@ button.tab.active {
 }
 .waypoints {
   display: grid;
-  max-height: 260px;
+  max-height: min(300px, 34vh);
   margin: 0;
   padding: 0;
   overflow: auto;
@@ -241,7 +270,7 @@ button.tab.active {
 }
 .waypoints li {
   display: grid;
-  grid-template-columns: 25px 1fr auto auto auto;
+  grid-template-columns: 16px 25px minmax(0, 1fr) 24px 24px 24px;
   align-items: center;
   gap: 5px;
   border-bottom: 1px solid #e5e7eb;
@@ -271,6 +300,15 @@ button.tab.active {
   background: transparent;
   color: #4b5563;
   padding: 2px;
+}
+.waypoints .drag-handle {
+  width: auto;
+  height: auto;
+  cursor: grab;
+  background: transparent;
+  color: #9aa3ad;
+  font-size: 13px;
+  letter-spacing: -3px;
 }
 .notice,
 .success {
@@ -306,16 +344,19 @@ button.tab.active {
 }
 .content-grid {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   gap: 16px;
   padding: 20px;
 }
 .content-grid .panel {
   border: 1px solid #d8dde2;
+  border-radius: 6px;
 }
 .table-wrap {
+  min-width: 0;
   overflow: auto;
   border: 1px solid #d8dde2;
+  border-radius: 6px;
   background: #fff;
 }
 table {
@@ -408,4 +449,329 @@ dd {
 .login-form p {
   margin: 0;
   color: #6b7280;
+}
+
+.workspace > section > .table-wrap {
+  margin: 20px;
+}
+
+.routes-workspace {
+  display: grid;
+  grid-template-columns: 230px minmax(360px, 1fr) 430px;
+  height: calc(100vh - 72px);
+  min-width: 0;
+  overflow: hidden;
+}
+.route-list-panel {
+  min-width: 0;
+  overflow: auto;
+  border-right: 1px solid #d8dde2;
+  background: #f8f9fa;
+  padding: 14px 10px;
+}
+.route-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px 12px;
+  font-size: 13px;
+}
+.route-list-heading span {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #d8dde2;
+  border-radius: 12px;
+  background: #fff;
+  color: #59636e;
+  font-size: 11px;
+}
+.route-list {
+  display: grid;
+  gap: 6px;
+}
+.route-list > button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  min-height: 68px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #18212b;
+  padding: 10px 8px;
+  text-align: left;
+}
+.route-list > button:hover {
+  border-color: #d8dde2;
+  background: #fff;
+}
+.route-list > button.active {
+  border-color: #93bee1;
+  background: #eaf3fb;
+}
+.route-number {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 3px solid #006fca;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 750;
+}
+.route-list-copy {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 3px;
+}
+.route-list-copy strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-list-copy small {
+  color: #68727d;
+  font-size: 11px;
+}
+.route-state {
+  grid-column: 2;
+  width: max-content;
+  color: #067647;
+  font-size: 10px;
+}
+.route-state.off {
+  color: #b42318;
+}
+.map-stage {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: #e8ecef;
+}
+.map-hint {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 80px);
+  border: 1px solid #c8d0d8;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 94%);
+  padding: 8px 10px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+  color: #38424c;
+  font-size: 12px;
+  pointer-events: none;
+}
+.route-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e2e6ea;
+  padding-bottom: 14px;
+}
+.route-panel-heading > div {
+  display: grid;
+  gap: 3px;
+}
+.route-panel-heading > div > span {
+  color: #68727d;
+  font-size: 11px;
+}
+.route-panel-heading > div > strong {
+  font-size: 17px;
+}
+.switch-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  color: #38424c;
+  white-space: nowrap;
+}
+.switch-control input {
+  width: 16px;
+  height: 16px;
+}
+.route-main-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 62px;
+  gap: 10px;
+}
+.color-field input {
+  height: 40px;
+  padding: 4px;
+}
+.direction-header,
+.waypoints-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e2e6ea;
+  padding-top: 14px;
+}
+.waypoints-heading {
+  border-top: 0;
+  padding-top: 0;
+}
+.waypoints-heading span {
+  color: #68727d;
+  font-size: 11px;
+}
+.small-button {
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+.direction-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.direction-tab {
+  display: grid;
+  grid-template-columns: 22px auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  border-color: #c9d0d7;
+  background: #fff;
+  color: #38424c;
+  padding: 6px 8px;
+}
+.direction-tab:hover {
+  background: #f5f7f9;
+}
+.direction-tab.active {
+  border-color: #006fca;
+  background: #eaf3fb;
+  color: #005ca8;
+}
+.direction-tab strong {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5e9ed;
+  font-size: 10px;
+}
+.direction-tab.active strong {
+  background: #006fca;
+  color: #fff;
+}
+.direction-tab span {
+  max-width: 150px;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.direction-switch {
+  align-self: end;
+  min-height: 40px;
+}
+.empty-state {
+  border: 1px dashed #c9d0d7;
+  border-radius: 5px;
+  background: #f8f9fa;
+  padding: 18px;
+  color: #68727d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.empty-state.compact {
+  padding: 12px;
+}
+.route-empty-workspace {
+  grid-column: 2 / -1;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  color: #68727d;
+  text-align: center;
+}
+.route-empty-workspace strong {
+  color: #18212b;
+}
+.route-actions {
+  position: sticky;
+  bottom: -24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 -18px -24px;
+  border-top: 1px solid #d8dde2;
+  background: #fff;
+  padding: 14px 18px 18px;
+}
+.route-actions .text-danger {
+  min-height: 28px;
+  font-size: 11px;
+}
+
+@media (max-width: 1180px) {
+  .shell {
+    grid-template-columns: 174px minmax(0, 1fr);
+  }
+  .routes-workspace {
+    grid-template-columns: 190px minmax(300px, 1fr) 390px;
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #d8dde2;
+    padding: 8px;
+  }
+  .brand {
+    padding: 0 12px 0 4px;
+  }
+  .brand small {
+    display: none;
+  }
+  .sidebar nav {
+    display: flex;
+    overflow-x: auto;
+  }
+  .logout {
+    margin: 0;
+  }
+  .routes-workspace,
+  .editor-grid {
+    height: auto;
+    min-height: calc(100vh - 132px);
+    grid-template-columns: 1fr;
+  }
+  .route-list-panel {
+    display: none;
+  }
+  .map-stage,
+  .map {
+    min-height: 52vh;
+  }
+  .route-panel {
+    border-top: 1px solid #d8dde2;
+    border-left: 0;
+  }
+  .content-grid,
+  .support-grid {
+    grid-template-columns: 1fr;
+  }
 }

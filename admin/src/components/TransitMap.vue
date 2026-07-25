@@ -9,7 +9,9 @@ const props = defineProps<{
   stops: Stop[]
   geometry?: LineString | null
   selectedStopId?: string | null
+  selectedStopIds?: string[]
   routingPoints?: Array<{ longitude: number; latitude: number }>
+  routeColor?: string
 }>()
 
 const emit = defineEmits<{
@@ -21,20 +23,32 @@ const container = ref<HTMLElement | null>(null)
 let map: Map | null = null
 
 function stopsGeoJson(): FeatureCollection<Point> {
+  const selectedStops = new globalThis.Map(
+    (props.selectedStopIds ?? []).map((id, index) => [id, index + 1]),
+  )
   return {
     type: 'FeatureCollection',
     features: props.stops.map((stop) => ({
       type: 'Feature',
-      properties: { ...stop },
+      properties: { ...stop, selectedOrder: selectedStops.get(stop.id) ?? 0 },
       geometry: { type: 'Point', coordinates: [stop.longitude, stop.latitude] },
     })),
   }
 }
 
 function routeGeoJson(): FeatureCollection<LineString> {
+  const previewCoordinates = (props.selectedStopIds ?? [])
+    .map((stopId) => props.stops.find((stop) => stop.id === stopId))
+    .filter((stop): stop is Stop => Boolean(stop))
+    .map((stop) => [stop.longitude, stop.latitude])
+  const geometry =
+    props.geometry ??
+    (previewCoordinates.length >= 2
+      ? ({ type: 'LineString', coordinates: previewCoordinates } as LineString)
+      : null)
   return {
     type: 'FeatureCollection',
-    features: props.geometry ? [{ type: 'Feature', properties: {}, geometry: props.geometry }] : [],
+    features: geometry ? [{ type: 'Feature', properties: {}, geometry }] : [],
   }
 }
 
@@ -82,7 +96,7 @@ onMounted(() => {
       id: 'route',
       type: 'line',
       source: 'route',
-      paint: { 'line-color': '#006fca', 'line-width': 4 },
+      paint: { 'line-color': props.routeColor ?? '#006fca', 'line-width': 4 },
     })
     map.addSource('stops', { type: 'geojson', data: stopsGeoJson() })
     map.addLayer({
@@ -90,8 +104,22 @@ onMounted(() => {
       type: 'circle',
       source: 'stops',
       paint: {
-        'circle-radius': ['case', ['==', ['get', 'id'], props.selectedStopId ?? ''], 9, 6],
-        'circle-color': ['case', ['get', 'active'], '#17212b', '#9ca3af'],
+        'circle-radius': [
+          'case',
+          ['>', ['get', 'selectedOrder'], 0],
+          9,
+          ['==', ['get', 'id'], props.selectedStopId ?? ''],
+          9,
+          6,
+        ],
+        'circle-color': [
+          'case',
+          ['>', ['get', 'selectedOrder'], 0],
+          props.routeColor ?? '#006fca',
+          ['get', 'active'],
+          '#17212b',
+          '#9ca3af',
+        ],
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 2,
       },
@@ -116,6 +144,12 @@ onMounted(() => {
       const stop = props.stops.find((item) => item.id === stopId)
       if (stop) emit('stopClick', stop)
     })
+    map.on('mouseenter', 'stops', () => {
+      if (map) map.getCanvas().style.cursor = 'pointer'
+    })
+    map.on('mouseleave', 'stops', () => {
+      if (map) map.getCanvas().style.cursor = ''
+    })
     map.on('click', (event) => {
       const features = map?.queryRenderedFeatures(event.point, { layers: ['stops'] })
       if (!features?.length) emit('mapClick', event.lngLat.lng, event.lngLat.lat)
@@ -134,12 +168,38 @@ watch(
   { deep: true },
 )
 watch(
+  () => props.selectedStopIds,
+  () => {
+    ;(map?.getSource('stops') as GeoJSONSource | undefined)?.setData(stopsGeoJson())
+    ;(map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson())
+  },
+  { deep: true },
+)
+watch(
   () => props.routingPoints,
   () =>
     (map?.getSource('routing-points') as GeoJSONSource | undefined)?.setData(
       routingPointsGeoJson(),
     ),
   { deep: true },
+)
+watch(
+  () => props.routeColor,
+  (color) => {
+    if (map?.getLayer('route')) {
+      map.setPaintProperty('route', 'line-color', color ?? '#006fca')
+    }
+    if (map?.getLayer('stops')) {
+      map.setPaintProperty('stops', 'circle-color', [
+        'case',
+        ['>', ['get', 'selectedOrder'], 0],
+        color ?? '#006fca',
+        ['get', 'active'],
+        '#17212b',
+        '#9ca3af',
+      ])
+    }
+  },
 )
 watch(
   () => props.selectedStopId,
