@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Feature, Point } from 'geojson'
 import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
@@ -46,39 +47,10 @@ onMounted(() => {
     attributionControl: false,
   })
 
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
-  map.addControl(
-    new maplibregl.NavigationControl({ showCompass: false, visualizePitch: false }),
-    'bottom-right',
-  )
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right')
 
   map.on('load', () => {
     if (!map) return
-
-    map.addSource('routes', {
-      type: 'geojson',
-      data: transit.routes,
-    })
-    map.addLayer({
-      id: 'route-shadow',
-      type: 'line',
-      source: 'routes',
-      paint: {
-        'line-color': '#ffffff',
-        'line-opacity': 0.9,
-        'line-width': 8,
-      },
-    })
-    map.addLayer({
-      id: 'routes',
-      type: 'line',
-      source: 'routes',
-      paint: {
-        'line-color': ['get', 'color'],
-        'line-opacity': 0.9,
-        'line-width': 4,
-      },
-    })
 
     map.addSource('stops', {
       type: 'geojson',
@@ -92,7 +64,7 @@ onMounted(() => {
         'circle-radius': 10,
         'circle-color': '#ffffff',
         'circle-opacity': 0.96,
-        'circle-stroke-color': '#d9ddcf',
+        'circle-stroke-color': '#d5d9de',
         'circle-stroke-width': 1,
       },
     })
@@ -102,7 +74,7 @@ onMounted(() => {
       source: 'stops',
       paint: {
         'circle-radius': 5,
-        'circle-color': '#173f35',
+        'circle-color': '#1f2933',
       },
     })
     map.addLayer({
@@ -112,9 +84,9 @@ onMounted(() => {
       filter: ['==', ['get', 'id'], ''],
       paint: {
         'circle-radius': 15,
-        'circle-color': '#f8d567',
-        'circle-opacity': 0.35,
-        'circle-stroke-color': '#173f35',
+        'circle-color': '#0074dc',
+        'circle-opacity': 0.2,
+        'circle-stroke-color': '#0074dc',
         'circle-stroke-width': 2,
       },
     })
@@ -150,6 +122,56 @@ watch(
     }
   },
 )
+
+function showUserLocation(longitude: number, latitude: number) {
+  if (!map) return
+
+  const point: Feature<Point> = {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Point',
+      coordinates: [longitude, latitude],
+    },
+  }
+
+  const source = map.getSource('user-location') as maplibregl.GeoJSONSource | undefined
+  if (source) {
+    source.setData(point)
+  } else if (map.isStyleLoaded()) {
+    map.addSource('user-location', { type: 'geojson', data: point })
+    map.addLayer({
+      id: 'user-location-accuracy',
+      type: 'circle',
+      source: 'user-location',
+      paint: {
+        'circle-radius': 18,
+        'circle-color': '#0074dc',
+        'circle-opacity': 0.16,
+      },
+    })
+    map.addLayer({
+      id: 'user-location',
+      type: 'circle',
+      source: 'user-location',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': '#0074dc',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 3,
+      },
+    })
+  }
+
+  map.easeTo({
+    center: [longitude, latitude],
+    zoom: Math.max(map.getZoom(), 15),
+    duration: 500,
+    padding: { top: 72, right: 16, bottom: 180, left: 16 },
+  })
+}
+
+defineExpose({ showUserLocation })
 
 onBeforeUnmount(() => {
   map?.remove()

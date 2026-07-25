@@ -38,9 +38,6 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
-      boxShadow: {
-        float: '0 18px 45px rgba(38, 45, 39, 0.16)',
-      },
     },
   },
   plugins: [],
