@@ -52,7 +52,7 @@ function showMessage(text: string, type: 'success' | 'error' = 'success') {
 }
 
 function cloneRoute(route: Route) {
-  const copy = structuredClone(route)
+  const copy = JSON.parse(JSON.stringify(route)) as Route
   copy.directions = copy.directions.map((item) => ({
     ...item,
     routingPoints:
