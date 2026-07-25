@@ -27,7 +27,7 @@ export const useTransitStore = defineStore('transit', () => {
   const routes = ref<RoutesCollection>(emptyRoutes)
   const routeStops = ref<RouteStopsData>({ routes: [] })
   const historicalArrivals = ref<HistoricalArrivalsData>({
-    generatedAt: '',
+    generatedAt: null,
     forecasts: [],
   })
   const selectedStopId = ref<string | null>(null)

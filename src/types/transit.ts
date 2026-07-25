@@ -4,6 +4,12 @@ export interface StopProperties {
   id: string
   name: string
   shortName: string
+  osmId?: number
+  osmUrl?: string
+  shelter?: string | null
+  bench?: string | null
+  bus?: string | null
+  trolleybus?: string | null
 }
 
 export interface RouteProperties {
@@ -49,7 +55,7 @@ export interface HistoricalForecast {
 }
 
 export interface HistoricalArrivalsData {
-  generatedAt: string
+  generatedAt: string | null
   forecasts: HistoricalForecast[]
 }
 

@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         name: 'Останобус',
         short_name: 'Останобус',
-        description: 'Вероятностный прогноз прибытия автобусов по отметкам пассажиров',
+        description: 'Карта остановок городского транспорта Волгодонска',
         lang: 'ru',
         theme_color: '#f7f8f3',
         background_color: '#f7f8f3',
@@ -73,10 +73,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-vue': ['vue', 'vue-router', 'pinia', '@vueuse/core'],
+          'vendor-vue': ['vue', 'vue-router', 'pinia'],
           'vendor-map': ['maplibre-gl'],
-          'vendor-ui': ['radix-vue', '@lucide/vue'],
-          'vendor-db': ['dexie'],
+          'vendor-ui': ['@lucide/vue'],
         },
       },
     },

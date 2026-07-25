@@ -11,9 +11,8 @@ export default createRouter({
       component: MapPage,
     },
     {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/AboutPage.vue'),
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
     },
   ],
 })

@@ -1,95 +1,5236 @@
 {
   "type": "FeatureCollection",
+  "source": {
+    "name": "OpenStreetMap",
+    "license": "ODbL 1.0",
+    "relation": 966497,
+    "retrievedAt": "2026-07-25",
+    "overpassQuery": "area(3600966497); (node[\"highway\"=\"bus_stop\"](area); node[\"public_transport\"=\"platform\"][\"bus\"=\"yes\"](area);); out body;"
+  },
   "features": [
     {
       "type": "Feature",
-      "id": "stop-druzhby",
+      "id": "osm-node-10087468818",
       "properties": {
-        "id": "stop-druzhby",
-        "name": "Проспект Дружбы",
-        "shortName": "Дружбы"
+        "id": "osm-node-10087468818",
+        "name": "20-я улица",
+        "shortName": "20-я улица",
+        "osmId": 10087468818,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468818",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1848, 47.5166]
+        "coordinates": [42.0894459, 47.561457]
       }
     },
     {
       "type": "Feature",
-      "id": "stop-kurchatova",
+      "id": "osm-node-10087468819",
       "properties": {
-        "id": "stop-kurchatova",
-        "name": "Улица Курчатова",
-        "shortName": "Курчатова"
+        "id": "osm-node-10087468819",
+        "name": "20-я улица",
+        "shortName": "20-я улица",
+        "osmId": 10087468819,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468819",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1769, 47.5128]
+        "coordinates": [42.0893517, 47.5613617]
       }
     },
     {
       "type": "Feature",
-      "id": "stop-stroiteley",
+      "id": "osm-node-1500924444",
       "properties": {
-        "id": "stop-stroiteley",
-        "name": "Проспект Строителей",
-        "shortName": "Строителей"
+        "id": "osm-node-1500924444",
+        "name": "АБК",
+        "shortName": "АБК",
+        "osmId": 1500924444,
+        "osmUrl": "https://www.openstreetmap.org/node/1500924444",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": "yes"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1691, 47.5094]
+        "coordinates": [42.217787, 47.508624]
       }
     },
     {
       "type": "Feature",
-      "id": "stop-kosmos",
+      "id": "osm-node-1500924445",
       "properties": {
-        "id": "stop-kosmos",
-        "name": "Кинотеатр «Комсомолец»",
-        "shortName": "Комсомолец"
+        "id": "osm-node-1500924445",
+        "name": "АБК",
+        "shortName": "АБК",
+        "osmId": 1500924445,
+        "osmUrl": "https://www.openstreetmap.org/node/1500924445",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": "yes"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1599, 47.5068]
+        "coordinates": [42.2171422, 47.5086136]
       }
     },
     {
       "type": "Feature",
-      "id": "stop-lenina",
+      "id": "osm-node-10090284002",
       "properties": {
-        "id": "stop-lenina",
+        "id": "osm-node-10090284002",
+        "name": "Абрикосовая улица",
+        "shortName": "Абрикосовая улица",
+        "osmId": 10090284002,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284002",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1113215, 47.5912833]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315288695",
+      "properties": {
+        "id": "osm-node-9315288695",
+        "name": "Автоцентр",
+        "shortName": "Автоцентр",
+        "osmId": 9315288695,
+        "osmUrl": "https://www.openstreetmap.org/node/9315288695",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2151676, 47.5113263]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315288697",
+      "properties": {
+        "id": "osm-node-9315288697",
+        "name": "Автоцентр",
+        "shortName": "Автоцентр",
+        "osmId": 9315288697,
+        "osmUrl": "https://www.openstreetmap.org/node/9315288697",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2147331, 47.5110889]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7444777967",
+      "properties": {
+        "id": "osm-node-7444777967",
+        "name": "Агат",
+        "shortName": "Агат",
+        "osmId": 7444777967,
+        "osmUrl": "https://www.openstreetmap.org/node/7444777967",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1551073, 47.5039562]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096314",
+      "properties": {
+        "id": "osm-node-9198096314",
+        "name": "Агат",
+        "shortName": "Агат",
+        "osmId": 9198096314,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096314",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.15447, 47.5045729]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150435",
+      "properties": {
+        "id": "osm-node-1427150435",
+        "name": "АЗС",
+        "shortName": "АЗС",
+        "osmId": 1427150435,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150435",
+        "shelter": null,
+        "bench": null,
+        "bus": null,
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1361413, 47.5358679]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054354722",
+      "properties": {
+        "id": "osm-node-9054354722",
+        "name": "АЗС",
+        "shortName": "АЗС",
+        "osmId": 9054354722,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354722",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1343713, 47.534231]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054354723",
+      "properties": {
+        "id": "osm-node-9054354723",
+        "name": "АЗС",
+        "shortName": "АЗС",
+        "osmId": 9054354723,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354723",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1339984, 47.5345261]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942421",
+      "properties": {
+        "id": "osm-node-9414942421",
+        "name": "АЗС",
+        "shortName": "АЗС",
+        "osmId": 9414942421,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942421",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1772377, 47.5072263]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942424",
+      "properties": {
+        "id": "osm-node-9414942424",
+        "name": "АЗС",
+        "shortName": "АЗС",
+        "osmId": 9414942424,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942424",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1772618, 47.5069437]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439309",
+      "properties": {
+        "id": "osm-node-10087439309",
+        "name": "Атоммашевец",
+        "shortName": "Атоммашевец",
+        "osmId": 10087439309,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439309",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0711034, 47.567281]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439310",
+      "properties": {
+        "id": "osm-node-10087439310",
+        "name": "Атоммашевец",
+        "shortName": "Атоммашевец",
+        "osmId": 10087439310,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439310",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0712501, 47.5672145]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942417",
+      "properties": {
+        "id": "osm-node-9414942417",
+        "name": "АТС 3,4",
+        "shortName": "АТС 3,4",
+        "osmId": 9414942417,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942417",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.204261, 47.5244721]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942419",
+      "properties": {
+        "id": "osm-node-9414942419",
+        "name": "АТС 3,4",
+        "shortName": "АТС 3,4",
+        "osmId": 9414942419,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942419",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2048511, 47.5242692]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-11064972896",
+      "properties": {
+        "id": "osm-node-11064972896",
+        "name": "База ВЭС",
+        "shortName": "База ВЭС",
+        "osmId": 11064972896,
+        "osmUrl": "https://www.openstreetmap.org/node/11064972896",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1208563, 47.5959709]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284004",
+      "properties": {
+        "id": "osm-node-10090284004",
+        "name": "Базы отдыха",
+        "shortName": "Базы отдыха",
+        "osmId": 10090284004,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284004",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1153905, 47.5901103]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339195",
+      "properties": {
+        "id": "osm-node-9035339195",
+        "name": "Больничный комплекс",
+        "shortName": "Больничный комплекс",
+        "osmId": 9035339195,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339195",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.214068, 47.5169552]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339196",
+      "properties": {
+        "id": "osm-node-9035339196",
+        "name": "Больничный комплекс",
+        "shortName": "Больничный комплекс",
+        "osmId": 9035339196,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339196",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2146098, 47.5168465]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246995",
+      "properties": {
+        "id": "osm-node-9312246995",
+        "name": "Васильковая улица",
+        "shortName": "Васильковая улица",
+        "osmId": 9312246995,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246995",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1817957, 47.5339106]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246997",
+      "properties": {
+        "id": "osm-node-9312246997",
+        "name": "Васильковая улица",
+        "shortName": "Васильковая улица",
+        "osmId": 9312246997,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246997",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1811842, 47.5340175]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339197",
+      "properties": {
+        "id": "osm-node-9035339197",
+        "name": "ВГЭС / УЭИК",
+        "shortName": "ВГЭС / УЭИК",
+        "osmId": 9035339197,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339197",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2174852, 47.5187938]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339198",
+      "properties": {
+        "id": "osm-node-9035339198",
+        "name": "ВГЭС / УЭИК",
+        "shortName": "ВГЭС / УЭИК",
+        "osmId": 9035339198,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339198",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2182684, 47.5188753]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983388565",
+      "properties": {
+        "id": "osm-node-1983388565",
+        "name": "Весенняя улица",
+        "shortName": "Весенняя улица",
+        "osmId": 1983388565,
+        "osmUrl": "https://www.openstreetmap.org/node/1983388565",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1957284, 47.506464]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983388579",
+      "properties": {
+        "id": "osm-node-1983388579",
+        "name": "Весенняя улица",
+        "shortName": "Весенняя улица",
+        "osmId": 1983388579,
+        "osmUrl": "https://www.openstreetmap.org/node/1983388579",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1953879, 47.5066534]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983420862",
+      "properties": {
+        "id": "osm-node-1983420862",
+        "name": "Ветеринарная лечебница",
+        "shortName": "Ветеринарная лечебница",
+        "osmId": 1983420862,
+        "osmUrl": "https://www.openstreetmap.org/node/1983420862",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1575938, 47.5060261]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348906",
+      "properties": {
+        "id": "osm-node-9054348906",
+        "name": "ВЗМЭО",
+        "shortName": "ВЗМЭО",
+        "osmId": 9054348906,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348906",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2347959, 47.5260206]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054394945",
+      "properties": {
+        "id": "osm-node-9054394945",
+        "name": "ВЗМЭО",
+        "shortName": "ВЗМЭО",
+        "osmId": 9054394945,
+        "osmUrl": "https://www.openstreetmap.org/node/9054394945",
+        "shelter": "no",
+        "bench": "no",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2350591, 47.5262924]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284008",
+      "properties": {
+        "id": "osm-node-10090284008",
+        "name": "Виноградная",
+        "shortName": "Виноградная",
+        "osmId": 10090284008,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284008",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1283085, 47.5902036]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284009",
+      "properties": {
+        "id": "osm-node-10090284009",
+        "name": "Виноградная",
+        "shortName": "Виноградная",
+        "osmId": 10090284009,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284009",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1282885, 47.5903114]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942429",
+      "properties": {
+        "id": "osm-node-9414942429",
+        "name": "ВКДП",
+        "shortName": "ВКДП",
+        "osmId": 9414942429,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942429",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.155021, 47.528367]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942432",
+      "properties": {
+        "id": "osm-node-9414942432",
+        "name": "ВКДП",
+        "shortName": "ВКДП",
+        "osmId": 9414942432,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942432",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1553455, 47.5284593]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784631",
+      "properties": {
+        "id": "osm-node-9315784631",
+        "name": "Водоканал",
+        "shortName": "Водоканал",
+        "osmId": 9315784631,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784631",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1345684, 47.5235557]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784632",
+      "properties": {
+        "id": "osm-node-9315784632",
+        "name": "Водоканал",
+        "shortName": "Водоканал",
+        "osmId": 9315784632,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784632",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1343109, 47.5238292]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7058059423",
+      "properties": {
+        "id": "osm-node-7058059423",
+        "name": "Вокзал",
+        "shortName": "Вокзал",
+        "osmId": 7058059423,
+        "osmUrl": "https://www.openstreetmap.org/node/7058059423",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1600978, 47.5160463]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054354717",
+      "properties": {
+        "id": "osm-node-9054354717",
+        "name": "Вокзал",
+        "shortName": "Вокзал",
+        "osmId": 9054354717,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354717",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1590302, 47.5171633]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9370387857",
+      "properties": {
+        "id": "osm-node-9370387857",
+        "name": "Вокзал Волгодонск",
+        "shortName": "Вокзал Волгодонск",
+        "osmId": 9370387857,
+        "osmUrl": "https://www.openstreetmap.org/node/9370387857",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.160236, 47.5168385]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312247000",
+      "properties": {
+        "id": "osm-node-9312247000",
+        "name": "Волгоградская улица",
+        "shortName": "Волгоградская улица",
+        "osmId": 9312247000,
+        "osmUrl": "https://www.openstreetmap.org/node/9312247000",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1757876, 47.5344014]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-2269237778",
+      "properties": {
+        "id": "osm-node-2269237778",
+        "name": "ВПАТП",
+        "shortName": "ВПАТП",
+        "osmId": 2269237778,
+        "osmUrl": "https://www.openstreetmap.org/node/2269237778",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1395798, 47.5084163]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1404091811",
+      "properties": {
+        "id": "osm-node-1404091811",
+        "name": "ВТЗ",
+        "shortName": "ВТЗ",
+        "osmId": 1404091811,
+        "osmUrl": "https://www.openstreetmap.org/node/1404091811",
+        "shelter": "no",
+        "bench": "no",
+        "bus": null,
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1288621, 47.5159215]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315182516",
+      "properties": {
+        "id": "osm-node-9315182516",
+        "name": "ВТЗ",
+        "shortName": "ВТЗ",
+        "osmId": 9315182516,
+        "osmUrl": "https://www.openstreetmap.org/node/9315182516",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1288781, 47.5157943]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315202217",
+      "properties": {
+        "id": "osm-node-9315202217",
+        "name": "ВХЗ",
+        "shortName": "ВХЗ",
+        "osmId": 9315202217,
+        "osmUrl": "https://www.openstreetmap.org/node/9315202217",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1230778, 47.5141553]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9363598148",
+      "properties": {
+        "id": "osm-node-9363598148",
+        "name": "ВХЗ",
+        "shortName": "ВХЗ",
+        "osmId": 9363598148,
+        "osmUrl": "https://www.openstreetmap.org/node/9363598148",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1232375, 47.5137833]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7058048340",
+      "properties": {
+        "id": "osm-node-7058048340",
+        "name": "Гипермаркет Магнит",
+        "shortName": "Гипермаркет Магнит",
+        "osmId": 7058048340,
+        "osmUrl": "https://www.openstreetmap.org/node/7058048340",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1512706, 47.5229505]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7058048341",
+      "properties": {
+        "id": "osm-node-7058048341",
+        "name": "Гипермаркет Магнит",
+        "shortName": "Гипермаркет Магнит",
+        "osmId": 7058048341,
+        "osmUrl": "https://www.openstreetmap.org/node/7058048341",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1506242, 47.5238488]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407407717",
+      "properties": {
+        "id": "osm-node-9407407717",
+        "name": "Горвоенкомат",
+        "shortName": "Горвоенкомат",
+        "osmId": 9407407717,
+        "osmUrl": "https://www.openstreetmap.org/node/9407407717",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2076824, 47.5134646]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407407719",
+      "properties": {
+        "id": "osm-node-9407407719",
+        "name": "Горвоенкомат",
+        "shortName": "Горвоенкомат",
+        "osmId": 9407407719,
+        "osmUrl": "https://www.openstreetmap.org/node/9407407719",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2090772, 47.5138065]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096308",
+      "properties": {
+        "id": "osm-node-9198096308",
+        "name": "Горгаз",
+        "shortName": "Горгаз",
+        "osmId": 9198096308,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096308",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1422129, 47.5129136]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096309",
+      "properties": {
+        "id": "osm-node-9198096309",
+        "name": "Горгаз",
+        "shortName": "Горгаз",
+        "osmId": 9198096309,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096309",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1429585, 47.5121636]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096312",
+      "properties": {
+        "id": "osm-node-9198096312",
+        "name": "Грант",
+        "shortName": "Грант",
+        "osmId": 9198096312,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096312",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1503213, 47.5073823]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096313",
+      "properties": {
+        "id": "osm-node-9198096313",
+        "name": "Грант",
+        "shortName": "Грант",
+        "osmId": 9198096313,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096313",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.150541, 47.5070372]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312480413",
+      "properties": {
+        "id": "osm-node-9312480413",
+        "name": "ГСК Начало",
+        "shortName": "ГСК Начало",
+        "osmId": 9312480413,
+        "osmUrl": "https://www.openstreetmap.org/node/9312480413",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2326891, 47.5172573]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312480415",
+      "properties": {
+        "id": "osm-node-9312480415",
+        "name": "ГСК Начало",
+        "shortName": "ГСК Начало",
+        "osmId": 9312480415,
+        "osmUrl": "https://www.openstreetmap.org/node/9312480415",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2345505, 47.5173823]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312480416",
+      "properties": {
+        "id": "osm-node-9312480416",
+        "name": "ГСК Начало",
+        "shortName": "ГСК Начало",
+        "osmId": 9312480416,
+        "osmUrl": "https://www.openstreetmap.org/node/9312480416",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2352828, 47.5182626]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9410001364",
+      "properties": {
+        "id": "osm-node-9410001364",
+        "name": "Дачи",
+        "shortName": "Дачи",
+        "osmId": 9410001364,
+        "osmUrl": "https://www.openstreetmap.org/node/9410001364",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2891944, 47.5103592]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9410001365",
+      "properties": {
+        "id": "osm-node-9410001365",
+        "name": "Дачи",
+        "shortName": "Дачи",
+        "osmId": 9410001365,
+        "osmUrl": "https://www.openstreetmap.org/node/9410001365",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2891381, 47.5102378]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9358979959",
+      "properties": {
+        "id": "osm-node-9358979959",
+        "name": "Дачная",
+        "shortName": "Дачная",
+        "osmId": 9358979959,
+        "osmUrl": "https://www.openstreetmap.org/node/9358979959",
+        "shelter": null,
+        "bench": null,
+        "bus": null,
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1415813, 47.5318216]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4081387598",
+      "properties": {
+        "id": "osm-node-4081387598",
+        "name": "Департамент труда",
+        "shortName": "Департамент труда",
+        "osmId": 4081387598,
+        "osmUrl": "https://www.openstreetmap.org/node/4081387598",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1514019, 47.5123874]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339199",
+      "properties": {
+        "id": "osm-node-9035339199",
+        "name": "Детская поликлиника",
+        "shortName": "Детская поликлиника",
+        "osmId": 9035339199,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339199",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2220637, 47.521337]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407407727",
+      "properties": {
+        "id": "osm-node-9407407727",
+        "name": "Детская поликлиника",
+        "shortName": "Детская поликлиника",
+        "osmId": 9407407727,
+        "osmUrl": "https://www.openstreetmap.org/node/9407407727",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2234632, 47.5217403]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1418965876",
+      "properties": {
+        "id": "osm-node-1418965876",
+        "name": "Детский сад Вишенка",
+        "shortName": "Детский сад Вишенка",
+        "osmId": 1418965876,
+        "osmUrl": "https://www.openstreetmap.org/node/1418965876",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2021713, 47.5339209]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1418965958",
+      "properties": {
+        "id": "osm-node-1418965958",
+        "name": "Детский сад Вишенка",
+        "shortName": "Детский сад Вишенка",
+        "osmId": 1418965958,
+        "osmUrl": "https://www.openstreetmap.org/node/1418965958",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2025469, 47.5337814]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6126635989",
+      "properties": {
+        "id": "osm-node-6126635989",
+        "name": "Детский сад Вишенка",
+        "shortName": "Детский сад Вишенка",
+        "osmId": 6126635989,
+        "osmUrl": "https://www.openstreetmap.org/node/6126635989",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.200835, 47.5332529]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336264",
+      "properties": {
+        "id": "osm-node-9222336264",
+        "name": "Детский сад Вишенка",
+        "shortName": "Детский сад Вишенка",
+        "osmId": 9222336264,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336264",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2011414, 47.5339585]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1718033717",
+      "properties": {
+        "id": "osm-node-1718033717",
+        "name": "Детский сад Золушка",
+        "shortName": "Детский сад Золушка",
+        "osmId": 1718033717,
+        "osmUrl": "https://www.openstreetmap.org/node/1718033717",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1991581, 47.5083617]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1718033720",
+      "properties": {
+        "id": "osm-node-1718033720",
+        "name": "Детский сад Золушка",
+        "shortName": "Детский сад Золушка",
+        "osmId": 1718033720,
+        "osmUrl": "https://www.openstreetmap.org/node/1718033720",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1984607, 47.5083258]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-5937315828",
+      "properties": {
+        "id": "osm-node-5937315828",
+        "name": "Детский сад Ласточка",
+        "shortName": "Детский сад Ласточка",
+        "osmId": 5937315828,
+        "osmUrl": "https://www.openstreetmap.org/node/5937315828",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1558225, 47.509364]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339193",
+      "properties": {
+        "id": "osm-node-9035339193",
+        "name": "Детский сад Одуванчик",
+        "shortName": "Детский сад Одуванчик",
+        "osmId": 9035339193,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339193",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2116648, 47.5152238]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315288700",
+      "properties": {
+        "id": "osm-node-9315288700",
+        "name": "Детский сад Одуванчик",
+        "shortName": "Детский сад Одуванчик",
+        "osmId": 9315288700,
+        "osmUrl": "https://www.openstreetmap.org/node/9315288700",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2121032, 47.5138979]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315288701",
+      "properties": {
+        "id": "osm-node-9315288701",
+        "name": "Детский сад Одуванчик",
+        "shortName": "Детский сад Одуванчик",
+        "osmId": 9315288701,
+        "osmUrl": "https://www.openstreetmap.org/node/9315288701",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2115587, 47.5137285]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246991",
+      "properties": {
+        "id": "osm-node-9312246991",
+        "name": "Детский сад Премьер",
+        "shortName": "Детский сад Премьер",
+        "osmId": 9312246991,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246991",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1882196, 47.5327824]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246992",
+      "properties": {
+        "id": "osm-node-9312246992",
+        "name": "Детский сад Премьер",
+        "shortName": "Детский сад Премьер",
+        "osmId": 9312246992,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246992",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1878763, 47.5328875]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983483090",
+      "properties": {
+        "id": "osm-node-1983483090",
+        "name": "ДК им. Курчатова",
+        "shortName": "ДК им. Курчатова",
+        "osmId": 1983483090,
+        "osmUrl": "https://www.openstreetmap.org/node/1983483090",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2059871, 47.5190267]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983483092",
+      "properties": {
+        "id": "osm-node-1983483092",
+        "name": "ДК им. Курчатова",
+        "shortName": "ДК им. Курчатова",
+        "osmId": 1983483092,
+        "osmUrl": "https://www.openstreetmap.org/node/1983483092",
+        "shelter": "no",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2057158, 47.5186577]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439311",
+      "properties": {
+        "id": "osm-node-10087439311",
+        "name": "Дон",
+        "shortName": "Дон",
+        "osmId": 10087439311,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439311",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0781199, 47.5663377]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439312",
+      "properties": {
+        "id": "osm-node-10087439312",
+        "name": "Дон",
+        "shortName": "Дон",
+        "osmId": 10087439312,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439312",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0780387, 47.5662601]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784638",
+      "properties": {
+        "id": "osm-node-9315784638",
+        "name": "ЖБИ",
+        "shortName": "ЖБИ",
+        "osmId": 9315784638,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784638",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1316582, 47.52879]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784640",
+      "properties": {
+        "id": "osm-node-9315784640",
+        "name": "ЖБИ",
+        "shortName": "ЖБИ",
+        "osmId": 9315784640,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784640",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1318727, 47.5288461]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-8440744671",
+      "properties": {
+        "id": "osm-node-8440744671",
+        "name": "Жилой комплекс Апельсин",
+        "shortName": "Жилой комплекс Апельсин",
+        "osmId": 8440744671,
+        "osmUrl": "https://www.openstreetmap.org/node/8440744671",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2275856, 47.5230648]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1416560568",
+      "properties": {
+        "id": "osm-node-1416560568",
+        "name": "Звёздная",
+        "shortName": "Звёздная",
+        "osmId": 1416560568,
+        "osmUrl": "https://www.openstreetmap.org/node/1416560568",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1961043, 47.5261906]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1416560576",
+      "properties": {
+        "id": "osm-node-1416560576",
+        "name": "Звёздная",
+        "shortName": "Звёздная",
+        "osmId": 1416560576,
+        "osmUrl": "https://www.openstreetmap.org/node/1416560576",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1962116, 47.5258225]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439306",
+      "properties": {
+        "id": "osm-node-10087439306",
+        "name": "Зелёный берег",
+        "shortName": "Зелёный берег",
+        "osmId": 10087439306,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439306",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0636808, 47.5682689]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439307",
+      "properties": {
+        "id": "osm-node-10087439307",
+        "name": "Зелёный берег",
+        "shortName": "Зелёный берег",
+        "osmId": 10087439307,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439307",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0635962, 47.5682095]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-5937850831",
+      "properties": {
+        "id": "osm-node-5937850831",
+        "name": "Император",
+        "shortName": "Император",
+        "osmId": 5937850831,
+        "osmUrl": "https://www.openstreetmap.org/node/5937850831",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1266666, 47.5463078]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-5937850842",
+      "properties": {
+        "id": "osm-node-5937850842",
+        "name": "Император",
+        "shortName": "Император",
+        "osmId": 5937850842,
+        "osmUrl": "https://www.openstreetmap.org/node/5937850842",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.127246, 47.54626]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669313",
+      "properties": {
+        "id": "osm-node-6795669313",
+        "name": "Индустриальная улица",
+        "shortName": "Индустриальная улица",
+        "osmId": 6795669313,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669313",
+        "shelter": "yes",
+        "bench": "no",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.232686, 47.5267328]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669314",
+      "properties": {
+        "id": "osm-node-6795669314",
+        "name": "Индустриальная улица",
+        "shortName": "Индустриальная улица",
+        "osmId": 6795669314,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669314",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.232737, 47.5277163]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669315",
+      "properties": {
+        "id": "osm-node-6795669315",
+        "name": "Индустриальная улица",
+        "shortName": "Индустриальная улица",
+        "osmId": 6795669315,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669315",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2323803, 47.5270824]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312476076",
+      "properties": {
+        "id": "osm-node-9312476076",
+        "name": "Индустриальная улица",
+        "shortName": "Индустриальная улица",
+        "osmId": 9312476076,
+        "osmUrl": "https://www.openstreetmap.org/node/9312476076",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2316725, 47.5283867]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312486318",
+      "properties": {
+        "id": "osm-node-9312486318",
+        "name": "Индустриальная улица",
+        "shortName": "Индустриальная улица",
+        "osmId": 9312486318,
+        "osmUrl": "https://www.openstreetmap.org/node/9312486318",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2394483, 47.5210151]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312486321",
+      "properties": {
+        "id": "osm-node-9312486321",
+        "name": "Индустриальная улица",
+        "shortName": "Индустриальная улица",
+        "osmId": 9312486321,
+        "osmUrl": "https://www.openstreetmap.org/node/9312486321",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2397916, 47.5207071]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979813",
+      "properties": {
+        "id": "osm-node-9204979813",
+        "name": "Инфекционная больница",
+        "shortName": "Инфекционная больница",
+        "osmId": 9204979813,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979813",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.147858, 47.5118618]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979814",
+      "properties": {
+        "id": "osm-node-9204979814",
+        "name": "Инфекционная больница",
+        "shortName": "Инфекционная больница",
+        "osmId": 9204979814,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979814",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1469675, 47.5116987]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9330015520",
+      "properties": {
+        "id": "osm-node-9330015520",
+        "name": "Квартал В-14",
+        "shortName": "Квартал В-14",
+        "osmId": 9330015520,
+        "osmUrl": "https://www.openstreetmap.org/node/9330015520",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2097106, 47.5332353]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9330015522",
+      "properties": {
+        "id": "osm-node-9330015522",
+        "name": "Квартал В-14",
+        "shortName": "Квартал В-14",
+        "osmId": 9330015522,
+        "osmUrl": "https://www.openstreetmap.org/node/9330015522",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2098501, 47.53355]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414899713",
+      "properties": {
+        "id": "osm-node-9414899713",
+        "name": "Квартал В-15",
+        "shortName": "Квартал В-15",
+        "osmId": 9414899713,
+        "osmUrl": "https://www.openstreetmap.org/node/9414899713",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2158374, 47.5298403]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414899715",
+      "properties": {
+        "id": "osm-node-9414899715",
+        "name": "Квартал В-15",
+        "shortName": "Квартал В-15",
+        "osmId": 9414899715,
+        "osmUrl": "https://www.openstreetmap.org/node/9414899715",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2180314, 47.5299933]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9317579145",
+      "properties": {
+        "id": "osm-node-9317579145",
+        "name": "Квартал В-16",
+        "shortName": "Квартал В-16",
+        "osmId": 9317579145,
+        "osmUrl": "https://www.openstreetmap.org/node/9317579145",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2253827, 47.5295528]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9317579147",
+      "properties": {
+        "id": "osm-node-9317579147",
+        "name": "Квартал В-16",
+        "shortName": "Квартал В-16",
+        "osmId": 9317579147,
+        "osmUrl": "https://www.openstreetmap.org/node/9317579147",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2258548, 47.5296035]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312476078",
+      "properties": {
+        "id": "osm-node-9312476078",
+        "name": "Квартал В-17",
+        "shortName": "Квартал В-17",
+        "osmId": 9312476078,
+        "osmUrl": "https://www.openstreetmap.org/node/9312476078",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2287516, 47.5308099]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312476081",
+      "properties": {
+        "id": "osm-node-9312476081",
+        "name": "Квартал В-17",
+        "shortName": "Квартал В-17",
+        "osmId": 9312476081,
+        "osmUrl": "https://www.openstreetmap.org/node/9312476081",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2291861, 47.5307538]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312476085",
+      "properties": {
+        "id": "osm-node-9312476085",
+        "name": "Квартал В-25",
+        "shortName": "Квартал В-25",
+        "osmId": 9312476085,
+        "osmUrl": "https://www.openstreetmap.org/node/9312476085",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2221024, 47.5398913]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035334187",
+      "properties": {
+        "id": "osm-node-9035334187",
+        "name": "Квартал В-4",
+        "shortName": "Квартал В-4",
+        "osmId": 9035334187,
+        "osmUrl": "https://www.openstreetmap.org/node/9035334187",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2128939, 47.521487]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348907",
+      "properties": {
+        "id": "osm-node-9054348907",
+        "name": "Квартал В-6",
+        "shortName": "Квартал В-6",
+        "osmId": 9054348907,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348907",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2260197, 47.5244232]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407407737",
+      "properties": {
+        "id": "osm-node-9407407737",
+        "name": "Квартал В-6",
+        "shortName": "Квартал В-6",
+        "osmId": 9407407737,
+        "osmUrl": "https://www.openstreetmap.org/node/9407407737",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2260797, 47.5235624]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407143482",
+      "properties": {
+        "id": "osm-node-9407143482",
+        "name": "Квартал В-7",
+        "shortName": "Квартал В-7",
+        "osmId": 9407143482,
+        "osmUrl": "https://www.openstreetmap.org/node/9407143482",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2101383, 47.5268342]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407143487",
+      "properties": {
+        "id": "osm-node-9407143487",
+        "name": "Квартал В-7",
+        "shortName": "Квартал В-7",
+        "osmId": 9407143487,
+        "osmUrl": "https://www.openstreetmap.org/node/9407143487",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2099908, 47.5270633]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1418965926",
+      "properties": {
+        "id": "osm-node-1418965926",
+        "name": "Квартал В-8",
+        "shortName": "Квартал В-8",
+        "osmId": 1418965926,
+        "osmUrl": "https://www.openstreetmap.org/node/1418965926",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2054624, 47.5354332]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1418965955",
+      "properties": {
+        "id": "osm-node-1418965955",
+        "name": "Квартал В-8",
+        "shortName": "Квартал В-8",
+        "osmId": 1418965955,
+        "osmUrl": "https://www.openstreetmap.org/node/1418965955",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2053712, 47.5357498]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9330015526",
+      "properties": {
+        "id": "osm-node-9330015526",
+        "name": "Квартал В-8",
+        "shortName": "Квартал В-8",
+        "osmId": 9330015526,
+        "osmUrl": "https://www.openstreetmap.org/node/9330015526",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2060749, 47.5362586]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9330015528",
+      "properties": {
+        "id": "osm-node-9330015528",
+        "name": "Квартал В-8",
+        "shortName": "Квартал В-8",
+        "osmId": 9330015528,
+        "osmUrl": "https://www.openstreetmap.org/node/9330015528",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2056967, 47.5370739]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312535779",
+      "properties": {
+        "id": "osm-node-9312535779",
+        "name": "Квартал В-9",
+        "shortName": "Квартал В-9",
+        "osmId": 9312535779,
+        "osmUrl": "https://www.openstreetmap.org/node/9312535779",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2022916, 47.5393146]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312535782",
+      "properties": {
+        "id": "osm-node-9312535782",
+        "name": "Квартал В-9",
+        "shortName": "Квартал В-9",
+        "osmId": 9312535782,
+        "osmUrl": "https://www.openstreetmap.org/node/9312535782",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2028146, 47.5394667]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4385410803",
+      "properties": {
+        "id": "osm-node-4385410803",
+        "name": "Квартал В-У",
+        "shortName": "Квартал В-У",
+        "osmId": 4385410803,
+        "osmUrl": "https://www.openstreetmap.org/node/4385410803",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2282283, 47.524708]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4385479402",
+      "properties": {
+        "id": "osm-node-4385479402",
+        "name": "Квартал В-У",
+        "shortName": "Квартал В-У",
+        "osmId": 4385479402,
+        "osmUrl": "https://www.openstreetmap.org/node/4385479402",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2281176, 47.5242705]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-8440744672",
+      "properties": {
+        "id": "osm-node-8440744672",
+        "name": "Квартал В-У",
+        "shortName": "Квартал В-У",
+        "osmId": 8440744672,
+        "osmUrl": "https://www.openstreetmap.org/node/8440744672",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2290533, 47.5225446]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312486322",
+      "properties": {
+        "id": "osm-node-9312486322",
+        "name": "Кладбище № 2",
+        "shortName": "Кладбище № 2",
+        "osmId": 9312486322,
+        "osmUrl": "https://www.openstreetmap.org/node/9312486322",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2445284, 47.5237773]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312486325",
+      "properties": {
+        "id": "osm-node-9312486325",
+        "name": "Кладбище № 2",
+        "shortName": "Кладбище № 2",
+        "osmId": 9312486325,
+        "osmUrl": "https://www.openstreetmap.org/node/9312486325",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.244979, 47.5236306]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312480406",
+      "properties": {
+        "id": "osm-node-9312480406",
+        "name": "Кладбище № 3",
+        "shortName": "Кладбище № 3",
+        "osmId": 9312480406,
+        "osmUrl": "https://www.openstreetmap.org/node/9312480406",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2441824, 47.5114702]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979812",
+      "properties": {
+        "id": "osm-node-9204979812",
+        "name": "Коммунистический переулок",
+        "shortName": "Коммунистический переулок",
+        "osmId": 9204979812,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979812",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1455406, 47.5134415]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396300",
+      "properties": {
+        "id": "osm-node-1189396300",
+        "name": "Комсомольская площадь",
+        "shortName": "Комсомольская площадь",
+        "osmId": 1189396300,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396300",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1980412, 47.5170285]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396302",
+      "properties": {
+        "id": "osm-node-1189396302",
+        "name": "Комсомольская площадь",
+        "shortName": "Комсомольская площадь",
+        "osmId": 1189396302,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396302",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1976758, 47.5164545]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396318",
+      "properties": {
+        "id": "osm-node-1189396318",
+        "name": "Комсомольская площадь",
+        "shortName": "Комсомольская площадь",
+        "osmId": 1189396318,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396318",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1989129, 47.5159962]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9317663032",
+      "properties": {
+        "id": "osm-node-9317663032",
+        "name": "Комсомольская площадь",
+        "shortName": "Комсомольская площадь",
+        "osmId": 9317663032,
+        "osmUrl": "https://www.openstreetmap.org/node/9317663032",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1992393, 47.5166615]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942425",
+      "properties": {
+        "id": "osm-node-9414942425",
+        "name": "Красный Дракон",
+        "shortName": "Красный Дракон",
+        "osmId": 9414942425,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942425",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1592428, 47.5218502]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9414942428",
+      "properties": {
+        "id": "osm-node-9414942428",
+        "name": "Красный Дракон",
+        "shortName": "Красный Дракон",
+        "osmId": 9414942428,
+        "osmUrl": "https://www.openstreetmap.org/node/9414942428",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1593876, 47.5222958]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1485696541",
+      "properties": {
+        "id": "osm-node-1485696541",
+        "name": "Лабораторный корпус",
+        "shortName": "Лабораторный корпус",
+        "osmId": 1485696541,
+        "osmUrl": "https://www.openstreetmap.org/node/1485696541",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2108392, 47.5063284]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246970",
+      "properties": {
+        "id": "osm-node-9312246970",
+        "name": "Лабораторный корпус",
+        "shortName": "Лабораторный корпус",
+        "osmId": 9312246970,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246970",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2109661, 47.5059188]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336255",
+      "properties": {
+        "id": "osm-node-9222336255",
+        "name": "Лазоревый проспект",
+        "shortName": "Лазоревый проспект",
+        "osmId": 9222336255,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336255",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1985329, 47.5393049]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336258",
+      "properties": {
+        "id": "osm-node-9222336258",
+        "name": "Лазоревый проспект",
+        "shortName": "Лазоревый проспект",
+        "osmId": 9222336258,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336258",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1988843, 47.5390225]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1418965972",
+      "properties": {
+        "id": "osm-node-1418965972",
+        "name": "Ленинградская улица",
+        "shortName": "Ленинградская улица",
+        "osmId": 1418965972,
+        "osmUrl": "https://www.openstreetmap.org/node/1418965972",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1937278, 47.5289515]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336269",
+      "properties": {
+        "id": "osm-node-9222336269",
+        "name": "Ленинградская улица",
+        "shortName": "Ленинградская улица",
+        "osmId": 9222336269,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336269",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1987341, 47.5317904]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246989",
+      "properties": {
+        "id": "osm-node-9312246989",
+        "name": "Ленинградская улица",
+        "shortName": "Ленинградская улица",
+        "osmId": 9312246989,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246989",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1926238, 47.5291287]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9363490702",
+      "properties": {
+        "id": "osm-node-9363490702",
+        "name": "Ленинградская улица",
+        "shortName": "Ленинградская улица",
+        "osmId": 9363490702,
+        "osmUrl": "https://www.openstreetmap.org/node/9363490702",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1965473, 47.5307449]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9221380171",
+      "properties": {
+        "id": "osm-node-9221380171",
+        "name": "Лучезарная улица",
+        "shortName": "Лучезарная улица",
+        "osmId": 9221380171,
+        "osmUrl": "https://www.openstreetmap.org/node/9221380171",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1800981, 47.4974276]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9221380172",
+      "properties": {
+        "id": "osm-node-9221380172",
+        "name": "Лучезарная улица",
+        "shortName": "Лучезарная улица",
+        "osmId": 9221380172,
+        "osmUrl": "https://www.openstreetmap.org/node/9221380172",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1799962, 47.4973751]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336260",
+      "properties": {
+        "id": "osm-node-9222336260",
+        "name": "Магазин Артемида",
+        "shortName": "Магазин Артемида",
+        "osmId": 9222336260,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336260",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1975552, 47.5369577]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336262",
+      "properties": {
+        "id": "osm-node-9222336262",
+        "name": "Магазин Артемида",
+        "shortName": "Магазин Артемида",
+        "osmId": 9222336262,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336262",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1974614, 47.5368183]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9343763946",
+      "properties": {
+        "id": "osm-node-9343763946",
+        "name": "Магазин Артемида",
+        "shortName": "Магазин Артемида",
+        "osmId": 9343763946,
+        "osmUrl": "https://www.openstreetmap.org/node/9343763946",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1997272, 47.5294677]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284015",
+      "properties": {
+        "id": "osm-node-10090284015",
+        "name": "Магазин Бекон",
+        "shortName": "Магазин Бекон",
+        "osmId": 10090284015,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284015",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1292643, 47.5798896]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087468830",
+      "properties": {
+        "id": "osm-node-10087468830",
+        "name": "Магазин Оазис",
+        "shortName": "Магазин Оазис",
+        "osmId": 10087468830,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468830",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0971692, 47.5514203]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9363490704",
+      "properties": {
+        "id": "osm-node-9363490704",
+        "name": "Магнит",
+        "shortName": "Магнит",
+        "osmId": 9363490704,
+        "osmUrl": "https://www.openstreetmap.org/node/9363490704",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2015748, 47.5285238]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087468825",
+      "properties": {
+        "id": "osm-node-10087468825",
+        "name": "Маяк-1",
+        "shortName": "Маяк-1",
+        "osmId": 10087468825,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468825",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.096461, 47.5524511]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087468826",
+      "properties": {
+        "id": "osm-node-10087468826",
+        "name": "Маяк-1",
+        "shortName": "Маяк-1",
+        "osmId": 10087468826,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468826",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0962965, 47.5523918]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087468822",
+      "properties": {
+        "id": "osm-node-10087468822",
+        "name": "Маяк-2",
+        "shortName": "Маяк-2",
+        "osmId": 10087468822,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468822",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0916066, 47.559854]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087468823",
+      "properties": {
+        "id": "osm-node-10087468823",
+        "name": "Маяк-2",
+        "shortName": "Маяк-2",
+        "osmId": 10087468823,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468823",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0915033, 47.5596667]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087367823",
+      "properties": {
+        "id": "osm-node-10087367823",
+        "name": "Маяк-3",
+        "shortName": "Маяк-3",
+        "osmId": 10087367823,
+        "osmUrl": "https://www.openstreetmap.org/node/10087367823",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0567166, 47.5688622]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427177086",
+      "properties": {
+        "id": "osm-node-1427177086",
+        "name": "Мебельный магазин",
+        "shortName": "Мебельный магазин",
+        "osmId": 1427177086,
+        "osmUrl": "https://www.openstreetmap.org/node/1427177086",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1483561, 47.5250815]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427177087",
+      "properties": {
+        "id": "osm-node-1427177087",
+        "name": "Мебельный магазин",
+        "shortName": "Мебельный магазин",
+        "osmId": 1427177087,
+        "osmUrl": "https://www.openstreetmap.org/node/1427177087",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1500941, 47.5260504]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054354720",
+      "properties": {
+        "id": "osm-node-9054354720",
+        "name": "Мебельный магазин",
+        "shortName": "Мебельный магазин",
+        "osmId": 9054354720,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354720",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1480988, 47.5255217]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246972",
+      "properties": {
+        "id": "osm-node-9312246972",
+        "name": "Мебельный центр",
+        "shortName": "Мебельный центр",
+        "osmId": 9312246972,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246972",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2079338, 47.5084259]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246974",
+      "properties": {
+        "id": "osm-node-9312246974",
+        "name": "Мебельный центр",
+        "shortName": "Мебельный центр",
+        "osmId": 9312246974,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246974",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.208127, 47.5085473]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-5937297012",
+      "properties": {
+        "id": "osm-node-5937297012",
+        "name": "Медицинский колледж",
+        "shortName": "Медицинский колледж",
+        "osmId": 5937297012,
+        "osmUrl": "https://www.openstreetmap.org/node/5937297012",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.151031, 47.5097452]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312480408",
+      "properties": {
+        "id": "osm-node-9312480408",
+        "name": "Медсанчасть",
+        "shortName": "Медсанчасть",
+        "osmId": 9312480408,
+        "osmUrl": "https://www.openstreetmap.org/node/9312480408",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2232021, 47.5120871]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312480410",
+      "properties": {
+        "id": "osm-node-9312480410",
+        "name": "Медсанчасть",
+        "shortName": "Медсанчасть",
+        "osmId": 9312480410,
+        "osmUrl": "https://www.openstreetmap.org/node/9312480410",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2259433, 47.5131061]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312476082",
+      "properties": {
+        "id": "osm-node-9312476082",
+        "name": "Микрорайон Город Счастья",
+        "shortName": "Микрорайон Город Счастья",
+        "osmId": 9312476082,
+        "osmUrl": "https://www.openstreetmap.org/node/9312476082",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2224189, 47.5366945]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1414547027",
+      "properties": {
+        "id": "osm-node-1414547027",
+        "name": "Мирный Атом",
+        "shortName": "Мирный Атом",
+        "osmId": 1414547027,
+        "osmUrl": "https://www.openstreetmap.org/node/1414547027",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2032231, 47.5189223]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348915",
+      "properties": {
+        "id": "osm-node-9054348915",
+        "name": "Морская улица",
+        "shortName": "Морская улица",
+        "osmId": 9054348915,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348915",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.163374, 47.5138364]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348916",
+      "properties": {
+        "id": "osm-node-9054348916",
+        "name": "Морская улица",
+        "shortName": "Морская улица",
+        "osmId": 9054348916,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348916",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1627598, 47.5145021]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439314",
+      "properties": {
+        "id": "osm-node-10087439314",
+        "name": "Насосная",
+        "shortName": "Насосная",
+        "osmId": 10087439314,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439314",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0841252, 47.5641383]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087439315",
+      "properties": {
+        "id": "osm-node-10087439315",
+        "name": "Насосная",
+        "shortName": "Насосная",
+        "osmId": 10087439315,
+        "osmUrl": "https://www.openstreetmap.org/node/10087439315",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.0839747, 47.5640742]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784641",
+      "properties": {
+        "id": "osm-node-9315784641",
+        "name": "Общепит",
+        "shortName": "Общепит",
+        "osmId": 9315784641,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784641",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1351558, 47.5316369]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784643",
+      "properties": {
+        "id": "osm-node-9315784643",
+        "name": "Общепит",
+        "shortName": "Общепит",
+        "osmId": 9315784643,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784643",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1348688, 47.5313834]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985218",
+      "properties": {
+        "id": "osm-node-9204985218",
+        "name": "Октябрьская",
+        "shortName": "Октябрьская",
+        "osmId": 9204985218,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985218",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1887322, 47.4970484]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985219",
+      "properties": {
+        "id": "osm-node-9204985219",
+        "name": "Октябрьская",
+        "shortName": "Октябрьская",
+        "osmId": 9204985219,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985219",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1891184, 47.49657]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669311",
+      "properties": {
+        "id": "osm-node-6795669311",
+        "name": "Октябрьский микрорайон",
+        "shortName": "Октябрьский микрорайон",
+        "osmId": 6795669311,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669311",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2232285, 47.5281582]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669312",
+      "properties": {
+        "id": "osm-node-6795669312",
+        "name": "Октябрьский микрорайон",
+        "shortName": "Октябрьский микрорайон",
+        "osmId": 6795669312,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669312",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2238374, 47.5269175]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669316",
+      "properties": {
+        "id": "osm-node-6795669316",
+        "name": "Октябрьский микрорайон",
+        "shortName": "Октябрьский микрорайон",
+        "osmId": 6795669316,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669316",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2234418, 47.5284879]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795669317",
+      "properties": {
+        "id": "osm-node-6795669317",
+        "name": "Октябрьский микрорайон",
+        "shortName": "Октябрьский микрорайон",
+        "osmId": 6795669317,
+        "osmUrl": "https://www.openstreetmap.org/node/6795669317",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2232983, 47.5266604]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10087468833",
+      "properties": {
+        "id": "osm-node-10087468833",
+        "name": "Парамонов",
+        "shortName": "Парамонов",
+        "osmId": 10087468833,
+        "osmUrl": "https://www.openstreetmap.org/node/10087468833",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.09966, 47.5477221]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784622",
+      "properties": {
+        "id": "osm-node-9315784622",
+        "name": "Парк Победы",
+        "shortName": "Парк Победы",
+        "osmId": 9315784622,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784622",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.146822, 47.515471]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979811",
+      "properties": {
+        "id": "osm-node-9204979811",
+        "name": "Первомайский переулок",
+        "shortName": "Первомайский переулок",
+        "osmId": 9204979811,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979811",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1395378, 47.5174957]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784624",
+      "properties": {
+        "id": "osm-node-9315784624",
+        "name": "Первомайский переулок",
+        "shortName": "Первомайский переулок",
+        "osmId": 9315784624,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784624",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.140737, 47.519561]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979815",
+      "properties": {
+        "id": "osm-node-9204979815",
+        "name": "Переулок Козлова",
+        "shortName": "Переулок Козлова",
+        "osmId": 9204979815,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979815",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.154247, 47.5075607]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096310",
+      "properties": {
+        "id": "osm-node-9198096310",
+        "name": "Переулок Маяковского",
+        "shortName": "Переулок Маяковского",
+        "osmId": 9198096310,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096310",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1450614, 47.5109497]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096311",
+      "properties": {
+        "id": "osm-node-9198096311",
+        "name": "Переулок Маяковского",
+        "shortName": "Переулок Маяковского",
+        "osmId": 9198096311,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096311",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1459197, 47.5101634]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096315",
+      "properties": {
+        "id": "osm-node-9198096315",
+        "name": "Пионерская улица",
+        "shortName": "Пионерская улица",
+        "osmId": 9198096315,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096315",
+        "shelter": "no",
+        "bench": "no",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1617915, 47.5025296]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198096316",
+      "properties": {
+        "id": "osm-node-9198096316",
+        "name": "Пионерская улица",
+        "shortName": "Пионерская улица",
+        "osmId": 9198096316,
+        "osmUrl": "https://www.openstreetmap.org/node/9198096316",
+        "shelter": "no",
+        "bench": "no",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1611222, 47.5026642]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246976",
+      "properties": {
+        "id": "osm-node-9312246976",
+        "name": "Пиццерия Камин",
+        "shortName": "Пиццерия Камин",
+        "osmId": 9312246976,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246976",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2052221, 47.5106394]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246978",
+      "properties": {
+        "id": "osm-node-9312246978",
+        "name": "Пиццерия Камин",
+        "shortName": "Пиццерия Камин",
+        "osmId": 9312246978,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246978",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2051685, 47.5110371]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983420171",
+      "properties": {
+        "id": "osm-node-1983420171",
+        "name": "Площадь Дзержинского",
+        "shortName": "Площадь Дзержинского",
+        "osmId": 1983420171,
+        "osmUrl": "https://www.openstreetmap.org/node/1983420171",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1600187, 47.50681]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983420226",
+      "properties": {
+        "id": "osm-node-1983420226",
+        "name": "Площадь Дзержинского",
+        "shortName": "Площадь Дзержинского",
+        "osmId": 1983420226,
+        "osmUrl": "https://www.openstreetmap.org/node/1983420226",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1609732, 47.5059469]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427096893",
+      "properties": {
+        "id": "osm-node-1427096893",
         "name": "Площадь Ленина",
-        "shortName": "пл. Ленина"
+        "shortName": "Площадь Ленина",
+        "osmId": 1427096893,
+        "osmUrl": "https://www.openstreetmap.org/node/1427096893",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1519, 47.5093]
+        "coordinates": [42.139601, 47.5293013]
       }
     },
     {
       "type": "Feature",
-      "id": "stop-vokzal",
+      "id": "osm-node-1427158380",
       "properties": {
-        "id": "stop-vokzal",
-        "name": "Автовокзал",
-        "shortName": "Автовокзал"
+        "id": "osm-node-1427158380",
+        "name": "Площадь Ленина",
+        "shortName": "Площадь Ленина",
+        "osmId": 1427158380,
+        "osmUrl": "https://www.openstreetmap.org/node/1427158380",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1443, 47.5134]
+        "coordinates": [42.1398642, 47.5295803]
       }
     },
     {
       "type": "Feature",
-      "id": "stop-mira",
+      "id": "osm-node-9054354718",
       "properties": {
-        "id": "stop-mira",
+        "id": "osm-node-9054354718",
+        "name": "Площадь Победы",
+        "shortName": "Площадь Победы",
+        "osmId": 9054354718,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354718",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1542625, 47.5206457]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054354719",
+      "properties": {
+        "id": "osm-node-9054354719",
+        "name": "Площадь Победы",
+        "shortName": "Площадь Победы",
+        "osmId": 9054354719,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354719",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1541284, 47.5212724]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246965",
+      "properties": {
+        "id": "osm-node-9312246965",
+        "name": "По требованию",
+        "shortName": "По требованию",
+        "osmId": 9312246965,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246965",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2145605, 47.5068821]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284013",
+      "properties": {
+        "id": "osm-node-10090284013",
+        "name": "Посёлок Новосолёный",
+        "shortName": "Посёлок Новосолёный",
+        "osmId": 10090284013,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284013",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1298355, 47.5824202]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150415",
+      "properties": {
+        "id": "osm-node-1427150415",
+        "name": "Посёлок Шлюзы",
+        "shortName": "Посёлок Шлюзы",
+        "osmId": 1427150415,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150415",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1303611, 47.5418252]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150420",
+      "properties": {
+        "id": "osm-node-1427150420",
+        "name": "Посёлок Шлюзы",
+        "shortName": "Посёлок Шлюзы",
+        "osmId": 1427150420,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150420",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.129999, 47.5416731]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284006",
+      "properties": {
+        "id": "osm-node-10090284006",
+        "name": "Правление садоводства",
+        "shortName": "Правление садоводства",
+        "osmId": 10090284006,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284006",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1207444, 47.5888363]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795671834",
+      "properties": {
+        "id": "osm-node-6795671834",
         "name": "Проспект Мира",
-        "shortName": "Мира"
+        "shortName": "Проспект Мира",
+        "osmId": 6795671834,
+        "osmUrl": "https://www.openstreetmap.org/node/6795671834",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [42.1925, 47.5215]
+        "coordinates": [42.2099328, 47.5303948]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9330015518",
+      "properties": {
+        "id": "osm-node-9330015518",
+        "name": "Проспект Мира",
+        "shortName": "Проспект Мира",
+        "osmId": 9330015518,
+        "osmUrl": "https://www.openstreetmap.org/node/9330015518",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2114084, 47.5307253]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396304",
+      "properties": {
+        "id": "osm-node-1189396304",
+        "name": "Проспект Строителей",
+        "shortName": "Проспект Строителей",
+        "osmId": 1189396304,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396304",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1922668, 47.5133242]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396308",
+      "properties": {
+        "id": "osm-node-1189396308",
+        "name": "Проспект Строителей",
+        "shortName": "Проспект Строителей",
+        "osmId": 1189396308,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396308",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1925765, 47.5130869]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983388331",
+      "properties": {
+        "id": "osm-node-1983388331",
+        "name": "Профтехучилище",
+        "shortName": "Профтехучилище",
+        "osmId": 1983388331,
+        "osmUrl": "https://www.openstreetmap.org/node/1983388331",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2032871, 47.5106656]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1983388511",
+      "properties": {
+        "id": "osm-node-1983388511",
+        "name": "Профтехучилище",
+        "shortName": "Профтехучилище",
+        "osmId": 1983388511,
+        "osmUrl": "https://www.openstreetmap.org/node/1983388511",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2033729, 47.5110642]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348911",
+      "properties": {
+        "id": "osm-node-9054348911",
+        "name": "Путепровод",
+        "shortName": "Путепровод",
+        "osmId": 9054348911,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348911",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1755767, 47.506132]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348912",
+      "properties": {
+        "id": "osm-node-9054348912",
+        "name": "Путепровод",
+        "shortName": "Путепровод",
+        "osmId": 9054348912,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348912",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1755673, 47.5064626]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198051407",
+      "properties": {
+        "id": "osm-node-9198051407",
+        "name": "Пятнадцатый котлован",
+        "shortName": "Пятнадцатый котлован",
+        "osmId": 9198051407,
+        "osmUrl": "https://www.openstreetmap.org/node/9198051407",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1129902, 47.5697796]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9198051408",
+      "properties": {
+        "id": "osm-node-9198051408",
+        "name": "Пятнадцатый котлован",
+        "shortName": "Пятнадцатый котлован",
+        "osmId": 9198051408,
+        "osmUrl": "https://www.openstreetmap.org/node/9198051408",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1132691, 47.5692946]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979810",
+      "properties": {
+        "id": "osm-node-9204979810",
+        "name": "Рождественская улица",
+        "shortName": "Рождественская улица",
+        "osmId": 9204979810,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979810",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1134774, 47.5068885]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348909",
+      "properties": {
+        "id": "osm-node-9054348909",
+        "name": "Рынок Авангард",
+        "shortName": "Рынок Авангард",
+        "osmId": 9054348909,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348909",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2118469, 47.5221319]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9056616861",
+      "properties": {
+        "id": "osm-node-9056616861",
+        "name": "Рынок Авангард",
+        "shortName": "Рынок Авангард",
+        "osmId": 9056616861,
+        "osmUrl": "https://www.openstreetmap.org/node/9056616861",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2112369, 47.5215987]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090292626",
+      "properties": {
+        "id": "osm-node-10090292626",
+        "name": "Садоводство Ветеран",
+        "shortName": "Садоводство Ветеран",
+        "osmId": 10090292626,
+        "osmUrl": "https://www.openstreetmap.org/node/10090292626",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1267532, 47.5530983]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090292623",
+      "properties": {
+        "id": "osm-node-10090292623",
+        "name": "Садоводство Ветеран-2",
+        "shortName": "Садоводство Ветеран-2",
+        "osmId": 10090292623,
+        "osmUrl": "https://www.openstreetmap.org/node/10090292623",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1275991, 47.5617294]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284011",
+      "properties": {
+        "id": "osm-node-10090284011",
+        "name": "Садоводство Летний сад",
+        "shortName": "Садоводство Летний сад",
+        "osmId": 10090284011,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284011",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1290477, 47.5871478]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150374",
+      "properties": {
+        "id": "osm-node-1427150374",
+        "name": "Садоводство Машиностроитель",
+        "shortName": "Садоводство Машиностроитель",
+        "osmId": 1427150374,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150374",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1124842, 47.5473636]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150397",
+      "properties": {
+        "id": "osm-node-1427150397",
+        "name": "Садоводство Машиностроитель",
+        "shortName": "Садоводство Машиностроитель",
+        "osmId": 1427150397,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150397",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1146648, 47.5466431]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090284000",
+      "properties": {
+        "id": "osm-node-10090284000",
+        "name": "Садоводство Мичуринец",
+        "shortName": "Садоводство Мичуринец",
+        "osmId": 10090284000,
+        "osmUrl": "https://www.openstreetmap.org/node/10090284000",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1041453, 47.5929644]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090292619",
+      "properties": {
+        "id": "osm-node-10090292619",
+        "name": "Садоводство Строитель",
+        "shortName": "Садоводство Строитель",
+        "osmId": 10090292619,
+        "osmUrl": "https://www.openstreetmap.org/node/10090292619",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1289033, 47.5662662]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090292620",
+      "properties": {
+        "id": "osm-node-10090292620",
+        "name": "Садоводство Строитель",
+        "shortName": "Садоводство Строитель",
+        "osmId": 10090292620,
+        "osmUrl": "https://www.openstreetmap.org/node/10090292620",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.128644, 47.5660772]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-8281261951",
+      "properties": {
+        "id": "osm-node-8281261951",
+        "name": "Северный переулок",
+        "shortName": "Северный переулок",
+        "osmId": 8281261951,
+        "osmUrl": "https://www.openstreetmap.org/node/8281261951",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1845058, 47.500085]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204979816",
+      "properties": {
+        "id": "osm-node-9204979816",
+        "name": "Северный переулок",
+        "shortName": "Северный переулок",
+        "osmId": 9204979816,
+        "osmUrl": "https://www.openstreetmap.org/node/9204979816",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1833624, 47.5005857]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985217",
+      "properties": {
+        "id": "osm-node-9204985217",
+        "name": "Северный переулок",
+        "shortName": "Северный переулок",
+        "osmId": 9204985217,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985217",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1836306, 47.5000529]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9340937271",
+      "properties": {
+        "id": "osm-node-9340937271",
+        "name": "Сельская ярмарка",
+        "shortName": "Сельская ярмарка",
+        "osmId": 9340937271,
+        "osmUrl": "https://www.openstreetmap.org/node/9340937271",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1491287, 47.5274711]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396312",
+      "properties": {
+        "id": "osm-node-1189396312",
+        "name": "Сквер Дружбы",
+        "shortName": "Сквер Дружбы",
+        "osmId": 1189396312,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396312",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2013605, 47.5142863]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396314",
+      "properties": {
+        "id": "osm-node-1189396314",
+        "name": "Сквер Дружбы",
+        "shortName": "Сквер Дружбы",
+        "osmId": 1189396314,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396314",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2015647, 47.5137384]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-660852775",
+      "properties": {
+        "id": "osm-node-660852775",
+        "name": "Сквер Машиностроителей",
+        "shortName": "Сквер Машиностроителей",
+        "osmId": 660852775,
+        "osmUrl": "https://www.openstreetmap.org/node/660852775",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2099428, 47.5197092]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035338530",
+      "properties": {
+        "id": "osm-node-9035338530",
+        "name": "Сквер Машиностроителей",
+        "shortName": "Сквер Машиностроителей",
+        "osmId": 9035338530,
+        "osmUrl": "https://www.openstreetmap.org/node/9035338530",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2094841, 47.519306]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407143477",
+      "properties": {
+        "id": "osm-node-9407143477",
+        "name": "Соборная",
+        "shortName": "Соборная",
+        "osmId": 9407143477,
+        "osmUrl": "https://www.openstreetmap.org/node/9407143477",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.214462, 47.5259744]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9407143478",
+      "properties": {
+        "id": "osm-node-9407143478",
+        "name": "Соборная",
+        "shortName": "Соборная",
+        "osmId": 9407143478,
+        "osmUrl": "https://www.openstreetmap.org/node/9407143478",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2146981, 47.5260975]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985220",
+      "properties": {
+        "id": "osm-node-9204985220",
+        "name": "Совхозный переулок",
+        "shortName": "Совхозный переулок",
+        "osmId": 9204985220,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985220",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1900062, 47.4954446]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985225",
+      "properties": {
+        "id": "osm-node-9204985225",
+        "name": "Совхозный переулок",
+        "shortName": "Совхозный переулок",
+        "osmId": 9204985225,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985225",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1898909, 47.4952271]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336271",
+      "properties": {
+        "id": "osm-node-9222336271",
+        "name": "Солнечная",
+        "shortName": "Солнечная",
+        "osmId": 9222336271,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336271",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1978677, 47.5310732]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9222336273",
+      "properties": {
+        "id": "osm-node-9222336273",
+        "name": "Солнечная",
+        "shortName": "Солнечная",
+        "osmId": 9222336273,
+        "osmUrl": "https://www.openstreetmap.org/node/9222336273",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1995092, 47.5302528]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9343763948",
+      "properties": {
+        "id": "osm-node-9343763948",
+        "name": "Спортивная",
+        "shortName": "Спортивная",
+        "osmId": 9343763948,
+        "osmUrl": "https://www.openstreetmap.org/node/9343763948",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2013446, 47.5281275]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9363490706",
+      "properties": {
+        "id": "osm-node-9363490706",
+        "name": "Спортивная",
+        "shortName": "Спортивная",
+        "osmId": 9363490706,
+        "osmUrl": "https://www.openstreetmap.org/node/9363490706",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2026171, 47.5276629]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1189396303",
+      "properties": {
+        "id": "osm-node-1189396303",
+        "name": "Спорткомплекс Олимп",
+        "shortName": "Спорткомплекс Олимп",
+        "osmId": 1189396303,
+        "osmUrl": "https://www.openstreetmap.org/node/1189396303",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.195932, 47.5190063]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784626",
+      "properties": {
+        "id": "osm-node-9315784626",
+        "name": "Стадион Труд",
+        "shortName": "Стадион Труд",
+        "osmId": 9315784626,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784626",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1371191, 47.5218966]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784628",
+      "properties": {
+        "id": "osm-node-9315784628",
+        "name": "Стадион Труд",
+        "shortName": "Стадион Труд",
+        "osmId": 9315784628,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784628",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.13647, 47.5224119]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150393",
+      "properties": {
+        "id": "osm-node-1427150393",
+        "name": "СТО ВАЗ",
+        "shortName": "СТО ВАЗ",
+        "osmId": 1427150393,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150393",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1219766, 47.5441663]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427150432",
+      "properties": {
+        "id": "osm-node-1427150432",
+        "name": "СТО ВАЗ",
+        "shortName": "СТО ВАЗ",
+        "osmId": 1427150432,
+        "osmUrl": "https://www.openstreetmap.org/node/1427150432",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1220919, 47.5444234]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4550639693",
+      "properties": {
+        "id": "osm-node-4550639693",
+        "name": "Товары для дома",
+        "shortName": "Товары для дома",
+        "osmId": 4550639693,
+        "osmUrl": "https://www.openstreetmap.org/node/4550639693",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1690739, 47.5025401]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4581534891",
+      "properties": {
+        "id": "osm-node-4581534891",
+        "name": "Товары для дома",
+        "shortName": "Товары для дома",
+        "osmId": 4581534891,
+        "osmUrl": "https://www.openstreetmap.org/node/4581534891",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1687651, 47.5026406]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246981",
+      "properties": {
+        "id": "osm-node-9312246981",
+        "name": "Торговый дом Элита",
+        "shortName": "Торговый дом Элита",
+        "osmId": 9312246981,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246981",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1970655, 47.5211232]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1414547020",
+      "properties": {
+        "id": "osm-node-1414547020",
+        "name": "Торговый центр",
+        "shortName": "Торговый центр",
+        "osmId": 1414547020,
+        "osmUrl": "https://www.openstreetmap.org/node/1414547020",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2011631, 47.5182448]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1439043902",
+      "properties": {
+        "id": "osm-node-1439043902",
+        "name": "ТРЦ",
+        "shortName": "ТРЦ",
+        "osmId": 1439043902,
+        "osmUrl": "https://www.openstreetmap.org/node/1439043902",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": null,
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1845814, 47.5132568]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348913",
+      "properties": {
+        "id": "osm-node-9054348913",
+        "name": "Улица 30 лет Победы",
+        "shortName": "Улица 30 лет Победы",
+        "osmId": 9054348913,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348913",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1681202, 47.5110509]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348914",
+      "properties": {
+        "id": "osm-node-9054348914",
+        "name": "Улица 30 лет Победы",
+        "shortName": "Улица 30 лет Победы",
+        "osmId": 9054348914,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348914",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1674617, 47.5118001]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6134650747",
+      "properties": {
+        "id": "osm-node-6134650747",
+        "name": "Улица Академика Королева",
+        "shortName": "Улица Академика Королева",
+        "osmId": 6134650747,
+        "osmUrl": "https://www.openstreetmap.org/node/6134650747",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2077772, 47.5282206]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795671833",
+      "properties": {
+        "id": "osm-node-6795671833",
+        "name": "Улица Академика Королева",
+        "shortName": "Улица Академика Королева",
+        "osmId": 6795671833,
+        "osmUrl": "https://www.openstreetmap.org/node/6795671833",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2079614, 47.5287903]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6795671835",
+      "properties": {
+        "id": "osm-node-6795671835",
+        "name": "Улица Академика Королева",
+        "shortName": "Улица Академика Королева",
+        "osmId": 6795671835,
+        "osmUrl": "https://www.openstreetmap.org/node/6795671835",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2065747, 47.5285259]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339191",
+      "properties": {
+        "id": "osm-node-9035339191",
+        "name": "Улица Гагарина",
+        "shortName": "Улица Гагарина",
+        "osmId": 9035339191,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339191",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2094587, 47.5154888]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035339192",
+      "properties": {
+        "id": "osm-node-9035339192",
+        "name": "Улица Гагарина",
+        "shortName": "Улица Гагарина",
+        "osmId": 9035339192,
+        "osmUrl": "https://www.openstreetmap.org/node/9035339192",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2098731, 47.5157098]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315182514",
+      "properties": {
+        "id": "osm-node-9315182514",
+        "name": "Улица Горького",
+        "shortName": "Улица Горького",
+        "osmId": 9315182514,
+        "osmUrl": "https://www.openstreetmap.org/node/9315182514",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1406114, 47.5188349]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035334185",
+      "properties": {
+        "id": "osm-node-9035334185",
+        "name": "Улица Дружбы",
+        "shortName": "Улица Дружбы",
+        "osmId": 9035334185,
+        "osmUrl": "https://www.openstreetmap.org/node/9035334185",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2158511, 47.5189775]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9035334186",
+      "properties": {
+        "id": "osm-node-9035334186",
+        "name": "Улица Дружбы",
+        "shortName": "Улица Дружбы",
+        "osmId": 9035334186,
+        "osmUrl": "https://www.openstreetmap.org/node/9035334186",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2151229, 47.5198677]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054348908",
+      "properties": {
+        "id": "osm-node-9054348908",
+        "name": "Улица Карла Маркса",
+        "shortName": "Улица Карла Маркса",
+        "osmId": 9054348908,
+        "osmUrl": "https://www.openstreetmap.org/node/9054348908",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2169511, 47.5249285]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9060062489",
+      "properties": {
+        "id": "osm-node-9060062489",
+        "name": "Улица Карла Маркса",
+        "shortName": "Улица Карла Маркса",
+        "osmId": 9060062489,
+        "osmUrl": "https://www.openstreetmap.org/node/9060062489",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2180721, 47.5253977]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9060062487",
+      "properties": {
+        "id": "osm-node-9060062487",
+        "name": "Улица Маршала Кошевого",
+        "shortName": "Улица Маршала Кошевого",
+        "osmId": 9060062487,
+        "osmUrl": "https://www.openstreetmap.org/node/9060062487",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.2131938, 47.52264]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315182515",
+      "properties": {
+        "id": "osm-node-9315182515",
+        "name": "Улица Степная",
+        "shortName": "Улица Степная",
+        "osmId": 9315182515,
+        "osmUrl": "https://www.openstreetmap.org/node/9315182515",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1375483, 47.516758]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315278941",
+      "properties": {
+        "id": "osm-node-9315278941",
+        "name": "Улица Степная",
+        "shortName": "Улица Степная",
+        "osmId": 9315278941,
+        "osmUrl": "https://www.openstreetmap.org/node/9315278941",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1376554, 47.5166666]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246983",
+      "properties": {
+        "id": "osm-node-9312246983",
+        "name": "Улица Черникова",
+        "shortName": "Улица Черникова",
+        "osmId": 9312246983,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246983",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1975698, 47.5229236]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9312246985",
+      "properties": {
+        "id": "osm-node-9312246985",
+        "name": "Улица Черникова",
+        "shortName": "Улица Черникова",
+        "osmId": 9312246985,
+        "osmUrl": "https://www.openstreetmap.org/node/9312246985",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1979319, 47.5237496]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1418965905",
+      "properties": {
+        "id": "osm-node-1418965905",
+        "name": "Улица Энтузиастов",
+        "shortName": "Улица Энтузиастов",
+        "osmId": 1418965905,
+        "osmUrl": "https://www.openstreetmap.org/node/1418965905",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1934032, 47.5282198]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4550663091",
+      "properties": {
+        "id": "osm-node-4550663091",
+        "name": "Универсам",
+        "shortName": "Универсам",
+        "osmId": 4550663091,
+        "osmUrl": "https://www.openstreetmap.org/node/4550663091",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.165495, 47.5031976]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7184081108",
+      "properties": {
+        "id": "osm-node-7184081108",
+        "name": "Универсам",
+        "shortName": "Универсам",
+        "osmId": 7184081108,
+        "osmUrl": "https://www.openstreetmap.org/node/7184081108",
+        "shelter": "yes",
+        "bench": "yes",
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.164953, 47.5032965]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427017089",
+      "properties": {
+        "id": "osm-node-1427017089",
+        "name": "Центральный рынок",
+        "shortName": "Центральный рынок",
+        "osmId": 1427017089,
+        "osmUrl": "https://www.openstreetmap.org/node/1427017089",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1451429, 47.5272857]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-1427017091",
+      "properties": {
+        "id": "osm-node-1427017091",
+        "name": "Центральный рынок",
+        "shortName": "Центральный рынок",
+        "osmId": 1427017091,
+        "osmUrl": "https://www.openstreetmap.org/node/1427017091",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1453789, 47.5293902]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9054354721",
+      "properties": {
+        "id": "osm-node-9054354721",
+        "name": "Центральный рынок",
+        "shortName": "Центральный рынок",
+        "osmId": 9054354721,
+        "osmUrl": "https://www.openstreetmap.org/node/9054354721",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1452235, 47.5275013]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6567677841",
+      "properties": {
+        "id": "osm-node-6567677841",
+        "name": "Церковь",
+        "shortName": "Церковь",
+        "osmId": 6567677841,
+        "osmUrl": "https://www.openstreetmap.org/node/6567677841",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1908439, 47.508686]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-6567677842",
+      "properties": {
+        "id": "osm-node-6567677842",
+        "name": "Церковь",
+        "shortName": "Церковь",
+        "osmId": 6567677842,
+        "osmUrl": "https://www.openstreetmap.org/node/6567677842",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1901023, 47.5090365]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985226",
+      "properties": {
+        "id": "osm-node-9204985226",
+        "name": "Школа",
+        "shortName": "Школа",
+        "osmId": 9204985226,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985226",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1864255, 47.4929881]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9204985227",
+      "properties": {
+        "id": "osm-node-9204985227",
+        "name": "Школа",
+        "shortName": "Школа",
+        "osmId": 9204985227,
+        "osmUrl": "https://www.openstreetmap.org/node/9204985227",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1862002, 47.4931077]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-4581492394",
+      "properties": {
+        "id": "osm-node-4581492394",
+        "name": "Школа №16",
+        "shortName": "Школа №16",
+        "osmId": 4581492394,
+        "osmUrl": "https://www.openstreetmap.org/node/4581492394",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1749384, 47.5033132]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-5160621414",
+      "properties": {
+        "id": "osm-node-5160621414",
+        "name": "Школа №16",
+        "shortName": "Школа №16",
+        "osmId": 5160621414,
+        "osmUrl": "https://www.openstreetmap.org/node/5160621414",
+        "shelter": "yes",
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1741537, 47.5031804]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-10090292617",
+      "properties": {
+        "id": "osm-node-10090292617",
+        "name": "Экскаваторная",
+        "shortName": "Экскаваторная",
+        "osmId": 10090292617,
+        "osmUrl": "https://www.openstreetmap.org/node/10090292617",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1279158, 47.5745746]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7058094465",
+      "properties": {
+        "id": "osm-node-7058094465",
+        "name": "Юго-Западный район",
+        "shortName": "Юго-Западный район",
+        "osmId": 7058094465,
+        "osmUrl": "https://www.openstreetmap.org/node/7058094465",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1723466, 47.5087578]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-7058094469",
+      "properties": {
+        "id": "osm-node-7058094469",
+        "name": "Юго-Западный район",
+        "shortName": "Юго-Западный район",
+        "osmId": 7058094469,
+        "osmUrl": "https://www.openstreetmap.org/node/7058094469",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1728302, 47.5079871]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784634",
+      "properties": {
+        "id": "osm-node-9315784634",
+        "name": "Югпромсервис",
+        "shortName": "Югпромсервис",
+        "osmId": 9315784634,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784634",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1321101, 47.5253447]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "osm-node-9315784636",
+      "properties": {
+        "id": "osm-node-9315784636",
+        "name": "Югпромсервис",
+        "shortName": "Югпромсервис",
+        "osmId": 9315784636,
+        "osmUrl": "https://www.openstreetmap.org/node/9315784636",
+        "shelter": null,
+        "bench": null,
+        "bus": "yes",
+        "trolleybus": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1320323, 47.5257423]
       }
     }
   ]

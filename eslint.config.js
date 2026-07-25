@@ -23,4 +23,10 @@ export default tseslint.config(
       'vue/require-default-prop': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 )

@@ -1,163 +1,155 @@
 <script setup lang="ts">
-import { BusFront, CircleHelp, Layers3, LoaderCircle, Navigation, Radio } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { LocateFixed, LoaderCircle, Search, X } from '@lucide/vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
-import ActiveRideCard from '@/components/ActiveRideCard.vue'
 import MapCanvas from '@/components/MapCanvas.vue'
-import RideSetupDialog from '@/components/RideSetupDialog.vue'
-import StopPanel from '@/components/StopPanel.vue'
-import Badge from '@/components/ui/badge/Badge.vue'
+import TransitSheet from '@/components/TransitSheet.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { useRideStore } from '@/stores/ride'
+import Input from '@/components/ui/input/Input.vue'
 import { useTransitStore } from '@/stores/transit'
-import type { RouteDirection, TransitRoute } from '@/types/transit'
+
+type SheetMode = 'idle' | 'search' | 'stop'
+
+interface MapCanvasExposed {
+  showUserLocation(longitude: number, latitude: number): void
+}
 
 const transit = useTransitStore()
-const ride = useRideStore()
-const rideSetupOpen = ref(false)
-const suggestedRouteId = ref<string>()
+const mapCanvas = ref<MapCanvasExposed | null>(null)
+const searchQuery = ref('')
+const searchOpen = ref(false)
+const locating = ref(false)
+const locationMessage = ref('')
 
-const activeRoute = computed(() =>
-  ride.activeRide
-    ? transit.routeStops.routes.find((route) => route.routeId === ride.activeRide?.routeId)
-    : undefined,
-)
-const activeDirection = computed(() =>
-  ride.activeRide && activeRoute.value
-    ? activeRoute.value.directions.find(
-        (direction) => direction.id === ride.activeRide?.directionId,
-      )
-    : undefined,
-)
-
-onMounted(async () => {
-  await Promise.all([transit.initialise(), ride.refreshPendingCount()])
+const sheetMode = computed<SheetMode>(() => {
+  if (searchOpen.value) return 'search'
+  if (transit.selectedStop) return 'stop'
+  return 'idle'
 })
 
-function openRideSetup(routeId?: string) {
-  suggestedRouteId.value = routeId
-  rideSetupOpen.value = true
+const searchResults = computed(() => {
+  const normalizedQuery = searchQuery.value.trim().toLocaleLowerCase('ru')
+  const stops = transit.stops.features
+  if (!normalizedQuery) return stops.slice(0, 6)
+
+  return stops
+    .filter((stop) =>
+      `${stop.properties.name} ${stop.properties.shortName}`
+        .toLocaleLowerCase('ru')
+        .includes(normalizedQuery),
+    )
+    .slice(0, 6)
+})
+
+onMounted(async () => {
+  await transit.initialise()
+})
+
+watch(
+  () => transit.selectedStopId,
+  (stopId) => {
+    if (!stopId) return
+    const stop = transit.stopsById.get(stopId)
+    if (stop) searchQuery.value = stop.properties.name
+    searchOpen.value = false
+  },
+)
+
+function selectSearchResult(stopId: string) {
+  const stop = transit.stopsById.get(stopId)
+  if (stop) searchQuery.value = stop.properties.name
+  transit.selectStop(stopId)
+  searchOpen.value = false
 }
 
-function startRide(route: TransitRoute, direction: RouteDirection) {
-  ride.startRide(route, direction)
+function clearSearch() {
+  searchQuery.value = ''
   transit.selectStop(null)
-  rideSetupOpen.value = false
+  searchOpen.value = true
 }
 
-async function markNextStop() {
-  if (!activeDirection.value) return
-  await ride.markNextStop(activeDirection.value)
+function closeSearch() {
+  searchOpen.value = false
+  if (!searchQuery.value) transit.selectStop(null)
+}
+
+function closeStop() {
+  searchQuery.value = ''
+  transit.selectStop(null)
+}
+
+function locateUser() {
+  locationMessage.value = ''
+  if (!navigator.geolocation) {
+    locationMessage.value = 'Геолокация недоступна в этом браузере.'
+    return
+  }
+
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      locating.value = false
+      mapCanvas.value?.showUserLocation(position.coords.longitude, position.coords.latitude)
+    },
+    () => {
+      locating.value = false
+      locationMessage.value = 'Не удалось определить местоположение.'
+    },
+    {
+      enableHighAccuracy: false,
+      timeout: 10_000,
+      maximumAge: 60_000,
+    },
+  )
 }
 </script>
 
 <template>
-  <div class="relative h-full w-full bg-muted">
-    <MapCanvas v-if="transit.stops.features.length" />
+  <main class="relative h-full w-full bg-muted">
+    <MapCanvas v-if="transit.stops.features.length" ref="mapCanvas" />
 
-    <header
-      class="safe-top pointer-events-none fixed inset-x-0 top-0 z-20 flex items-center justify-between px-3 md:px-4"
-    >
-      <div
-        class="pointer-events-auto flex items-center gap-2 rounded-2xl border border-white/70 bg-card/92 p-2 pr-3 shadow-float backdrop-blur-xl"
-      >
-        <span class="flex size-10 items-center justify-center rounded-xl bg-primary text-secondary">
-          <BusFront class="size-5" />
-        </span>
-        <div>
-          <h1 class="text-sm font-black leading-none tracking-tight">Останобус</h1>
-          <p class="mt-1 text-[10px] leading-none text-muted-foreground">Волгодонск · прототип</p>
-        </div>
-      </div>
-
-      <div class="pointer-events-auto flex items-center gap-2">
-        <Badge v-if="ride.pendingCount > 0" class="hidden shadow sm:inline-flex">
-          <Radio class="mr-1.5 size-3.5 text-amber-600" />
-          {{ ride.pendingCount }} в очереди
-        </Badge>
-        <RouterLink
-          to="/about"
-          class="flex size-11 items-center justify-center rounded-xl border border-white/70 bg-card/92 shadow-float backdrop-blur-xl"
-          aria-label="О приложении"
+    <div class="safe-top fixed inset-x-0 top-0 z-20 flex items-start gap-2 px-2" role="search">
+      <div class="relative min-w-0 flex-1">
+        <Search
+          class="pointer-events-none absolute left-3 top-1/2 z-10 size-5 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          v-model="searchQuery"
+          class="border-border bg-background pl-10 pr-10 shadow-sm"
+          placeholder="Остановка или маршрут"
+          autocomplete="off"
+          @focus="searchOpen = true"
+        />
+        <button
+          v-if="searchQuery"
+          class="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+          aria-label="Очистить поиск"
+          @click="clearSearch"
         >
-          <CircleHelp class="size-5" />
-        </RouterLink>
+          <X class="size-4" />
+        </button>
       </div>
-    </header>
 
-    <div
-      v-if="transit.loading"
-      class="absolute inset-0 z-10 flex items-center justify-center bg-background"
-    >
-      <div class="text-center text-sm text-muted-foreground">
-        <LoaderCircle class="mx-auto mb-3 size-7 animate-spin text-primary" />
-        Загружаем маршруты
-      </div>
-    </div>
-
-    <div
-      v-else-if="transit.error"
-      class="absolute left-1/2 top-1/2 z-10 w-[min(90%,360px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-card p-5 text-center shadow-float"
-    >
-      <p class="font-bold">Карта не загрузилась</p>
-      <p class="mt-2 text-sm text-muted-foreground">{{ transit.error }}</p>
-      <Button class="mt-4" @click="transit.initialise()">Повторить</Button>
-    </div>
-
-    <div
-      v-if="!transit.selectedStop && !ride.isActive && !transit.loading"
-      class="pointer-events-none fixed inset-x-0 bottom-5 z-10 flex justify-center px-4"
-    >
-      <div
-        class="pointer-events-auto flex max-w-sm items-center gap-3 rounded-2xl border border-white/70 bg-card/94 p-3 pr-5 shadow-float backdrop-blur-xl"
+      <Button
+        variant="outline"
+        size="icon"
+        class="shrink-0 bg-background shadow-sm"
+        :disabled="locating"
+        aria-label="Моё местоположение"
+        @click="locateUser"
       >
-        <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary/55">
-          <Navigation class="size-5 text-primary" />
-        </span>
-        <div>
-          <p class="text-sm font-bold">Выберите остановку</p>
-          <p class="mt-0.5 text-xs text-muted-foreground">
-            Нажмите на любую точку, чтобы увидеть прогноз
-          </p>
-        </div>
-      </div>
+        <LoaderCircle v-if="locating" class="size-5 animate-spin" />
+        <LocateFixed v-else class="size-5" />
+      </Button>
     </div>
 
-    <div
-      class="pointer-events-none fixed left-3 top-[max(5.3rem,env(safe-area-inset-top))] z-10 md:left-4"
-    >
-      <Badge class="pointer-events-auto shadow">
-        <Layers3 class="mr-1.5 size-3.5" />
-        2 маршрута · 7 остановок
-      </Badge>
-    </div>
-
-    <StopPanel
-      v-if="transit.selectedStop && !ride.isActive"
-      :stop="transit.selectedStop"
-      :forecasts="transit.selectedStopForecasts"
-      @close="transit.selectStop(null)"
-      @start-ride="openRideSetup"
+    <TransitSheet
+      :mode="sheetMode"
+      :search-results="searchResults"
+      :location-message="locationMessage"
+      @select-stop="selectSearchResult"
+      @close-search="closeSearch"
+      @close-stop="closeStop"
     />
-
-    <ActiveRideCard
-      v-if="ride.activeRide && activeRoute && activeDirection"
-      :ride="ride.activeRide"
-      :route="activeRoute"
-      :direction="activeDirection"
-      :stops-by-id="transit.stopsById"
-      :pending-count="ride.pendingCount"
-      :just-saved-stop-id="ride.justSavedStopId"
-      @mark="markNextStop"
-      @finish="ride.finishRide"
-    />
-
-    <RideSetupDialog
-      v-model:open="rideSetupOpen"
-      :routes="transit.routeStops.routes"
-      :suggested-route-id="suggestedRouteId"
-      @start="startRide"
-    />
-  </div>
+  </main>
 </template>
