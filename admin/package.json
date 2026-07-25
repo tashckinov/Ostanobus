@@ -1,0 +1,22 @@
+{
+  "name": "ostanobus-admin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "check": "npm run build"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.6.1",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.6",
+    "vue-tsc": "^3.0.4"
+  }
+}

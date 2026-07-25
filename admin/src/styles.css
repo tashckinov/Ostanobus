@@ -1,0 +1,411 @@
+:root {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #17212b;
+  background: #f3f4f5;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 1024px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  min-height: 100vh;
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #d8dde2;
+  background: #fff;
+  padding: 20px 12px;
+}
+.brand {
+  padding: 0 10px 20px;
+  font-size: 19px;
+  font-weight: 700;
+}
+.brand small {
+  display: block;
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+}
+.sidebar nav {
+  display: grid;
+  gap: 3px;
+}
+.sidebar nav button,
+.logout {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+}
+.sidebar nav button:hover,
+.sidebar nav button.active {
+  background: #e9f2fb;
+  color: #005ca8;
+}
+.logout {
+  margin-top: auto;
+  color: #b42318;
+}
+.workspace {
+  min-width: 0;
+}
+.page-header {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #d8dde2;
+  background: #fff;
+  padding: 14px 24px;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 21px;
+}
+.page-header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+.toolbar-actions,
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 1px solid #006fca;
+  border-radius: 5px;
+  background: #006fca;
+  color: white;
+  padding: 8px 12px;
+}
+button:hover {
+  background: #005ca8;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+button.secondary {
+  border-color: #c9d0d7;
+  background: white;
+  color: #17212b;
+}
+button.danger {
+  border-color: #d92d20;
+  background: white;
+  color: #b42318;
+}
+button.text-button,
+button.text-danger {
+  border: 0;
+  background: transparent;
+  color: #006fca;
+  padding: 4px;
+}
+button.text-danger {
+  color: #b42318;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #b9c1c9;
+  border-radius: 4px;
+  background: #fff;
+  padding: 8px 9px;
+}
+label {
+  display: grid;
+  gap: 5px;
+  color: #4b5563;
+  font-size: 12px;
+}
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-top: 23px;
+}
+label.check input {
+  width: auto;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  height: calc(100vh - 74px);
+}
+.route-editor {
+  grid-template-columns: minmax(0, 1fr) 460px;
+}
+.map {
+  min-height: 400px;
+  height: 100%;
+}
+.panel {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  border-left: 1px solid #d8dde2;
+  background: #fff;
+  padding: 20px;
+  overflow: auto;
+}
+.panel h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+.route-panel {
+  padding-bottom: 50px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e3e6e9;
+  padding-top: 13px;
+}
+button.tab {
+  min-width: 32px;
+  border-color: #c9d0d7;
+  background: #fff;
+  color: #17212b;
+  padding: 5px;
+}
+button.tab.active {
+  border-color: #006fca;
+  background: #e9f2fb;
+  color: #005ca8;
+}
+.mode-switch,
+.days {
+  display: flex;
+  gap: 6px;
+}
+.mode-switch button,
+.days button {
+  flex: 1;
+  border-color: #c9d0d7;
+  background: #fff;
+  color: #17212b;
+}
+.mode-switch button.active,
+.days button.active {
+  border-color: #006fca;
+  background: #e9f2fb;
+  color: #005ca8;
+}
+.waypoints {
+  display: grid;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+.waypoints li {
+  display: grid;
+  grid-template-columns: 25px 1fr auto auto auto;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 7px 0;
+}
+.waypoints li > span {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #17212b;
+  color: #fff;
+  font-size: 10px;
+}
+.waypoints li > span.via {
+  background: #f59e0b;
+}
+.waypoints li strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.waypoints li button {
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  padding: 2px;
+}
+.notice,
+.success {
+  color: #067647;
+  font-size: 12px;
+}
+.error {
+  color: #b42318;
+}
+.muted {
+  color: #6b7280;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 24px;
+}
+.metrics div {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #d8dde2;
+  background: #fff;
+  padding: 18px;
+}
+.metrics strong {
+  font-size: 28px;
+}
+.metrics span {
+  color: #6b7280;
+  font-size: 13px;
+}
+.content-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+.content-grid .panel {
+  border: 1px solid #d8dde2;
+}
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #d8dde2;
+  background: #fff;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th,
+td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  color: #4b5563;
+  font-weight: 600;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+.ticket-list {
+  display: grid;
+  align-content: start;
+  border: 1px solid #d8dde2;
+  background: #fff;
+}
+.ticket-list button {
+  display: grid;
+  gap: 4px;
+  border: 0;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  background: #fff;
+  color: #17212b;
+  text-align: left;
+}
+.ticket-list button.active {
+  background: #e9f2fb;
+}
+.ticket-list span {
+  overflow: hidden;
+  color: #4b5563;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ticket-list small {
+  color: #6b7280;
+}
+dl {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 6px;
+  font-size: 12px;
+}
+dt {
+  color: #6b7280;
+}
+dd {
+  margin: 0;
+}
+
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+.login-form {
+  display: grid;
+  width: 340px;
+  gap: 14px;
+  border: 1px solid #d8dde2;
+  background: #fff;
+  padding: 28px;
+}
+.login-form h1 {
+  margin: 0;
+}
+.login-form p {
+  margin: 0;
+  color: #6b7280;
+}

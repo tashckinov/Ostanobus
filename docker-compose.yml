@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '${BACKEND_PORT:-8080}:8080'
+    environment:
+      PORT: 8080
+      HOST: 0.0.0.0
+      SQLITE_PATH: /app/data/ostanobus.sqlite
+      SEED_DATA_DIR: /app/seed
+      ADMIN_STATIC_DIR: /app/admin
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ostanobus.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      JWT_SECRET: ${JWT_SECRET:-replace-this-development-secret}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080,https://tashckinov.github.io}
+      ROUTER_URL: ${ROUTER_URL:-https://routing.openstreetmap.de/routed-car/route/v1/driving}
+    volumes:
+      - ostanobus-data:/app/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8080/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  ostanobus-data:

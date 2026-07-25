@@ -6,19 +6,23 @@ import {
   ChevronRight,
   Clock3,
   History,
+  MessageCircle,
   MapPin,
+  Send,
   Square,
 } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
+import { refreshSupportTickets, submitSupportTicket, type SupportTicketDraft } from '@/lib/support'
+import type { SupportTicketReference } from '@/types/transit'
 import type { StopFeature } from '@/types/transit'
 
-type SheetMode = 'idle' | 'search' | 'stop' | 'ride' | 'history'
+type SheetMode = 'idle' | 'search' | 'stop' | 'ride' | 'history' | 'support'
 
-defineProps<{
+const props = defineProps<{
   mode: SheetMode
   searchResults: StopFeature[]
   locationMessage?: string
@@ -30,6 +34,8 @@ const emit = defineEmits<{
   closeStop: []
   openHistory: []
   closeHistory: []
+  openSupport: []
+  closeSupport: []
   rideStarted: []
 }>()
 
@@ -39,6 +45,11 @@ const savingArrival = ref(false)
 const startingRide = ref(false)
 const markingStop = ref(false)
 const actionMessage = ref('')
+const supportMessage = ref('')
+const supportCategory = ref<SupportTicketDraft['category']>('other')
+const supportSending = ref(false)
+const supportError = ref('')
+const supportTickets = ref<SupportTicketReference[]>([])
 
 const selectedForecast = computed(() => transit.selectedStopForecasts[0])
 const selectedDirection = computed(() => {
@@ -133,6 +144,38 @@ function formatEventTime(createdAt: string) {
     minute: '2-digit',
   }).format(new Date(createdAt))
 }
+
+async function refreshTickets() {
+  supportTickets.value = await refreshSupportTickets()
+}
+
+async function sendTicket() {
+  if (supportMessage.value.trim().length < 3) return
+  supportSending.value = true
+  supportError.value = ''
+  try {
+    await submitSupportTicket({
+      category: supportCategory.value,
+      message: supportMessage.value.trim(),
+      stopId: transit.selectedStopId,
+      routeId: selectedForecast.value?.routeId ?? null,
+    })
+    supportMessage.value = ''
+    await refreshTickets()
+  } catch (error) {
+    supportError.value = error instanceof Error ? error.message : 'Не удалось отправить обращение'
+  } finally {
+    supportSending.value = false
+  }
+}
+
+watch(
+  () => props.mode,
+  (mode) => {
+    if (mode === 'support') void refreshTickets()
+  },
+)
+onMounted(refreshTickets)
 </script>
 
 <template>
@@ -144,7 +187,7 @@ function formatEventTime(createdAt: string) {
       <div class="mx-auto mt-2 h-1 w-8 rounded-full bg-border" />
 
       <div
-        v-if="mode === 'search' || mode === 'stop' || mode === 'history'"
+        v-if="mode === 'search' || mode === 'stop' || mode === 'history' || mode === 'support'"
         class="flex h-12 items-center border-b border-border px-2"
       >
         <Button
@@ -155,15 +198,25 @@ function formatEventTime(createdAt: string) {
           @click="
             mode === 'search'
               ? emit('closeSearch')
-              : mode === 'history'
-                ? emit('closeHistory')
-                : emit('closeStop')
+              : mode === 'support'
+                ? emit('closeSupport')
+                : mode === 'history'
+                  ? emit('closeHistory')
+                  : emit('closeStop')
           "
         >
           <ArrowLeft class="size-5" />
         </Button>
         <h2 class="px-1 text-base font-semibold">
-          {{ mode === 'search' ? 'Остановки' : mode === 'history' ? 'История' : 'Остановка' }}
+          {{
+            mode === 'search'
+              ? 'Остановки'
+              : mode === 'history'
+                ? 'История'
+                : mode === 'support'
+                  ? 'Поддержка'
+                  : 'Остановка'
+          }}
         </h2>
       </div>
     </div>
@@ -185,10 +238,16 @@ function formatEventTime(createdAt: string) {
           <h2 class="text-base font-semibold">Остановки Волгодонска</h2>
           <p class="mt-1 text-sm text-muted-foreground">Выберите остановку маршрута 3К на карте.</p>
         </div>
-        <Button variant="outline" size="sm" @click="emit('openHistory')">
-          <History class="size-4" />
-          История
-        </Button>
+        <div class="flex gap-2">
+          <Button variant="outline" size="sm" @click="emit('openSupport')">
+            <MessageCircle class="size-4" />
+            Поддержка
+          </Button>
+          <Button variant="outline" size="sm" @click="emit('openHistory')">
+            <History class="size-4" />
+            История
+          </Button>
+        </div>
       </div>
       <p v-if="locationMessage" class="mt-2 text-sm text-red-600">{{ locationMessage }}</p>
       <p class="mt-3 text-xs text-muted-foreground">
@@ -227,7 +286,7 @@ function formatEventTime(createdAt: string) {
             <span class="block text-[15px] font-medium">
               {{ selectedForecast.minMinutes }}–{{ selectedForecast.maxMinutes }} мин
             </span>
-            <span class="block text-xs text-muted-foreground">Тестовый прогноз из JSON</span>
+            <span class="block text-xs text-muted-foreground">Вероятностный прогноз</span>
           </span>
         </div>
 
@@ -308,6 +367,52 @@ function formatEventTime(createdAt: string) {
       <p v-if="!ride.events.length" class="px-4 py-5 text-sm text-muted-foreground">
         Локальных отметок пока нет.
       </p>
+    </div>
+
+    <div v-else-if="mode === 'support'" class="px-4 pb-2 pt-3">
+      <label class="block text-xs font-medium text-muted-foreground">
+        Тема
+        <select
+          v-model="supportCategory"
+          class="mt-1 h-10 w-full rounded border border-border bg-background px-2 text-sm"
+        >
+          <option value="stop">Остановка</option>
+          <option value="route">Маршрут</option>
+          <option value="schedule">Расписание</option>
+          <option value="forecast">Прогноз</option>
+          <option value="other">Другое</option>
+        </select>
+      </label>
+      <label class="mt-3 block text-xs font-medium text-muted-foreground">
+        Сообщение
+        <textarea
+          v-model="supportMessage"
+          rows="4"
+          maxlength="4000"
+          class="mt-1 w-full resize-none rounded border border-border bg-background p-2 text-sm text-foreground"
+          placeholder="Опишите проблему"
+        />
+      </label>
+      <Button
+        class="mt-2 w-full"
+        :disabled="supportSending || supportMessage.trim().length < 3"
+        @click="sendTicket"
+      >
+        <Send class="size-4" />
+        {{ supportSending ? 'Отправляем…' : 'Отправить обращение' }}
+      </Button>
+      <p v-if="supportError" class="mt-2 text-xs text-red-600">{{ supportError }}</p>
+
+      <div v-if="supportTickets.length" class="mt-4 border-t border-border">
+        <div v-for="ticket in supportTickets" :key="ticket.id" class="border-b border-border py-3">
+          <div class="flex justify-between gap-2">
+            <span class="text-sm font-medium">Обращение</span>
+            <span class="text-xs text-muted-foreground">{{ ticket.status }}</span>
+          </div>
+          <p v-if="ticket.adminReply" class="mt-1 text-sm">{{ ticket.adminReply }}</p>
+          <p v-else class="mt-1 text-xs text-muted-foreground">Ответа пока нет</p>
+        </div>
+      </div>
     </div>
   </section>
 </template>

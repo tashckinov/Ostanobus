@@ -12,7 +12,7 @@ export interface TransitEvent {
   directionId: string | null
   stopId: string
   createdAt: string
-  status: 'pending'
+  status: 'pending' | 'synced' | 'rejected'
 }
 
 export interface AppSetting {
@@ -64,12 +64,18 @@ class OstanobusDatabase extends Dexie {
       activeRide: 'id, routeId, directionId',
       settings: 'key',
     })
+
+    this.version(4).stores({
+      events: 'id, createdAt, type, routeId, stopId, status',
+      activeRide: 'id, routeId, directionId',
+      settings: 'key',
+    })
   }
 }
 
 export const db = new OstanobusDatabase()
 
-async function getClientId() {
+export async function getClientId() {
   const existing = await db.settings.get('clientId')
   if (typeof existing?.value === 'string') return existing.value
 
@@ -103,6 +109,28 @@ export function listEvents(limit = 50) {
 
 export function pendingEventCount() {
   return db.events.where('status').equals('pending').count()
+}
+
+export function listPendingEvents(limit = 100) {
+  return db.events.where('status').equals('pending').limit(limit).toArray()
+}
+
+export async function updateEventStatuses(syncedIds: string[], rejectedIds: string[] = []) {
+  await db.transaction('rw', db.events, async () => {
+    await Promise.all([
+      ...syncedIds.map((id) => db.events.update(id, { status: 'synced' })),
+      ...rejectedIds.map((id) => db.events.update(id, { status: 'rejected' })),
+    ])
+  })
+}
+
+export async function readSetting<T>(key: string): Promise<T | null> {
+  const setting = await db.settings.get(key)
+  return (setting?.value as T | undefined) ?? null
+}
+
+export function writeSetting(key: string, value: unknown) {
+  return db.settings.put({ key, value, updatedAt: new Date().toISOString() })
 }
 
 export function loadActiveRide() {
