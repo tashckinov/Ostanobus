@@ -59,6 +59,10 @@ docker compose up -d --build backend
 Это запускает Fastify API на порту `8080`; собранные статические файлы админки остаются доступны
 по `/admin/`, отдельного процесса админки нет.
 
+Порт backend публикуется только на `127.0.0.1`, чтобы снаружи к нему обращался Nginx, а не
+клиенты напрямую. Например, при `BACKEND_PORT=6767` upstream для Nginx —
+`http://127.0.0.1:6767`.
+
 ## Публичное API
 
 | Метод  | URL                                      | Назначение                                        |
@@ -123,15 +127,13 @@ PostgreSQL/PostGIS нужно добавить версионируемые ми
 Workflow `.github/workflows/deploy-pages.yml` проверяет все три части проекта и публикует PWA из
 `dist`. В репозитории выберите **Settings → Pages → Source: GitHub Actions**.
 
-Добавьте в **Settings → Secrets and variables → Actions → Variables** переменную:
+Production API закреплён в workflow и попадает в PWA как
+`VITE_API_BASE_URL=https://ostanobus.duckdns.org`. При запуске приложение проверяет
+`/api/v1/health`. Если backend не отвечает, PWA показывает статус «Оффлайн» и использует данные
+из локальной сборки. Проверка повторяется после восстановления сети и раз в минуту.
 
-```text
-API_BASE_URL=https://api.example.ru
-```
-
-Она попадает в PWA как `VITE_API_BASE_URL`. Backend для опубликованной PWA должен быть доступен
-по HTTPS; его origin также нужно добавить в `CORS_ORIGINS`. TLS удобно завершать на Caddy или
-Nginx перед контейнером.
+Backend должен быть доступен по HTTPS; origin GitHub Pages нужно оставить в `CORS_ORIGINS`. TLS
+удобно завершать на Caddy или Nginx перед контейнером.
 
 ## Локальная разработка
 
