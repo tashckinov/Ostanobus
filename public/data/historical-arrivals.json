@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-25T12:00:00.000Z",
+  "forecasts": [
+    {
+      "stopId": "stop-druzhby",
+      "routeId": "14",
+      "minMinutes": 7,
+      "maxMinutes": 12,
+      "confidence": "high",
+      "sampleSize": 34
+    },
+    {
+      "stopId": "stop-druzhby",
+      "routeId": "18",
+      "minMinutes": 16,
+      "maxMinutes": 24,
+      "confidence": "medium",
+      "sampleSize": 18
+    },
+    {
+      "stopId": "stop-kurchatova",
+      "routeId": "14",
+      "minMinutes": 5,
+      "maxMinutes": 10,
+      "confidence": "high",
+      "sampleSize": 31
+    },
+    {
+      "stopId": "stop-kurchatova",
+      "routeId": "18",
+      "minMinutes": 13,
+      "maxMinutes": 20,
+      "confidence": "medium",
+      "sampleSize": 16
+    },
+    {
+      "stopId": "stop-stroiteley",
+      "routeId": "14",
+      "minMinutes": 3,
+      "maxMinutes": 8,
+      "confidence": "high",
+      "sampleSize": 36
+    },
+    {
+      "stopId": "stop-stroiteley",
+      "routeId": "18",
+      "minMinutes": 10,
+      "maxMinutes": 17,
+      "confidence": "medium",
+      "sampleSize": 22
+    },
+    {
+      "stopId": "stop-kosmos",
+      "routeId": "14",
+      "minMinutes": 8,
+      "maxMinutes": 14,
+      "confidence": "medium",
+      "sampleSize": 27
+    },
+    {
+      "stopId": "stop-kosmos",
+      "routeId": "18",
+      "minMinutes": 4,
+      "maxMinutes": 9,
+      "confidence": "high",
+      "sampleSize": 29
+    },
+    {
+      "stopId": "stop-lenina",
+      "routeId": "14",
+      "minMinutes": 11,
+      "maxMinutes": 18,
+      "confidence": "medium",
+      "sampleSize": 24
+    },
+    {
+      "stopId": "stop-lenina",
+      "routeId": "18",
+      "minMinutes": 6,
+      "maxMinutes": 13,
+      "confidence": "medium",
+      "sampleSize": 20
+    },
+    {
+      "stopId": "stop-vokzal",
+      "routeId": "14",
+      "minMinutes": 2,
+      "maxMinutes": 7,
+      "confidence": "high",
+      "sampleSize": 41
+    },
+    {
+      "stopId": "stop-mira",
+      "routeId": "14",
+      "minMinutes": 9,
+      "maxMinutes": 16,
+      "confidence": "medium",
+      "sampleSize": 21
+    }
+  ]
+}
