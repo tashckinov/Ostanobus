@@ -21,7 +21,13 @@
             "osm-node-9312535779",
             "osm-node-9222336258",
             "osm-node-9222336260"
-          ]
+          ],
+          "distanceMeters": 6740,
+          "path": {
+            "format": "polyline",
+            "precision": 5,
+            "value": "ilaaH{}w`GP\\DJ@DnAjCg@n@a@h@iCdDY^a@y@??k@qA[s@]b@Zr@d@dA|C~GDH|@pBR`@`@|@DHxCvGVj@??zAhD\\r@g@j@c@l@GHaApA}CvD{FjHGHA@}@fAYZGHoA`BSVABa@f@oBjCe@n@yArCIXg@DWn@SnA_@hCCV[dDEl@_@xGSlDZBATKhAe@`Eg@dBa@nAc@bAKRe@x@ILOT_@f@S`@O\\_BrBiDlEeApAOREFA@{CvDyBpCeApAeApAW\\yAlBY`@gAxAAN@HBHFDJBn@y@FI??d@m@@ChB_CpA_B@KEQCIGEICeApAW\\yAlBY`@gAxAOPKNi@p@wBnCuCrDcEjFGHwBnCXh@bBwB??\\c@HKrDuEvHuJ\\e@n@y@FId@m@h@pAf@dADHDHpCdGXn@j@lAjC~Fh@lA??P^JR_@d@{@fAe@j@OReArAoA~AgAtAwFjHs@|@GFMP_AjA_BrBMNk@qAKSQa@GMi@kACmAaBsDCGEIwAcDm@I]u@s@_B[b@n@vAj@pAbBrDDJXn@dFzKX_@LO~AsB~@kA@C"
+          }
         }
       ]
     }

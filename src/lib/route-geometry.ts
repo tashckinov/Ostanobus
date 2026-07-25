@@ -10,6 +10,36 @@ interface RouteLineProperties {
   isMock: boolean
 }
 
+export function decodePolyline(value: string, precision = 5): number[][] {
+  const coordinates: number[][] = []
+  const factor = 10 ** precision
+  let index = 0
+  let latitude = 0
+  let longitude = 0
+
+  function decodeValue() {
+    let result = 0
+    let shift = 0
+    let byte: number
+
+    do {
+      byte = value.charCodeAt(index++) - 63
+      result |= (byte & 0x1f) << shift
+      shift += 5
+    } while (byte >= 0x20 && index < value.length)
+
+    return result & 1 ? ~(result >> 1) : result >> 1
+  }
+
+  while (index < value.length) {
+    latitude += decodeValue()
+    longitude += decodeValue()
+    coordinates.push([longitude / factor, latitude / factor])
+  }
+
+  return coordinates
+}
+
 export function buildRouteLines(
   routes: TransitRoute[],
   stopsById: Map<string, StopFeature>,
@@ -18,9 +48,11 @@ export function buildRouteLines(
     type: 'FeatureCollection',
     features: routes.flatMap((route) =>
       route.directions.flatMap((direction) => {
-        const coordinates = direction.stopIds
-          .map((stopId) => stopsById.get(stopId)?.geometry.coordinates)
-          .filter((coordinate): coordinate is number[] => Boolean(coordinate))
+        const coordinates = direction.path
+          ? decodePolyline(direction.path.value, direction.path.precision)
+          : direction.stopIds
+              .map((stopId) => stopsById.get(stopId)?.geometry.coordinates)
+              .filter((coordinate): coordinate is number[] => Boolean(coordinate))
 
         if (coordinates.length < 2) return []
 

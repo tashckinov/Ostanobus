@@ -15,11 +15,19 @@ export interface StopProperties {
 export type StopFeature = Feature<Point, StopProperties>
 export type StopsCollection = FeatureCollection<Point, StopProperties>
 
+export interface EncodedRoutePath {
+  format: 'polyline'
+  precision: number
+  value: string
+}
+
 export interface RouteDirection {
   id: string
   name: string
   terminal: string
   stopIds: string[]
+  distanceMeters?: number
+  path?: EncodedRoutePath
 }
 
 export interface TransitRoute {
