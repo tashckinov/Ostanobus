@@ -1,0 +1,96 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "stop-druzhby",
+      "properties": {
+        "id": "stop-druzhby",
+        "name": "Проспект Дружбы",
+        "shortName": "Дружбы"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1848, 47.5166]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stop-kurchatova",
+      "properties": {
+        "id": "stop-kurchatova",
+        "name": "Улица Курчатова",
+        "shortName": "Курчатова"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1769, 47.5128]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stop-stroiteley",
+      "properties": {
+        "id": "stop-stroiteley",
+        "name": "Проспект Строителей",
+        "shortName": "Строителей"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1691, 47.5094]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stop-kosmos",
+      "properties": {
+        "id": "stop-kosmos",
+        "name": "Кинотеатр «Комсомолец»",
+        "shortName": "Комсомолец"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1599, 47.5068]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stop-lenina",
+      "properties": {
+        "id": "stop-lenina",
+        "name": "Площадь Ленина",
+        "shortName": "пл. Ленина"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1519, 47.5093]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stop-vokzal",
+      "properties": {
+        "id": "stop-vokzal",
+        "name": "Автовокзал",
+        "shortName": "Автовокзал"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1443, 47.5134]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stop-mira",
+      "properties": {
+        "id": "stop-mira",
+        "name": "Проспект Мира",
+        "shortName": "Мира"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [42.1925, 47.5215]
+      }
+    }
+  ]
+}
