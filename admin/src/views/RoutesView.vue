@@ -543,34 +543,32 @@ onBeforeUnmount(() => {
           <span>{{ edited.active ? 'Маршрут включён' : 'Маршрут выключен' }}</span>
         </label>
 
-        <div class="route-main-fields">
-          <label>
-            Номер
-            <input v-model="edited.number" placeholder="Например, 3К" />
-          </label>
-          <label class="color-field">
-            Цвет
-            <div class="color-picker-wrapper">
-              <input v-model="edited.color" type="color" title="Цвет линии маршрута" />
-              <button
-                type="button"
-                class="secondary small-button"
-                title="Цвет для автобуса"
-                @click="edited.color = '#0074dc'"
-              >
-                Автобус
-              </button>
-              <button
-                type="button"
-                class="secondary small-button"
-                title="Цвет для троллейбуса"
-                @click="edited.color = '#10b981'"
-              >
-                Троллейбус
-              </button>
-            </div>
-          </label>
-        </div>
+        <label>
+          Номер
+          <input v-model="edited.number" placeholder="Например, 3К" />
+        </label>
+        <label class="color-field">
+          Цвет
+          <div class="color-picker-wrapper">
+            <input v-model="edited.color" type="color" title="Цвет линии маршрута" />
+            <button
+              type="button"
+              class="secondary small-button"
+              title="Цвет для автобуса"
+              @click="edited.color = '#0074dc'"
+            >
+              Автобус
+            </button>
+            <button
+              type="button"
+              class="secondary small-button"
+              title="Цвет для троллейбуса"
+              @click="edited.color = '#10b981'"
+            >
+              Троллейбус
+            </button>
+          </div>
+        </label>
         <label>
           Название
           <input v-model="edited.name" placeholder="Например, «ВЗМЭО — Артемида»" />

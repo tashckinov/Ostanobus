@@ -830,11 +830,6 @@ dd {
   width: 16px;
   height: 16px;
 }
-.route-main-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 62px;
-  gap: 10px;
-}
 .color-field input {
   height: 40px;
   padding: 4px;
