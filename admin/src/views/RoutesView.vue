@@ -17,6 +17,7 @@ const loading = ref(true)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const dragIndex = ref<number | null>(null)
+const dragOverIndex = ref<number | null>(null)
 const selectedMapStopId = ref<string | null>(null)
 const roadAnchorEditingStopId = ref<string | null>(null)
 const rightPanelMode = ref<'order' | 'schedule'>('order')
@@ -219,8 +220,7 @@ function addSelectedStop() {
     showMessage('Эта остановка уже есть в направлении', 'error')
     return
   }
-  const insertAt = nearestInsertIndex(stop.longitude, stop.latitude)
-  direction.value.routingPoints.splice(insertAt, 0, { type: 'stop', stopId: stop.id })
+  direction.value.routingPoints.push({ type: 'stop', stopId: stop.id })
   rebuildStopIds()
   scheduleGeometryBuild()
   showMessage(`Остановка «${stop.name}» добавлена в маршрут`)
@@ -356,12 +356,20 @@ function movePoint(index: number, delta: number) {
   scheduleGeometryBuild()
 }
 
-function dropPoint(targetIndex: number) {
-  if (!direction.value || dragIndex.value === null || dragIndex.value === targetIndex) return
-  const [current] = direction.value.routingPoints.splice(dragIndex.value, 1)
+function dropPoint(insertBeforeIndex: number) {
+  if (!direction.value || dragIndex.value === null) return
+  const from = dragIndex.value
+  if (from === insertBeforeIndex || from + 1 === insertBeforeIndex) {
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+  const [current] = direction.value.routingPoints.splice(from, 1)
   if (!current) return
-  direction.value.routingPoints.splice(targetIndex, 0, current)
+  const adjustedTarget = insertBeforeIndex > from ? insertBeforeIndex - 1 : insertBeforeIndex
+  direction.value.routingPoints.splice(adjustedTarget, 0, current)
   dragIndex.value = null
+  dragOverIndex.value = null
   rebuildStopIds()
   scheduleGeometryBuild()
 }
@@ -370,6 +378,52 @@ function removePoint(index: number) {
   direction.value?.routingPoints.splice(index, 1)
   rebuildStopIds()
   scheduleGeometryBuild()
+}
+
+// ─── Pointer-based drag & drop ───────────────────────────────────────────────
+
+let pointerDragCleanup: (() => void) | null = null
+
+function startDrag(event: PointerEvent, index: number) {
+  event.preventDefault()
+  dragIndex.value = index
+  dragOverIndex.value = null
+
+  const onMove = (e: PointerEvent) => {
+    const list = document.querySelector('.route-waypoints')
+    if (!list) return
+    const items = list.querySelectorAll<HTMLElement>('.waypoint-card')
+    let insertAt = items.length // default: after last
+    for (let i = 0; i < items.length; i++) {
+      const rect = items[i]!.getBoundingClientRect()
+      const mid = rect.top + rect.height / 2
+      if (e.clientY < mid) {
+        insertAt = i
+        break
+      }
+    }
+    dragOverIndex.value = insertAt
+  }
+
+  const onUp = (e: PointerEvent) => {
+    if (dragOverIndex.value !== null) {
+      dropPoint(dragOverIndex.value)
+    } else {
+      dragIndex.value = null
+      dragOverIndex.value = null
+    }
+    cleanup()
+  }
+
+  const cleanup = () => {
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    pointerDragCleanup = null
+  }
+
+  pointerDragCleanup = cleanup
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
 }
 
 function directionFallback(item: Direction) {
@@ -543,16 +597,32 @@ onBeforeUnmount(() => {
           <span>{{ edited.active ? 'Маршрут включён' : 'Маршрут выключен' }}</span>
         </label>
 
-        <div class="route-main-fields">
-          <label>
-            Номер
-            <input v-model="edited.number" placeholder="Например, 3К" />
-          </label>
-          <label class="color-field">
-            Цвет
+        <label>
+          Номер
+          <input v-model="edited.number" placeholder="Например, 3К" />
+        </label>
+        <label class="color-field">
+          Цвет
+          <div class="color-picker-wrapper">
             <input v-model="edited.color" type="color" title="Цвет линии маршрута" />
-          </label>
-        </div>
+            <button
+              type="button"
+              class="secondary small-button"
+              title="Цвет для автобуса"
+              @click="edited.color = '#0074dc'"
+            >
+              Автобус
+            </button>
+            <button
+              type="button"
+              class="secondary small-button"
+              title="Цвет для троллейбуса"
+              @click="edited.color = '#10b981'"
+            >
+              Троллейбус
+            </button>
+          </div>
+        </label>
         <label>
           Название
           <input v-model="edited.name" placeholder="Например, «ВЗМЭО — Артемида»" />
@@ -696,22 +766,29 @@ onBeforeUnmount(() => {
           </div>
 
           <ol v-if="direction.routingPoints.length" class="waypoints route-waypoints">
+            <template v-for="(point, index) in direction.routingPoints" :key="`${point.type}-${index}`">
+              <!-- Drop zone BEFORE this card -->
+              <li
+                class="drop-zone"
+                :class="{ active: dragOverIndex === index && dragIndex !== index && dragIndex !== index - 1 }"
+              />
+              <!-- Card itself -->
+              <li
+                class="waypoint-card"
+                :class="{ dragging: dragIndex === index }"
+                @pointerdown="startDrag($event, index)"
+              >
+                <span class="drag-handle" title="Перетащить">⠿</span>
+                <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
+                <strong>{{ pointName(point) }}</strong>
+                <button title="Удалить" class="remove-btn" @click.stop="removePoint(index)">×</button>
+              </li>
+            </template>
+            <!-- Drop zone AFTER the last card -->
             <li
-              v-for="(point, index) in direction.routingPoints"
-              :key="`${point.type}-${index}`"
-              draggable="true"
-              @dragstart="dragIndex = index"
-              @dragend="dragIndex = null"
-              @dragover.prevent
-              @drop="dropPoint(index)"
-            >
-              <span class="drag-handle" title="Перетащить">⋮⋮</span>
-              <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
-              <strong>{{ pointName(point) }}</strong>
-              <button title="Выше" @click="movePoint(index, -1)">↑</button>
-              <button title="Ниже" @click="movePoint(index, 1)">↓</button>
-              <button title="Удалить" @click="removePoint(index)">×</button>
-            </li>
+              class="drop-zone"
+              :class="{ active: dragOverIndex === direction.routingPoints.length && dragIndex !== direction.routingPoints.length - 1 }"
+            />
           </ol>
           <div v-else class="empty-state">
             Выберите первую остановку на карте, затем остальные по порядку.

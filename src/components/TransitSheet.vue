@@ -90,6 +90,10 @@ function serviceKey(service: StopService) {
   return `${service.route.routeId}-${service.direction.id}`
 }
 
+function routeKey(service: StopService) {
+  return `${service.route.routeId}::${service.direction.id}`
+}
+
 function arrivalLabel(service: StopService) {
   if (service.nextArrival) return service.nextArrival.relativeLabel
   if (service.forecast) {
@@ -107,6 +111,7 @@ function arrivalDetails(service: StopService) {
 function goBackFromStop() {
   if (selectedServiceKey.value) {
     selectedServiceKey.value = null
+    transit.selectRoute(null)
     return
   }
   emit('closeStop')
@@ -302,7 +307,7 @@ onBeforeUnmount(() => {
           v-for="service in selectedStopServices"
           :key="serviceKey(service)"
           class="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 py-2 text-left hover:bg-muted"
-          @click="selectedServiceKey = serviceKey(service)"
+          @click="selectedServiceKey = serviceKey(service); transit.selectRoute(routeKey(service))"
         >
           <span
             class="inline-flex min-w-12 shrink-0 items-center justify-center rounded px-2 py-1 text-sm font-bold text-white"
