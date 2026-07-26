@@ -550,7 +550,25 @@ onBeforeUnmount(() => {
           </label>
           <label class="color-field">
             Цвет
-            <input v-model="edited.color" type="color" title="Цвет линии маршрута" />
+            <div class="color-picker-wrapper">
+              <input v-model="edited.color" type="color" title="Цвет линии маршрута" />
+              <button
+                type="button"
+                class="secondary small-button"
+                title="Цвет для автобуса"
+                @click="edited.color = '#0074dc'"
+              >
+                Автобус
+              </button>
+              <button
+                type="button"
+                class="secondary small-button"
+                title="Цвет для троллейбуса"
+                @click="edited.color = '#10b981'"
+              >
+                Троллейбус
+              </button>
+            </div>
           </label>
         </div>
         <label>

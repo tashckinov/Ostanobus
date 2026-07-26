@@ -839,6 +839,15 @@ dd {
   height: 40px;
   padding: 4px;
 }
+.color-picker-wrapper {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.color-picker-wrapper button {
+  min-height: 40px;
+  padding: 0 10px;
+}
 .direction-header,
 .waypoints-heading {
   display: flex;
