@@ -458,7 +458,9 @@ function tickGlobal() {
       el.className = 'bus-badge'
       el.textContent = dir.routeNumber
       el.style.backgroundColor = dir.routeColor
-      const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).addTo(map)
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat(dir.coords[0] as [number, number])
+        .addTo(map)
       markers.push({ el, marker })
     }
     while (markers.length > activeTrips.length) {
