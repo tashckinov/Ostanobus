@@ -300,11 +300,16 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
   if (totalLength === 0) return stopCoords.map(() => 0)
 
   const mapped = []
-  for (const stop of stopCoords) {
-    let minDist = Infinity
-    let bestRatio = 0
+  let searchStartIndex = 0
 
-    for (let i = 0; i < coords.length - 1; i++) {
+  for (let k = 0; k < stopCoords.length; k++) {
+    const stop = stopCoords[k]!
+    let minDist = Infinity
+    let bestRatio = lengths[searchStartIndex]! / totalLength
+    let bestSegmentIndex = searchStartIndex
+    let distanceIncreasedCount = 0
+
+    for (let i = searchStartIndex; i < coords.length - 1; i++) {
       const a = coords[i]!
       const b = coords[i + 1]!
       const dx = b[0]! - a[0]!
@@ -323,8 +328,20 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
 
       if (distSq < minDist) {
         minDist = distSq
+        bestSegmentIndex = i
         bestRatio = (lengths[i]! + t * Math.sqrt(lenSq)) / totalLength
+        distanceIncreasedCount = 0
+      } else {
+        distanceIncreasedCount++
+        if (distanceIncreasedCount > 10) {
+          break
+        }
       }
+    }
+
+    searchStartIndex = bestSegmentIndex
+    if (k > 0 && bestRatio < mapped[k - 1]!) {
+      bestRatio = mapped[k - 1]!
     }
     mapped.push(bestRatio)
   }
