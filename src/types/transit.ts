@@ -21,6 +21,17 @@ export interface EncodedRoutePath {
   value: string
 }
 
+export interface RouteSchedule {
+  id: string
+  stopId: string | null
+  days: number[]
+  type: 'exact' | 'interval'
+  departureTime: string | null
+  startTime: string | null
+  endTime: string | null
+  headwayMinutes: number | null
+}
+
 export interface RouteDirection {
   id: string
   name: string
@@ -29,16 +40,7 @@ export interface RouteDirection {
   distanceMeters?: number
   path?: EncodedRoutePath
   geometry?: LineString | null
-  schedules?: Array<{
-    id: string
-    stopId: string | null
-    days: number[]
-    type: 'exact' | 'interval'
-    departureTime: string | null
-    startTime: string | null
-    endTime: string | null
-    headwayMinutes: number | null
-  }>
+  schedules?: RouteSchedule[]
 }
 
 export interface TransitRoute {
