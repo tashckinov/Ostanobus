@@ -56,7 +56,7 @@ a {
 
 .maplibregl-ctrl-top-right {
   right: 8px;
-  top: max(4.5rem, calc(env(safe-area-inset-top) + 4rem));
+  top: max(0.75rem, env(safe-area-inset-top));
 }
 
 .maplibregl-ctrl-attrib {
