@@ -19,7 +19,13 @@ export interface GeoJsonLineString {
 }
 
 export type RoutingPoint =
-  { type: 'stop'; stopId: string } | { type: 'via'; longitude: number; latitude: number }
+  | {
+      type: 'stop'
+      stopId: string
+      longitude?: number | undefined
+      latitude?: number | undefined
+    }
+  | { type: 'via'; longitude: number; latitude: number }
 
 @Entity('cities')
 export class City {

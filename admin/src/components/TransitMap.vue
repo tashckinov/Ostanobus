@@ -11,6 +11,11 @@ const props = defineProps<{
   selectedStopId?: string | null
   selectedStopIds?: string[]
   routingPoints?: Array<{ longitude: number; latitude: number }>
+  activeRouteAnchor?: {
+    stopId: string
+    longitude: number
+    latitude: number
+  } | null
   previewCoordinates?: number[][]
   routeColor?: string
 }>()
@@ -18,10 +23,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   stopClick: [stop: Stop]
   mapClick: [longitude: number, latitude: number]
+  routeAnchorMove: [stopId: string, longitude: number, latitude: number]
 }>()
 
 const container = ref<HTMLElement | null>(null)
 let map: Map | null = null
+let routeAnchorMarker: maplibregl.Marker | null = null
 
 function stopsGeoJson(): FeatureCollection<Point> {
   const selectedStops = new globalThis.Map(
@@ -66,6 +73,31 @@ function routingPointsGeoJson(): FeatureCollection<Point> {
   }
 }
 
+function renderRouteAnchor() {
+  routeAnchorMarker?.remove()
+  routeAnchorMarker = null
+  if (!map || !props.activeRouteAnchor) return
+
+  const anchor = props.activeRouteAnchor
+  const element = document.createElement('div')
+  element.className = 'route-anchor-marker'
+  element.style.backgroundColor = props.routeColor ?? '#006fca'
+  element.title = 'Перетащите дорожную точку остановки'
+
+  routeAnchorMarker = new maplibregl.Marker({
+    element,
+    draggable: true,
+    anchor: 'center',
+  })
+    .setLngLat([anchor.longitude, anchor.latitude])
+    .addTo(map)
+
+  routeAnchorMarker.on('dragend', () => {
+    const position = routeAnchorMarker?.getLngLat()
+    if (position) emit('routeAnchorMove', anchor.stopId, position.lng, position.lat)
+  })
+}
+
 onMounted(() => {
   if (!container.value) return
   map = new maplibregl.Map({
@@ -95,6 +127,7 @@ onMounted(() => {
       source: 'route',
       paint: { 'line-color': '#ffffff', 'line-width': 7 },
     })
+    renderRouteAnchor()
     map.addLayer({
       id: 'route',
       type: 'line',
@@ -165,6 +198,7 @@ watch(
   () => (map?.getSource('stops') as GeoJSONSource | undefined)?.setData(stopsGeoJson()),
   { deep: true },
 )
+watch([() => props.activeRouteAnchor, () => props.routeColor], renderRouteAnchor, { deep: true })
 watch(
   () => props.geometry,
   () => (map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson()),
@@ -215,6 +249,8 @@ watch(
     if (map?.getLayer('stops')) {
       map.setPaintProperty('stops', 'circle-radius', [
         'case',
+        ['>', ['get', 'selectedOrder'], 0],
+        9,
         ['==', ['get', 'id'], id ?? ''],
         9,
         6,
@@ -223,7 +259,10 @@ watch(
   },
 )
 
-onBeforeUnmount(() => map?.remove())
+onBeforeUnmount(() => {
+  routeAnchorMarker?.remove()
+  map?.remove()
+})
 </script>
 
 <template>
