@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { api } from '../api'
+import StopScheduleEditor from '../components/StopScheduleEditor.vue'
 import TransitMap from '../components/TransitMap.vue'
 import type { Direction, Route, RoutingPoint, Stop } from '../types'
 
@@ -17,6 +18,8 @@ const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const dragIndex = ref<number | null>(null)
 const selectedMapStopId = ref<string | null>(null)
+const roadAnchorEditingStopId = ref<string | null>(null)
+const rightPanelMode = ref<'order' | 'schedule'>('order')
 let autoRouteTimer: ReturnType<typeof setTimeout> | null = null
 let routeRequestVersion = 0
 
@@ -35,7 +38,7 @@ const selectedMapStopIsInRoute = computed(() => Boolean(selectedMapRoutingPoint.
 const activeRouteAnchor = computed(() => {
   const stop = selectedMapStop.value
   const point = selectedMapRoutingPoint.value
-  if (!stop || !point) return null
+  if (!stop || !point || roadAnchorEditingStopId.value !== stop.id) return null
   return {
     stopId: stop.id,
     longitude: point.longitude ?? stop.longitude,
@@ -50,6 +53,13 @@ const selectedStopHasCustomAnchor = computed(
 const isExistingRoute = computed(() =>
   routes.value.some((route) => route.routeId === edited.value?.routeId),
 )
+const selectedStopCanEditSchedule = computed(() => {
+  const route = routes.value.find((item) => item.routeId === edited.value?.routeId)
+  const savedDirection = route?.directions.find((item) => item.id === direction.value?.id)
+  return Boolean(
+    selectedMapStop.value && savedDirection?.stopIds.includes(selectedMapStop.value.id),
+  )
+})
 const viaPoints = computed(() =>
   (direction.value?.routingPoints ?? [])
     .filter((point): point is Extract<RoutingPoint, { type: 'via' }> => point.type === 'via')
@@ -91,6 +101,12 @@ function cancelAutoRouting() {
   routing.value = false
 }
 
+function resetStopTools() {
+  selectedMapStopId.value = null
+  roadAnchorEditingStopId.value = null
+  rightPanelMode.value = 'order'
+}
+
 function cloneRoute(route: Route) {
   cancelAutoRouting()
   const copy = JSON.parse(JSON.stringify(route)) as Route
@@ -104,7 +120,7 @@ function cloneRoute(route: Route) {
   edited.value = copy
   directionIndex.value = 0
   pointMode.value = 'stop'
-  selectedMapStopId.value = null
+  resetStopTools()
   message.value = ''
 }
 
@@ -122,7 +138,7 @@ function createRoute() {
   }
   directionIndex.value = 0
   pointMode.value = 'stop'
-  selectedMapStopId.value = null
+  resetStopTools()
   message.value = ''
 }
 
@@ -131,7 +147,7 @@ function backToRoutes() {
   edited.value = null
   directionIndex.value = 0
   pointMode.value = 'stop'
-  selectedMapStopId.value = null
+  resetStopTools()
   message.value = ''
 }
 
@@ -141,7 +157,7 @@ function addDirection() {
   edited.value.directions.push(newDirection())
   directionIndex.value = edited.value.directions.length - 1
   pointMode.value = 'stop'
-  selectedMapStopId.value = null
+  resetStopTools()
 }
 
 function removeDirection() {
@@ -150,7 +166,7 @@ function removeDirection() {
   cancelAutoRouting()
   edited.value.directions.splice(directionIndex.value, 1)
   directionIndex.value = Math.max(0, directionIndex.value - 1)
-  selectedMapStopId.value = null
+  resetStopTools()
 }
 
 function rebuildStopIds() {
@@ -167,6 +183,13 @@ function rebuildStopIds() {
 function selectMapStop(stop: Stop) {
   if (!direction.value) return
   selectedMapStopId.value = stop.id
+  roadAnchorEditingStopId.value = null
+  rightPanelMode.value = 'order'
+}
+
+function closeStopMenu() {
+  selectedMapStopId.value = null
+  roadAnchorEditingStopId.value = null
 }
 
 function nearestInsertIndex(longitude: number, latitude: number) {
@@ -213,7 +236,37 @@ function removeSelectedStop() {
   direction.value.routingPoints.splice(index, 1)
   rebuildStopIds()
   scheduleGeometryBuild()
+  resetStopTools()
   showMessage(`Остановка «${stop.name}» удалена из маршрута`)
+}
+
+function beginRoadAnchorEditing() {
+  const stop = selectedMapStop.value
+  const point = selectedMapRoutingPoint.value
+  if (!stop || !point) return
+  point.longitude ??= stop.longitude
+  point.latitude ??= stop.latitude
+  roadAnchorEditingStopId.value = stop.id
+  rightPanelMode.value = 'order'
+  showMessage('Перетащите синюю дорожную точку на нужную полосу')
+}
+
+function finishRoadAnchorEditing() {
+  roadAnchorEditingStopId.value = null
+  showMessage('Положение дорожной точки сохранится вместе с маршрутом')
+}
+
+function openScheduleEditor() {
+  if (!selectedStopCanEditSchedule.value) {
+    showMessage('Сначала сохраните маршрут с этой остановкой', 'error')
+    return
+  }
+  roadAnchorEditingStopId.value = null
+  rightPanelMode.value = 'schedule'
+}
+
+function closeScheduleEditor() {
+  rightPanelMode.value = 'order'
 }
 
 function moveRouteAnchor(stopId: string, longitude: number, latitude: number) {
@@ -233,6 +286,7 @@ function resetRouteAnchor() {
   if (!point) return
   delete point.longitude
   delete point.latitude
+  roadAnchorEditingStopId.value = null
   scheduleGeometryBuild()
   showMessage('Дорожная точка возвращена к координатам остановки')
 }
@@ -240,7 +294,7 @@ function resetRouteAnchor() {
 function changeDirection(index: number) {
   cancelAutoRouting()
   directionIndex.value = index
-  selectedMapStopId.value = null
+  resetStopTools()
 }
 
 function routingPointCoordinate(point: RoutingPoint) {
@@ -570,20 +624,37 @@ onBeforeUnmount(() => {
         <div v-if="edited" class="map-hint">
           {{
             pointMode === 'stop'
-              ? 'Нажимайте на остановки в порядке движения'
+              ? 'Нажмите на остановку, чтобы добавить её или открыть инструменты'
               : 'Нажмите возле нужного участка — точка вставится между ближайшими остановками'
           }}
         </div>
         <div v-if="edited && selectedMapStop" class="map-stop-actions" @click.stop>
-          <button class="map-stop-close" title="Закрыть" @click="selectedMapStopId = null">
-            ×
-          </button>
+          <button class="map-stop-close" title="Закрыть" @click="closeStopMenu">×</button>
           <strong>{{ selectedMapStop.name }}</strong>
           <template v-if="selectedMapStopIsInRoute">
             <span
               >Остановка {{ selectedStopIds.indexOf(selectedMapStop.id) + 1 }} в направлении</span
             >
-            <p>Синюю метку можно перетащить на нужную полосу дороги.</p>
+            <button class="secondary stop-action" @click="beginRoadAnchorEditing">
+              {{
+                selectedStopHasCustomAnchor ? 'Изменить дорожную точку' : 'Добавить дорожную точку'
+              }}
+            </button>
+            <button
+              v-if="roadAnchorEditingStopId === selectedMapStop.id"
+              class="stop-action"
+              @click="finishRoadAnchorEditing"
+            >
+              Готово
+            </button>
+            <button
+              class="secondary stop-action"
+              :disabled="!selectedStopCanEditSchedule"
+              @click="openScheduleEditor"
+            >
+              Редактировать расписание
+            </button>
+            <p v-if="!selectedStopCanEditSchedule">Сначала сохраните маршрут с этой остановкой.</p>
             <button class="text-danger stop-action" @click="removeSelectedStop">
               Удалить из маршрута
             </button>
@@ -602,49 +673,63 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <aside v-if="edited && direction" class="panel route-order-panel">
-        <div class="route-order-heading">
-          <div>
-            <span>Направление {{ directionIndex + 1 }}</span>
-            <strong>Порядок движения</strong>
+      <aside
+        v-if="edited && direction"
+        class="panel route-order-panel"
+        :class="{ 'route-schedule-panel': rightPanelMode === 'schedule' }"
+      >
+        <StopScheduleEditor
+          v-if="rightPanelMode === 'schedule' && selectedMapStop"
+          :route-number="edited.number"
+          :direction-id="direction.id"
+          :direction-name="direction.name || direction.terminal"
+          :stop="selectedMapStop"
+          @close="closeScheduleEditor"
+        />
+        <template v-else>
+          <div class="route-order-heading">
+            <div>
+              <span>Направление {{ directionIndex + 1 }}</span>
+              <strong>Порядок движения</strong>
+            </div>
+            <span>{{ direction.stopIds.length }} остановок</span>
           </div>
-          <span>{{ direction.stopIds.length }} остановок</span>
-        </div>
 
-        <ol v-if="direction.routingPoints.length" class="waypoints route-waypoints">
-          <li
-            v-for="(point, index) in direction.routingPoints"
-            :key="`${point.type}-${index}`"
-            draggable="true"
-            @dragstart="dragIndex = index"
-            @dragend="dragIndex = null"
-            @dragover.prevent
-            @drop="dropPoint(index)"
-          >
-            <span class="drag-handle" title="Перетащить">⋮⋮</span>
-            <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
-            <strong>{{ pointName(point) }}</strong>
-            <button title="Выше" @click="movePoint(index, -1)">↑</button>
-            <button title="Ниже" @click="movePoint(index, 1)">↓</button>
-            <button title="Удалить" @click="removePoint(index)">×</button>
-          </li>
-        </ol>
-        <div v-else class="empty-state">
-          Выберите первую остановку на карте, затем остальные по порядку.
-        </div>
+          <ol v-if="direction.routingPoints.length" class="waypoints route-waypoints">
+            <li
+              v-for="(point, index) in direction.routingPoints"
+              :key="`${point.type}-${index}`"
+              draggable="true"
+              @dragstart="dragIndex = index"
+              @dragend="dragIndex = null"
+              @dragover.prevent
+              @drop="dropPoint(index)"
+            >
+              <span class="drag-handle" title="Перетащить">⋮⋮</span>
+              <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
+              <strong>{{ pointName(point) }}</strong>
+              <button title="Выше" @click="movePoint(index, -1)">↑</button>
+              <button title="Ниже" @click="movePoint(index, 1)">↓</button>
+              <button title="Удалить" @click="removePoint(index)">×</button>
+            </li>
+          </ol>
+          <div v-else class="empty-state">
+            Выберите первую остановку на карте, затем остальные по порядку.
+          </div>
 
-        <p v-if="message" class="notice" :class="{ error: messageType === 'error' }">
-          {{ message }}
-        </p>
+          <p v-if="message" class="notice" :class="{ error: messageType === 'error' }">
+            {{ message }}
+          </p>
 
-        <div class="route-actions">
-          <button class="secondary" :disabled="routing" @click="buildGeometry()">
-            {{ routing ? 'Прокладываем…' : 'Проложить по дорогам' }}
-          </button>
-          <button :disabled="saving" @click="save">
-            {{ saving ? 'Сохраняем…' : 'Сохранить маршрут' }}
-          </button>
-        </div>
+          <div class="route-actions">
+            <button class="secondary" :disabled="routing" @click="buildGeometry()">
+              {{ routing ? 'Прокладываем…' : 'Проложить по дорогам' }}
+            </button>
+            <button :disabled="saving" @click="save">
+              {{ saving ? 'Сохраняем…' : 'Сохранить маршрут' }}
+            </button>
+          </div>
+        </template>
       </aside>
     </div>
   </section>
