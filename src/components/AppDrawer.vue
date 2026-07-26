@@ -236,11 +236,11 @@ onBeforeUnmount(() => {
             </div>
             <div class="flex items-center justify-between border-b border-border py-3">
               <label for="debug-mode" class="text-sm cursor-pointer">Режим отладки (Debug)</label>
-              <input id="debug-mode" type="checkbox" v-model="settings.debugMode" class="cursor-pointer" />
+              <input id="debug-mode" v-model="settings.debugMode" type="checkbox" class="cursor-pointer" />
             </div>
             <div class="flex items-center justify-between border-b border-border py-3">
               <label for="time-offset" class="text-sm">Смещение времени (часы)</label>
-              <input id="time-offset" type="number" v-model.number="settings.timeOffsetHours" class="w-16 rounded border border-input bg-background px-2 py-1 text-sm" />
+              <input id="time-offset" v-model.number="settings.timeOffsetHours" type="number" class="w-16 rounded border border-input bg-background px-2 py-1 text-sm" />
             </div>
             <div class="flex items-center gap-3 py-3 text-sm text-muted-foreground">
               <MapPin class="size-4" />
