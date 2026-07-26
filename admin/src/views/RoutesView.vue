@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { api } from '../api'
 import TransitMap from '../components/TransitMap.vue'
@@ -16,9 +16,37 @@ const loading = ref(true)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const dragIndex = ref<number | null>(null)
+const selectedMapStopId = ref<string | null>(null)
+let autoRouteTimer: ReturnType<typeof setTimeout> | null = null
+let routeRequestVersion = 0
 
 const direction = computed(() => edited.value?.directions[directionIndex.value] ?? null)
 const stopById = computed(() => new Map(stops.value.map((stop) => [stop.id, stop])))
+const selectedMapStop = computed(() =>
+  selectedMapStopId.value ? (stopById.value.get(selectedMapStopId.value) ?? null) : null,
+)
+const selectedMapRoutingPoint = computed(() =>
+  direction.value?.routingPoints.find(
+    (point): point is Extract<RoutingPoint, { type: 'stop' }> =>
+      point.type === 'stop' && point.stopId === selectedMapStopId.value,
+  ),
+)
+const selectedMapStopIsInRoute = computed(() => Boolean(selectedMapRoutingPoint.value))
+const activeRouteAnchor = computed(() => {
+  const stop = selectedMapStop.value
+  const point = selectedMapRoutingPoint.value
+  if (!stop || !point) return null
+  return {
+    stopId: stop.id,
+    longitude: point.longitude ?? stop.longitude,
+    latitude: point.latitude ?? stop.latitude,
+  }
+})
+const selectedStopHasCustomAnchor = computed(
+  () =>
+    selectedMapRoutingPoint.value?.longitude !== undefined &&
+    selectedMapRoutingPoint.value.latitude !== undefined,
+)
 const isExistingRoute = computed(() =>
   routes.value.some((route) => route.routeId === edited.value?.routeId),
 )
@@ -56,7 +84,15 @@ function showMessage(text: string, type: 'success' | 'error' = 'success') {
   messageType.value = type
 }
 
+function cancelAutoRouting() {
+  if (autoRouteTimer) clearTimeout(autoRouteTimer)
+  autoRouteTimer = null
+  routeRequestVersion += 1
+  routing.value = false
+}
+
 function cloneRoute(route: Route) {
+  cancelAutoRouting()
   const copy = JSON.parse(JSON.stringify(route)) as Route
   copy.directions = copy.directions.map((item) => ({
     ...item,
@@ -68,10 +104,12 @@ function cloneRoute(route: Route) {
   edited.value = copy
   directionIndex.value = 0
   pointMode.value = 'stop'
+  selectedMapStopId.value = null
   message.value = ''
 }
 
 function createRoute() {
+  cancelAutoRouting()
   edited.value = {
     routeId: generatedId('route'),
     cityId: 'volgodonsk',
@@ -84,28 +122,35 @@ function createRoute() {
   }
   directionIndex.value = 0
   pointMode.value = 'stop'
+  selectedMapStopId.value = null
   message.value = ''
 }
 
 function backToRoutes() {
+  cancelAutoRouting()
   edited.value = null
   directionIndex.value = 0
   pointMode.value = 'stop'
+  selectedMapStopId.value = null
   message.value = ''
 }
 
 function addDirection() {
   if (!edited.value) return
+  cancelAutoRouting()
   edited.value.directions.push(newDirection())
   directionIndex.value = edited.value.directions.length - 1
   pointMode.value = 'stop'
+  selectedMapStopId.value = null
 }
 
 function removeDirection() {
   if (!edited.value || edited.value.directions.length <= 1) return
   if (!confirm('Удалить это направление?')) return
+  cancelAutoRouting()
   edited.value.directions.splice(directionIndex.value, 1)
   directionIndex.value = Math.max(0, directionIndex.value - 1)
+  selectedMapStopId.value = null
 }
 
 function rebuildStopIds() {
@@ -113,23 +158,96 @@ function rebuildStopIds() {
   direction.value.stopIds = direction.value.routingPoints
     .filter((point): point is Extract<RoutingPoint, { type: 'stop' }> => point.type === 'stop')
     .map((point) => point.stopId)
-  direction.value.geometry = null
-  direction.value.distanceMeters = null
+  if (direction.value.stopIds.length < 2) {
+    direction.value.geometry = null
+    direction.value.distanceMeters = null
+  }
 }
 
-function addStop(stop: Stop) {
-  if (!direction.value || pointMode.value !== 'stop') return
+function selectMapStop(stop: Stop) {
+  if (!direction.value) return
+  selectedMapStopId.value = stop.id
+}
+
+function nearestInsertIndex(longitude: number, latitude: number) {
+  const points = direction.value?.routingPoints ?? []
+  const coordinates = points.map(routingPointCoordinate)
+  let insertAt = points.length
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (let index = 0; index < coordinates.length - 1; index += 1) {
+    const start = coordinates[index]
+    const end = coordinates[index + 1]
+    if (!start || !end) continue
+    const distance = distanceToSegmentSquared([longitude, latitude], start, end)
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      insertAt = index + 1
+    }
+  }
+
+  return insertAt
+}
+
+function addSelectedStop() {
+  const stop = selectedMapStop.value
+  if (!direction.value || !stop) return
   if (direction.value.stopIds.includes(stop.id)) {
     showMessage('Эта остановка уже есть в направлении', 'error')
     return
   }
-  direction.value.routingPoints.push({ type: 'stop', stopId: stop.id })
+  const insertAt = nearestInsertIndex(stop.longitude, stop.latitude)
+  direction.value.routingPoints.splice(insertAt, 0, { type: 'stop', stopId: stop.id })
   rebuildStopIds()
-  message.value = ''
+  scheduleGeometryBuild()
+  showMessage(`Остановка «${stop.name}» добавлена в маршрут`)
+}
+
+function removeSelectedStop() {
+  const stop = selectedMapStop.value
+  if (!direction.value || !stop) return
+  const index = direction.value.routingPoints.findIndex(
+    (point) => point.type === 'stop' && point.stopId === stop.id,
+  )
+  if (index < 0) return
+  direction.value.routingPoints.splice(index, 1)
+  rebuildStopIds()
+  scheduleGeometryBuild()
+  showMessage(`Остановка «${stop.name}» удалена из маршрута`)
+}
+
+function moveRouteAnchor(stopId: string, longitude: number, latitude: number) {
+  const point = direction.value?.routingPoints.find(
+    (item): item is Extract<RoutingPoint, { type: 'stop' }> =>
+      item.type === 'stop' && item.stopId === stopId,
+  )
+  if (!point) return
+  point.longitude = longitude
+  point.latitude = latitude
+  scheduleGeometryBuild()
+  showMessage('Дорожная точка остановки перемещена, трасса перестраивается')
+}
+
+function resetRouteAnchor() {
+  const point = selectedMapRoutingPoint.value
+  if (!point) return
+  delete point.longitude
+  delete point.latitude
+  scheduleGeometryBuild()
+  showMessage('Дорожная точка возвращена к координатам остановки')
+}
+
+function changeDirection(index: number) {
+  cancelAutoRouting()
+  directionIndex.value = index
+  selectedMapStopId.value = null
 }
 
 function routingPointCoordinate(point: RoutingPoint) {
   if (point.type === 'via') return [point.longitude, point.latitude]
+  if (point.longitude !== undefined && point.latitude !== undefined) {
+    return [point.longitude, point.latitude]
+  }
   const stop = stopById.value.get(point.stopId)
   return stop ? [stop.longitude, stop.latitude] : null
 }
@@ -154,24 +272,11 @@ function distanceToSegmentSquared(point: number[], segmentStart: number[], segme
 function addVia(longitude: number, latitude: number) {
   if (!direction.value || pointMode.value !== 'via') return
   const points = direction.value.routingPoints
-  const coordinates = points.map(routingPointCoordinate)
-  let insertAt = points.length
-  let nearestDistance = Number.POSITIVE_INFINITY
-
-  for (let index = 0; index < coordinates.length - 1; index += 1) {
-    const start = coordinates[index]
-    const end = coordinates[index + 1]
-    if (!start || !end) continue
-    const distance = distanceToSegmentSquared([longitude, latitude], start, end)
-    if (distance < nearestDistance) {
-      nearestDistance = distance
-      insertAt = index + 1
-    }
-  }
-
+  const insertAt = nearestInsertIndex(longitude, latitude)
   points.splice(insertAt, 0, { type: 'via', longitude, latitude })
   rebuildStopIds()
-  showMessage('Точка коррекции вставлена в ближайший участок маршрута')
+  scheduleGeometryBuild()
+  showMessage('Точка коррекции добавлена, трасса перестраивается')
 }
 
 function pointName(point: RoutingPoint) {
@@ -194,6 +299,7 @@ function movePoint(index: number, delta: number) {
   if (!current) return
   points.splice(next, 0, current)
   rebuildStopIds()
+  scheduleGeometryBuild()
 }
 
 function dropPoint(targetIndex: number) {
@@ -203,11 +309,13 @@ function dropPoint(targetIndex: number) {
   direction.value.routingPoints.splice(targetIndex, 0, current)
   dragIndex.value = null
   rebuildStopIds()
+  scheduleGeometryBuild()
 }
 
 function removePoint(index: number) {
   direction.value?.routingPoints.splice(index, 1)
   rebuildStopIds()
+  scheduleGeometryBuild()
 }
 
 function directionFallback(item: Direction) {
@@ -219,25 +327,44 @@ function directionFallback(item: Direction) {
   }
 }
 
-async function buildGeometry() {
+function scheduleGeometryBuild() {
+  if (autoRouteTimer) clearTimeout(autoRouteTimer)
+  routeRequestVersion += 1
+  if (previewCoordinates.value.length < 2) return
+  autoRouteTimer = setTimeout(() => {
+    autoRouteTimer = null
+    void buildGeometry(true)
+  }, 350)
+}
+
+async function buildGeometry(automatic = false) {
   if (!direction.value) return
+  if (!automatic && autoRouteTimer) {
+    clearTimeout(autoRouteTimer)
+    autoRouteTimer = null
+  }
   const coordinates = previewCoordinates.value
 
   if (coordinates.length < 2) {
-    showMessage('Выберите на карте минимум две остановки', 'error')
+    if (!automatic) showMessage('Выберите на карте минимум две остановки', 'error')
     return
   }
 
+  const editedDirection = direction.value
+  const requestVersion = ++routeRequestVersion
   routing.value = true
   try {
     const result = await api.buildGeometry(coordinates)
-    direction.value.geometry = result.geometry
-    direction.value.distanceMeters = result.distanceMeters
+    if (requestVersion !== routeRequestVersion || direction.value?.id !== editedDirection.id) return
+    editedDirection.geometry = result.geometry
+    editedDirection.distanceMeters = result.distanceMeters
     showMessage(`Трасса построена через все точки: ${(result.distanceMeters / 1000).toFixed(1)} км`)
   } catch (error) {
-    showMessage(error instanceof Error ? error.message : 'Не удалось построить трассу', 'error')
+    if (requestVersion === routeRequestVersion) {
+      showMessage(error instanceof Error ? error.message : 'Не удалось построить трассу', 'error')
+    }
   } finally {
-    routing.value = false
+    if (requestVersion === routeRequestVersion) routing.value = false
   }
 }
 
@@ -292,6 +419,9 @@ async function load() {
 }
 
 onMounted(load)
+onBeforeUnmount(() => {
+  if (autoRouteTimer) clearTimeout(autoRouteTimer)
+})
 </script>
 
 <template>
@@ -384,7 +514,7 @@ onMounted(load)
             :key="item.id"
             class="direction-tab"
             :class="{ active: index === directionIndex }"
-            @click="directionIndex = index"
+            @click="changeDirection(index)"
           >
             <strong>{{ index + 1 }}</strong>
             <span>{{ item.terminal || `Направление ${index + 1}` }}</span>
@@ -428,11 +558,14 @@ onMounted(load)
           :stops="stops"
           :geometry="direction?.geometry"
           :routing-points="viaPoints"
+          :active-route-anchor="activeRouteAnchor"
           :preview-coordinates="previewCoordinates"
+          :selected-stop-id="selectedMapStopId"
           :selected-stop-ids="selectedStopIds"
           :route-color="edited?.color"
-          @stop-click="addStop"
+          @stop-click="selectMapStop"
           @map-click="addVia"
+          @route-anchor-move="moveRouteAnchor"
         />
         <div v-if="edited" class="map-hint">
           {{
@@ -440,6 +573,32 @@ onMounted(load)
               ? 'Нажимайте на остановки в порядке движения'
               : 'Нажмите возле нужного участка — точка вставится между ближайшими остановками'
           }}
+        </div>
+        <div v-if="edited && selectedMapStop" class="map-stop-actions" @click.stop>
+          <button class="map-stop-close" title="Закрыть" @click="selectedMapStopId = null">
+            ×
+          </button>
+          <strong>{{ selectedMapStop.name }}</strong>
+          <template v-if="selectedMapStopIsInRoute">
+            <span
+              >Остановка {{ selectedStopIds.indexOf(selectedMapStop.id) + 1 }} в направлении</span
+            >
+            <p>Синюю метку можно перетащить на нужную полосу дороги.</p>
+            <button class="text-danger stop-action" @click="removeSelectedStop">
+              Удалить из маршрута
+            </button>
+            <button
+              v-if="selectedStopHasCustomAnchor"
+              class="secondary stop-action"
+              @click="resetRouteAnchor"
+            >
+              Сбросить дорожную точку
+            </button>
+          </template>
+          <template v-else>
+            <span>Остановка не входит в это направление</span>
+            <button class="stop-action" @click="addSelectedStop">Добавить в маршрут</button>
+          </template>
         </div>
       </div>
 
@@ -479,7 +638,7 @@ onMounted(load)
         </p>
 
         <div class="route-actions">
-          <button class="secondary" :disabled="routing" @click="buildGeometry">
+          <button class="secondary" :disabled="routing" @click="buildGeometry()">
             {{ routing ? 'Прокладываем…' : 'Проложить по дорогам' }}
           </button>
           <button :disabled="saving" @click="save">

@@ -44,7 +44,12 @@ const stopSchema = z.object({
 })
 
 const routingPointSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('stop'), stopId: id }),
+  z.object({
+    type: z.literal('stop'),
+    stopId: id,
+    longitude: coordinate.min(-180).max(180).optional(),
+    latitude: coordinate.min(-90).max(90).optional(),
+  }),
   z.object({
     type: z.literal('via'),
     longitude: coordinate.min(-180).max(180),
@@ -60,16 +65,31 @@ const lineStringSchema = z
   .nullable()
   .optional()
 
-const directionSchema = z.object({
-  id,
-  name: z.string().trim().min(1).max(200),
-  terminal: z.string().trim().min(1).max(200),
-  stopIds: z.array(id).min(2),
-  routingPoints: z.array(routingPointSchema).min(2),
-  geometry: lineStringSchema,
-  distanceMeters: z.number().int().nonnegative().nullable().optional(),
-  active: z.boolean().default(true),
-})
+const directionSchema = z
+  .object({
+    id,
+    name: z.string().trim().min(1).max(200),
+    terminal: z.string().trim().min(1).max(200),
+    stopIds: z.array(id).min(2),
+    routingPoints: z.array(routingPointSchema).min(2),
+    geometry: lineStringSchema,
+    distanceMeters: z.number().int().nonnegative().nullable().optional(),
+    active: z.boolean().default(true),
+  })
+  .superRefine((value, context) => {
+    value.routingPoints.forEach((point, index) => {
+      if (
+        point.type === 'stop' &&
+        (point.longitude === undefined) !== (point.latitude === undefined)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['routingPoints', index],
+          message: 'longitude and latitude must be provided together',
+        })
+      }
+    })
+  })
 
 const routeSchema = z.object({
   routeId: id,

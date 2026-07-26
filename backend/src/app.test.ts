@@ -165,6 +165,41 @@ describe('pilot backend', () => {
     }
   })
 
+  it('stores a route-specific road anchor without changing the stop', async () => {
+    const routesResponse = await app.inject({
+      method: 'GET',
+      url: '/api/admin/routes?cityId=volgodonsk',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    const route = routesResponse.json().routes[0]
+    const firstPoint = route.directions[0].routingPoints[0]
+    route.directions[0].routingPoints[0] = {
+      ...firstPoint,
+      longitude: 42.2101,
+      latitude: 47.5301,
+    }
+
+    const saved = await app.inject({
+      method: 'POST',
+      url: '/api/admin/routes',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: route,
+    })
+    expect(saved.statusCode).toBe(201)
+
+    const updatedRoutes = await app.inject({
+      method: 'GET',
+      url: '/api/admin/routes?cityId=volgodonsk',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    expect(updatedRoutes.json().routes[0].directions[0].routingPoints[0]).toMatchObject({
+      type: 'stop',
+      stopId: firstPoint.stopId,
+      longitude: 42.2101,
+      latitude: 47.5301,
+    })
+  })
+
   it('stores a schedule for a concrete stop in a direction', async () => {
     const routes = await app.inject({
       method: 'GET',
