@@ -33,7 +33,11 @@ export async function loadTransitData() {
     return {
       stops: (await stopsResponse.json()) as StopsCollection,
       routeStops: (await routesResponse.json()) as RouteStopsData,
-      forecasts,
+      forecasts: {
+        generatedAt: null,
+        isMock: false,
+        forecasts: [],
+      } satisfies ForecastsData,
       apiOnline: true,
     }
   } catch {

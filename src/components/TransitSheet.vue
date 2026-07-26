@@ -11,12 +11,13 @@ import {
   Send,
   Square,
 } from '@lucide/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 import { refreshSupportTickets, submitSupportTicket, type SupportTicketDraft } from '@/lib/support'
+import { servicesForStop, type StopService } from '@/lib/schedule'
 import type { SupportTicketReference } from '@/types/transit'
 import type { StopFeature } from '@/types/transit'
 
@@ -50,16 +51,20 @@ const supportCategory = ref<SupportTicketDraft['category']>('other')
 const supportSending = ref(false)
 const supportError = ref('')
 const supportTickets = ref<SupportTicketReference[]>([])
+const scheduleClock = ref(new Date())
+let scheduleClockTimer: ReturnType<typeof setInterval> | null = null
 
-const selectedForecast = computed(() => transit.selectedStopForecasts[0])
-const selectedDirection = computed(() => {
-  const forecast = selectedForecast.value
-  const stop = transit.selectedStop
-  if (!forecast || !stop) return undefined
-  return forecast.route.directions.find((direction) =>
-    direction.stopIds.includes(stop.properties.id),
-  )
-})
+const selectedStopServices = computed(() =>
+  transit.selectedStopId
+    ? servicesForStop(
+        transit.selectedStopId,
+        transit.routeStops.routes,
+        transit.selectedStopForecasts,
+        scheduleClock.value,
+      )
+    : [],
+)
+const selectedService = computed(() => selectedStopServices.value[0])
 const activeRoute = computed(() =>
   ride.activeRide
     ? transit.routeStops.routes.find((route) => route.routeId === ride.activeRide?.routeId)
@@ -83,31 +88,27 @@ const rideComplete = computed(
     ride.activeRide!.nextStopIndex >= activeDirection.value!.stopIds.length,
 )
 
-async function recordArrival() {
-  const forecast = selectedForecast.value
-  const direction = selectedDirection.value
+async function recordArrival(service: StopService) {
   const stop = transit.selectedStop
-  if (!forecast || !stop) return
+  if (!stop) return
 
   savingArrival.value = true
   actionMessage.value = ''
   try {
-    await ride.recordArrival(forecast.routeId, stop.properties.id, direction?.id ?? null)
+    await ride.recordArrival(service.route.routeId, stop.properties.id, service.direction.id)
     actionMessage.value = 'Прибытие сохранено · pending'
   } finally {
     savingArrival.value = false
   }
 }
 
-async function startRide() {
-  const forecast = selectedForecast.value
-  const direction = selectedDirection.value
+async function startRide(service: StopService) {
   const stop = transit.selectedStop
-  if (!forecast || !direction || !stop) return
+  if (!stop) return
 
   startingRide.value = true
   try {
-    await ride.startRide(forecast.route, direction, stop.properties.id)
+    await ride.startRide(service.route, service.direction, stop.properties.id)
     emit('rideStarted')
   } finally {
     startingRide.value = false
@@ -158,7 +159,7 @@ async function sendTicket() {
       category: supportCategory.value,
       message: supportMessage.value.trim(),
       stopId: transit.selectedStopId,
-      routeId: selectedForecast.value?.routeId ?? null,
+      routeId: selectedService.value?.route.routeId ?? null,
     })
     supportMessage.value = ''
     await refreshTickets()
@@ -175,7 +176,15 @@ watch(
     if (mode === 'support') void refreshTickets()
   },
 )
-onMounted(refreshTickets)
+onMounted(() => {
+  void refreshTickets()
+  scheduleClockTimer = setInterval(() => {
+    scheduleClock.value = new Date()
+  }, 30_000)
+})
+onBeforeUnmount(() => {
+  if (scheduleClockTimer) clearInterval(scheduleClockTimer)
+})
 </script>
 
 <template>
@@ -236,7 +245,7 @@ onMounted(refreshTickets)
       <div class="flex items-start justify-between gap-3">
         <div>
           <h2 class="text-base font-semibold">Остановки Волгодонска</h2>
-          <p class="mt-1 text-sm text-muted-foreground">Выберите остановку маршрута 3К на карте.</p>
+          <p class="mt-1 text-sm text-muted-foreground">Выберите остановку на карте.</p>
         </div>
         <div class="flex gap-2">
           <Button variant="outline" size="sm" @click="emit('openSupport')">
@@ -251,7 +260,7 @@ onMounted(refreshTickets)
       </div>
       <p v-if="locationMessage" class="mt-2 text-sm text-red-600">{{ locationMessage }}</p>
       <p class="mt-3 text-xs text-muted-foreground">
-        Синий маршрут и прогнозы — тестовые. Остановки загружены из OpenStreetMap.
+        Маршруты и расписания загружаются с сервера. Остановки — из OpenStreetMap.
       </p>
     </div>
 
@@ -279,35 +288,69 @@ onMounted(refreshTickets)
         <h3 class="text-lg font-semibold">{{ transit.selectedStop.properties.name }}</h3>
       </div>
 
-      <div v-if="selectedForecast" class="border-b border-border px-4 py-3">
-        <div class="flex items-center">
-          <span class="w-16 text-base font-semibold">№ {{ selectedForecast.route.number }}</span>
-          <span class="flex-1">
-            <span class="block text-[15px] font-medium">
-              {{ selectedForecast.minMinutes }}–{{ selectedForecast.maxMinutes }} мин
-            </span>
-            <span class="block text-xs text-muted-foreground">Вероятностный прогноз</span>
-          </span>
-        </div>
+      <div v-if="selectedStopServices.length">
+        <article
+          v-for="service in selectedStopServices"
+          :key="`${service.route.routeId}-${service.direction.id}`"
+          class="border-b border-border px-4 py-3"
+        >
+          <div class="flex items-start gap-3">
+            <span class="w-16 shrink-0 text-base font-semibold">№ {{ service.route.number }}</span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-xs text-muted-foreground">
+                {{ service.direction.name || `к ${service.direction.terminal}` }}
+              </p>
+              <template v-if="service.nextArrival">
+                <p class="mt-0.5 text-[15px] font-medium">
+                  Ближайший в {{ service.nextArrival.timeLabel }}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  {{ service.nextArrival.relativeLabel }} · по расписанию
+                </p>
+              </template>
+              <template v-else-if="service.forecast">
+                <p class="mt-0.5 text-[15px] font-medium">
+                  {{ service.forecast.minMinutes }}–{{ service.forecast.maxMinutes }} мин
+                </p>
+                <p class="text-xs text-muted-foreground">Вероятностный прогноз</p>
+              </template>
+              <p v-else class="mt-0.5 text-sm text-muted-foreground">Ближайшее время неизвестно</p>
+            </div>
+          </div>
 
-        <div class="mt-3 grid grid-cols-2 gap-2">
-          <Button :disabled="savingArrival" @click="recordArrival">
-            <Check class="size-4" />
-            Автобус прибыл
-          </Button>
-          <Button variant="outline" :disabled="startingRide" @click="startRide">
-            <BusFront class="size-4" />
-            Я сел
-          </Button>
-        </div>
+          <div class="mt-3 border-t border-border pt-2">
+            <p class="text-xs font-medium">Расписание сегодня</p>
+            <p
+              v-for="label in service.scheduleLabels"
+              :key="label"
+              class="mt-1 text-sm text-muted-foreground"
+            >
+              {{ label }}
+            </p>
+            <p v-if="!service.scheduleLabels.length" class="mt-1 text-sm text-muted-foreground">
+              Для этой остановки расписание сегодня не задано.
+            </p>
+          </div>
 
-        <p v-if="actionMessage" class="mt-2 text-xs text-muted-foreground">
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <Button :disabled="savingArrival" @click="recordArrival(service)">
+              <Check class="size-4" />
+              Автобус прибыл
+            </Button>
+            <Button variant="outline" :disabled="startingRide" @click="startRide(service)">
+              <BusFront class="size-4" />
+              Я сел
+            </Button>
+          </div>
+        </article>
+
+        <p v-if="actionMessage" class="px-4 py-2 text-xs text-muted-foreground">
           {{ actionMessage }}
         </p>
       </div>
 
       <p v-else class="px-4 py-4 text-sm text-muted-foreground">
-        Тестовый маршрут 3К через эту платформу не проходит.
+        Через эту остановку активные маршруты пока не проходят.
       </p>
     </div>
 
