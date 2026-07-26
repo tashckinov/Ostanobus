@@ -353,6 +353,49 @@ button.tab.active {
   border: 1px solid #d8dde2;
   border-radius: 6px;
 }
+.schedule-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px;
+}
+.schedule-form {
+  border: 1px solid #d8dde2;
+  border-radius: 6px;
+}
+.field-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #4b5563;
+  font-size: 12px;
+}
+.schedule-results {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+}
+.schedule-results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  border: 1px solid #d8dde2;
+  border-radius: 6px;
+  background: #fff;
+  padding: 10px 14px;
+}
+.schedule-results-heading > div {
+  display: grid;
+  gap: 2px;
+}
+.schedule-results-heading span {
+  color: #68727d;
+  font-size: 11px;
+}
+.schedule-results-heading strong {
+  font-size: 14px;
+}
 .table-wrap {
   min-width: 0;
   overflow: auto;
@@ -458,10 +501,13 @@ dd {
 
 .routes-workspace {
   display: grid;
-  grid-template-columns: 230px minmax(360px, 1fr) 430px;
+  grid-template-columns: 280px minmax(420px, 1fr);
   height: calc(100vh - 72px);
   min-width: 0;
   overflow: hidden;
+}
+.routes-workspace.editing {
+  grid-template-columns: 300px minmax(420px, 1fr) 410px;
 }
 .route-list-panel {
   min-width: 0;
@@ -469,6 +515,46 @@ dd {
   border-right: 1px solid #d8dde2;
   background: #f8f9fa;
   padding: 14px 10px;
+}
+.route-properties-panel {
+  border-right: 1px solid #d8dde2;
+  border-left: 0;
+  padding: 16px;
+}
+.route-back-heading {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid #e2e6ea;
+  padding-bottom: 14px;
+}
+.route-back-heading > div {
+  display: grid;
+  gap: 2px;
+}
+.route-back-heading span,
+.route-order-heading > div > span {
+  color: #68727d;
+  font-size: 11px;
+}
+.route-back-heading strong,
+.route-order-heading strong {
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.back-button {
+  display: grid;
+  width: 34px;
+  min-height: 34px;
+  place-items: center;
+  border-color: #c9d0d7;
+  background: #fff;
+  color: #18212b;
+  padding: 0;
+  font-size: 19px;
 }
 .route-list-heading {
   display: flex;
@@ -552,6 +638,34 @@ dd {
   min-width: 0;
   overflow: hidden;
   background: #e8ecef;
+}
+.route-order-panel {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  min-height: 0;
+  padding: 16px;
+  padding-bottom: 18px;
+}
+.route-order-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #e2e6ea;
+  padding-bottom: 12px;
+}
+.route-order-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.route-order-heading > span {
+  color: #68727d;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.route-waypoints {
+  max-height: none;
+  min-height: 0;
 }
 .map-hint {
   position: absolute;
@@ -702,15 +816,13 @@ dd {
   color: #18212b;
 }
 .route-actions {
-  position: sticky;
-  bottom: -24px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin: 0 -18px -24px;
+  margin: 0 -16px -18px;
   border-top: 1px solid #d8dde2;
   background: #fff;
-  padding: 14px 18px 18px;
+  padding: 14px 16px 18px;
 }
 .route-actions .text-danger {
   min-height: 28px;
@@ -722,7 +834,10 @@ dd {
     grid-template-columns: 174px minmax(0, 1fr);
   }
   .routes-workspace {
-    grid-template-columns: 190px minmax(300px, 1fr) 390px;
+    grid-template-columns: 230px minmax(300px, 1fr);
+  }
+  .routes-workspace.editing {
+    grid-template-columns: 270px minmax(300px, 1fr) 360px;
   }
 }
 
@@ -755,23 +870,25 @@ dd {
     margin: 0;
   }
   .routes-workspace,
+  .routes-workspace.editing,
   .editor-grid {
     height: auto;
     min-height: calc(100vh - 132px);
     grid-template-columns: 1fr;
   }
-  .route-list-panel {
-    display: none;
-  }
   .map-stage,
   .map {
     min-height: 52vh;
   }
+  .route-properties-panel,
+  .route-order-panel,
   .route-panel {
     border-top: 1px solid #d8dde2;
     border-left: 0;
+    border-right: 0;
   }
   .content-grid,
+  .schedule-layout,
   .support-grid {
     grid-template-columns: 1fr;
   }

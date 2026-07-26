@@ -2,7 +2,7 @@ import 'reflect-metadata'
 
 import { resolve } from 'node:path'
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { DataSource } from 'typeorm'
 
 import { createApp } from './app.js'
@@ -25,6 +25,12 @@ describe('pilot backend', () => {
     await dataSource.initialize()
     await seedDatabase(dataSource, resolve('../public/data'))
     app = await createApp({ dataSource, logger: false })
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { email: 'admin@example.test', password: 'test-password' },
+    })
+    adminToken = login.json().token
   })
 
   afterAll(async () => {
@@ -106,14 +112,6 @@ describe('pilot backend', () => {
     expect(publicStatus.statusCode).toBe(200)
     expect(publicStatus.json().status).toBe('new')
 
-    const login = await app.inject({
-      method: 'POST',
-      url: '/api/admin/auth/login',
-      payload: { email: 'admin@example.test', password: 'test-password' },
-    })
-    expect(login.statusCode).toBe(200)
-    adminToken = login.json().token
-
     const tickets = await app.inject({
       method: 'GET',
       url: '/api/admin/support/tickets',
@@ -121,5 +119,97 @@ describe('pilot backend', () => {
     })
     expect(tickets.statusCode).toBe(200)
     expect(tickets.json().tickets[0].message).toBe('Неверное время отправления')
+  })
+
+  it('routes through every correction point in the requested order', async () => {
+    const router = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 'Ok',
+          routes: [
+            {
+              distance: 1234,
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [42.1, 47.1],
+                  [42.2, 47.2],
+                  [42.3, 47.3],
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    )
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/admin/routing/route',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          coordinates: [
+            [42.1, 47.1],
+            [42.2, 47.2],
+            [42.3, 47.3],
+          ],
+        },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(String(router.mock.calls[0]?.[0])).toContain('/42.1,47.1;42.2,47.2;42.3,47.3?')
+    } finally {
+      router.mockRestore()
+    }
+  })
+
+  it('stores a schedule for a concrete stop in a direction', async () => {
+    const routes = await app.inject({
+      method: 'GET',
+      url: '/api/admin/routes?cityId=volgodonsk',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    const direction = routes.json().routes[0].directions[0]
+    const stopId = direction.stopIds[0]
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/admin/schedules',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        directionId: direction.id,
+        stopId,
+        days: [1, 2, 3, 4, 5],
+        type: 'interval',
+        departureTime: null,
+        startTime: '06:00',
+        endTime: '09:00',
+        headwayMinutes: 15,
+        active: true,
+      },
+    })
+    expect(created.statusCode).toBe(201)
+    expect(created.json()).toMatchObject({ directionId: direction.id, stopId })
+
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/api/admin/schedules',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        directionId: direction.id,
+        stopId: 'not-in-this-direction',
+        days: [1],
+        type: 'exact',
+        departureTime: '07:30',
+        startTime: null,
+        endTime: null,
+        headwayMinutes: null,
+        active: true,
+      },
+    })
+    expect(rejected.statusCode).toBe(400)
+    expect(rejected.json()).toMatchObject({ error: 'stop_is_not_in_direction' })
   })
 })

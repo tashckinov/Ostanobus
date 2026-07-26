@@ -158,12 +158,16 @@ export class DirectionStop {
 }
 
 @Entity('schedules')
+@Index(['directionId', 'stopId'])
 export class Schedule {
   @PrimaryColumn('varchar')
   id!: string
 
   @Column('varchar')
   directionId!: string
+
+  @Column({ type: 'varchar', nullable: true })
+  stopId!: string | null
 
   @Column({ type: 'simple-json' })
   days!: number[]

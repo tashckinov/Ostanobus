@@ -86,6 +86,7 @@ const scheduleSchema = z
   .object({
     id: id.optional(),
     directionId: id,
+    stopId: nullableId,
     days: z.array(z.number().int().min(1).max(7)).min(1),
     type: z.enum(['exact', 'interval']),
     departureTime: time,
@@ -548,10 +549,15 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
   })
 
   app.get('/api/admin/schedules', { preHandler: requireAdmin }, async (request) => {
-    const query = z.object({ directionId: id.optional() }).parse(request.query)
+    const query = z
+      .object({ directionId: id.optional(), stopId: id.optional() })
+      .parse(request.query)
     return {
       schedules: await dataSource.getRepository(Schedule).find({
-        where: query.directionId ? { directionId: query.directionId } : {},
+        where: {
+          ...(query.directionId ? { directionId: query.directionId } : {}),
+          ...(query.stopId ? { stopId: query.stopId } : {}),
+        },
         order: { directionId: 'ASC', departureTime: 'ASC', startTime: 'ASC' },
       }),
     }
@@ -560,9 +566,23 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
   app.post('/api/admin/schedules', { preHandler: requireAdmin }, async (request, reply) => {
     const input = scheduleSchema.safeParse(request.body)
     if (!input.success) return validationError(reply, input.error)
+    if (
+      !(await dataSource.getRepository(Direction).exist({ where: { id: input.data.directionId } }))
+    ) {
+      return reply.code(400).send({ error: 'unknown_direction' })
+    }
+    if (
+      input.data.stopId &&
+      !(await dataSource.getRepository(DirectionStop).exist({
+        where: { directionId: input.data.directionId, stopId: input.data.stopId },
+      }))
+    ) {
+      return reply.code(400).send({ error: 'stop_is_not_in_direction' })
+    }
     const saved = await dataSource.getRepository(Schedule).save({
       ...input.data,
       id: input.data.id ?? randomUUID(),
+      stopId: input.data.stopId ?? null,
       departureTime: input.data.type === 'exact' ? (input.data.departureTime ?? null) : null,
       startTime: input.data.type === 'interval' ? (input.data.startTime ?? null) : null,
       endTime: input.data.type === 'interval' ? (input.data.endTime ?? null) : null,
