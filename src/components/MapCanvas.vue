@@ -15,8 +15,13 @@ interface BusAnimation {
   marker: maplibregl.Marker
   el: HTMLElement
 }
-const busAnimations = new Map<string, BusAnimation[]>()
+const busAnimations = new Map<string, BusAnimation>()
 let globalAnimationFrame: number | null = null
+
+interface ActiveTrip {
+  id: string
+  times: number[]
+}
 
 interface ActiveDirection {
   directionId: string
@@ -25,7 +30,7 @@ interface ActiveDirection {
   coords: number[][]
   segLengths: number[]
   stopRatios: number[]
-  trips: number[][]
+  trips: ActiveTrip[]
 }
 const activeDirections: ActiveDirection[] = []
 
@@ -202,10 +207,8 @@ watch(
       // Скрыть линии маршрутов
       map.setFilter('route-line-outline', ['==', ['get', 'directionId'], ''])
       map.setFilter('route-lines', ['==', ['get', 'directionId'], ''])
-      for (const markers of busAnimations.values()) {
-        for (const anim of markers) {
-          anim.el.style.display = ''
-        }
+      for (const anim of busAnimations.values()) {
+        anim.el.style.display = ''
       }
       return
     }
@@ -215,11 +218,9 @@ watch(
     map.setFilter('route-lines', ['==', ['get', 'directionId'], directionId ?? ''])
 
     // Оставить только бейдж выбранного направления
-    for (const [dirId, markers] of busAnimations) {
-      const display = dirId === directionId ? '' : 'none'
-      for (const anim of markers) {
-        anim.el.style.display = display
-      }
+    for (const [tripId, anim] of busAnimations) {
+      const display = tripId.startsWith(`${directionId}-trip`) ? '' : 'none'
+      anim.el.style.display = display
     }
   },
 )
@@ -300,21 +301,36 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
 
   const mapped = []
   let searchStartIndex = 0
+
   for (const stop of stopCoords) {
     let minDist = Infinity
-    let bestIndex = searchStartIndex
-    let bestRatio = lengths[searchStartIndex]! / totalLength
-    for (let i = searchStartIndex; i < coords.length; i++) {
-      const dx = stop[0]! - coords[i]![0]!
-      const dy = stop[1]! - coords[i]![1]!
-      const dist = dx * dx + dy * dy
-      if (dist < minDist) {
-        minDist = dist
-        bestIndex = i
-        bestRatio = lengths[i]! / totalLength
+    let bestRatio = 0
+    let bestSegmentIndex = searchStartIndex
+
+    for (let i = searchStartIndex; i < coords.length - 1; i++) {
+      const a = coords[i]!
+      const b = coords[i + 1]!
+      const dx = b[0]! - a[0]!
+      const dy = b[1]! - a[1]!
+      const lenSq = dx * dx + dy * dy
+
+      let t = 0
+      if (lenSq !== 0) {
+        t = ((stop[0]! - a[0]!) * dx + (stop[1]! - a[1]!) * dy) / lenSq
+        t = Math.max(0, Math.min(1, t))
+      }
+
+      const projX = a[0]! + t * dx
+      const projY = a[1]! + t * dy
+      const distSq = (stop[0]! - projX) ** 2 + (stop[1]! - projY) ** 2
+
+      if (distSq < minDist) {
+        minDist = distSq
+        bestSegmentIndex = i
+        bestRatio = (lengths[i]! + t * Math.sqrt(lenSq)) / totalLength
       }
     }
-    searchStartIndex = bestIndex
+    searchStartIndex = bestSegmentIndex
     mapped.push(bestRatio)
   }
   return mapped
@@ -353,12 +369,12 @@ function interpolateMissingTimes(tripStopTimes: (number | null)[], stopRatios: n
   }
 }
 
-function buildTrips(direction: RouteDirection, weekday: number, stopRatios: number[]): number[][] {
+function buildTrips(direction: RouteDirection, weekday: number, stopRatios: number[]): ActiveTrip[] {
   const baseTrips: number[][] = []
-  if (!direction.schedules || !direction.schedules.length) return baseTrips
+  if (!direction.schedules || !direction.schedules.length) return []
 
   const daily = direction.schedules.filter((s) => s.days.includes(weekday))
-  if (!daily.length) return baseTrips
+  if (!daily.length) return []
 
   const intervalSchedules = daily.filter((s) => s.type === 'interval')
   if (intervalSchedules.length > 0) {
@@ -442,11 +458,12 @@ function buildTrips(direction: RouteDirection, weekday: number, stopRatios: numb
   }
 
   // Cross-day trips replication
-  const allTrips: number[][] = []
-  for (const trip of baseTrips) {
-    allTrips.push(trip)
-    allTrips.push(trip.map(t => t - 1440))
-    allTrips.push(trip.map(t => t + 1440))
+  const allTrips: ActiveTrip[] = []
+  for (let i = 0; i < baseTrips.length; i++) {
+    const trip = baseTrips[i]!
+    allTrips.push({ id: `${direction.id}-trip-${i}-base`, times: trip })
+    allTrips.push({ id: `${direction.id}-trip-${i}-prev`, times: trip.map((t) => t - 1440) })
+    allTrips.push({ id: `${direction.id}-trip-${i}-next`, times: trip.map((t) => t + 1440) })
   }
   return allTrips
 }
@@ -495,36 +512,31 @@ function tickGlobal() {
   const selectedKey = transit.selectedRouteKey
   const selectedDirId = selectedKey ? selectedKey.split('::')[1] : null
 
+  const currentlyActiveTripIds = new Set<string>()
+
   for (const dir of activeDirections) {
     const isVisible = !selectedDirId || dir.directionId === selectedDirId
 
     const activeTrips = dir.trips.filter(
-      (t) => t.length > 1 && nowMinutes >= t[0]! && nowMinutes <= t[t.length - 1]!,
+      (t) => t.times.length > 1 && nowMinutes >= t.times[0]! && nowMinutes <= t.times[t.times.length - 1]!,
     )
 
-    let markers = busAnimations.get(dir.directionId) || []
+    for (const tripObj of activeTrips) {
+      currentlyActiveTripIds.add(tripObj.id)
+      const trip = tripObj.times
 
-    while (markers.length < activeTrips.length) {
-      const el = document.createElement('div')
-      el.className = 'bus-badge'
-      el.textContent = dir.routeNumber
-      el.style.backgroundColor = dir.routeColor
-      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-        .setLngLat(dir.coords[0] as [number, number])
-        .addTo(map)
-      markers.push({ el, marker })
-    }
-    while (markers.length > activeTrips.length) {
-      const popped = markers.pop()!
-      popped.marker.remove()
-    }
-
-    if (markers.length > 0) busAnimations.set(dir.directionId, markers)
-    else busAnimations.delete(dir.directionId)
-
-    for (let i = 0; i < activeTrips.length; i++) {
-      const trip = activeTrips[i]!
-      const markerObj = markers[i]!
+      let markerObj = busAnimations.get(tripObj.id)
+      if (!markerObj) {
+        const el = document.createElement('div')
+        el.className = 'bus-badge'
+        el.textContent = dir.routeNumber
+        el.style.backgroundColor = dir.routeColor
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat(dir.coords[0] as [number, number])
+          .addTo(map)
+        markerObj = { el, marker }
+        busAnimations.set(tripObj.id, markerObj)
+      }
 
       markerObj.el.style.display = isVisible ? '' : 'none'
       if (!isVisible) continue
@@ -550,6 +562,13 @@ function tickGlobal() {
     }
   }
 
+  for (const [tripId, anim] of busAnimations.entries()) {
+    if (!currentlyActiveTripIds.has(tripId)) {
+      anim.marker.remove()
+      busAnimations.delete(tripId)
+    }
+  }
+
   globalAnimationFrame = requestAnimationFrame(tickGlobal)
 }
 
@@ -558,10 +577,8 @@ function stopBusAnimation() {
     cancelAnimationFrame(globalAnimationFrame)
     globalAnimationFrame = null
   }
-  for (const markers of busAnimations.values()) {
-    for (const m of markers) {
-      m.marker.remove()
-    }
+  for (const anim of busAnimations.values()) {
+    anim.marker.remove()
   }
   busAnimations.clear()
   activeDirections.splice(0, activeDirections.length)
