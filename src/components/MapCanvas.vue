@@ -289,6 +289,32 @@ function getCurrentDayAndMinutes() {
   }
 }
 
+function getAbsoluteRatio(coords: number[][], lengths: number[], totalLength: number, stop: number[]): number {
+  if (totalLength === 0) return 0
+  let minDist = Infinity
+  let bestRatio = 0
+  for (let i = 0; i < coords.length - 1; i++) {
+    const a = coords[i]!
+    const b = coords[i + 1]!
+    const dx = b[0]! - a[0]!
+    const dy = b[1]! - a[1]!
+    const lenSq = dx * dx + dy * dy
+    let t = 0
+    if (lenSq !== 0) {
+      t = ((stop[0]! - a[0]!) * dx + (stop[1]! - a[1]!) * dy) / lenSq
+      t = Math.max(0, Math.min(1, t))
+    }
+    const projX = a[0]! + t * dx
+    const projY = a[1]! + t * dy
+    const distSq = (stop[0]! - projX) ** 2 + (stop[1]! - projY) ** 2
+    if (distSq < minDist) {
+      minDist = distSq
+      bestRatio = (lengths[i]! + t * Math.sqrt(lenSq)) / totalLength
+    }
+  }
+  return bestRatio
+}
+
 function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
   const lengths = [0]
   for (let i = 0; i < coords.length - 1; i++) {
@@ -300,11 +326,16 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
   if (totalLength === 0) return stopCoords.map(() => 0)
 
   const mapped = []
-  for (const stop of stopCoords) {
-    let minDist = Infinity
-    let bestRatio = 0
+  let searchStartIndex = 0
 
-    for (let i = 0; i < coords.length - 1; i++) {
+  for (let k = 0; k < stopCoords.length; k++) {
+    const stop = stopCoords[k]!
+    let minDist = Infinity
+    let bestRatio = lengths[searchStartIndex]! / totalLength
+    let bestSegmentIndex = searchStartIndex
+    let distanceIncreasedCount = 0
+
+    for (let i = searchStartIndex; i < coords.length - 1; i++) {
       const a = coords[i]!
       const b = coords[i + 1]!
       const dx = b[0]! - a[0]!
@@ -323,8 +354,20 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
 
       if (distSq < minDist) {
         minDist = distSq
+        bestSegmentIndex = i
         bestRatio = (lengths[i]! + t * Math.sqrt(lenSq)) / totalLength
+        distanceIncreasedCount = 0
+      } else {
+        distanceIncreasedCount++
+        if (distanceIncreasedCount > 10) {
+          break
+        }
       }
+    }
+
+    searchStartIndex = bestSegmentIndex
+    if (k > 0 && bestRatio < mapped[k - 1]!) {
+      bestRatio = mapped[k - 1]!
     }
     mapped.push(bestRatio)
   }
@@ -464,7 +507,7 @@ function initBusAnimations() {
 
   transit.routeStops.routes.forEach((route) => {
     route.directions.forEach((direction) => {
-      const coords = getRouteCoordinates(direction)
+      let coords = getRouteCoordinates(direction)
       if (coords.length < 2) return
 
       const stopCoords = direction.stopIds
@@ -472,6 +515,29 @@ function initBusAnimations() {
         .filter((c): c is number[] => Boolean(c))
 
       if (stopCoords.length !== direction.stopIds.length) return
+      
+      const lengths = [0]
+      for (let i = 0; i < coords.length - 1; i++) {
+        const dx = coords[i + 1]![0]! - coords[i]![0]!
+        const dy = coords[i + 1]![1]! - coords[i]![1]!
+        lengths.push(lengths[i]! + Math.sqrt(dx * dx + dy * dy))
+      }
+      const totalLength = lengths[lengths.length - 1]!
+
+      let increasing = 0
+      let decreasing = 0
+      let prevRatio = getAbsoluteRatio(coords, lengths, totalLength, stopCoords[0]!)
+      
+      for (let i = 1; i < stopCoords.length; i++) {
+        const ratio = getAbsoluteRatio(coords, lengths, totalLength, stopCoords[i]!)
+        if (ratio > prevRatio) increasing++
+        if (ratio < prevRatio) decreasing++
+        prevRatio = ratio
+      }
+
+      if (decreasing > increasing) {
+        coords = [...coords].reverse()
+      }
 
       const stopRatios = mapStopsToPath(coords, stopCoords)
       const trips = buildTrips(direction, weekday)
