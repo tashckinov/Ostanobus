@@ -10,8 +10,13 @@ import type { RouteDirection, TransitRoute } from '@/types/transit'
 const transit = useTransitStore()
 const mapContainer = ref<HTMLElement | null>(null)
 let map: MapLibreMap | null = null
-let animationFrame: number | null = null
-let busMarker: maplibregl.Marker | null = null
+
+interface BusAnimation {
+  marker: maplibregl.Marker
+  cancelFrame: number
+  el: HTMLElement
+}
+const busAnimations = new Map<string, BusAnimation>()
 
 const mapStyle: maplibregl.StyleSpecification = {
   version: 8,
@@ -149,6 +154,12 @@ onMounted(() => {
     map.on('mouseleave', 'stop-halo', () => {
       if (map) map.getCanvas().style.cursor = ''
     })
+
+    transit.routeStops.routes.forEach(route => {
+      route.directions.forEach(direction => {
+        startBusAnimation(route, direction)
+      })
+    })
   })
 })
 
@@ -178,14 +189,16 @@ watch(
 watch(
   () => transit.selectedRouteKey,
   (key) => {
-    stopBusAnimation()
-
     if (!map?.getLayer('route-lines')) return
 
     if (!key) {
-      // Скрыть маршруты
+      // Скрыть линии маршрутов
       map.setFilter('route-line-outline', ['==', ['get', 'directionId'], ''])
       map.setFilter('route-lines', ['==', ['get', 'directionId'], ''])
+      // Показать все бейджи
+      for (const anim of busAnimations.values()) {
+        anim.el.style.display = ''
+      }
       return
     }
 
@@ -193,8 +206,10 @@ watch(
     map.setFilter('route-line-outline', ['==', ['get', 'directionId'], directionId ?? ''])
     map.setFilter('route-lines', ['==', ['get', 'directionId'], directionId ?? ''])
 
-    const info = transit.selectedRouteInfo
-    if (info) startBusAnimation(info.route, info.direction)
+    // Оставить только бейдж выбранного направления
+    for (const [dirId, anim] of busAnimations) {
+      anim.el.style.display = dirId === directionId ? '' : 'none'
+    }
   },
 )
 
@@ -242,11 +257,9 @@ function startBusAnimation(route: TransitRoute, direction: RouteDirection) {
   const coords = getRouteCoordinates(direction)
   if (coords.length < 2) return
 
-  // Проверяем что есть хоть одно interval-расписание
+  // Проверяем что есть хоть одно interval-расписание, если нет - 15 мин по умолчанию
   const intervalSchedules = (direction.schedules ?? []).filter((s) => s.type === 'interval' && s.headwayMinutes)
-  if (!intervalSchedules.length) return
-
-  const headway = intervalSchedules[0]!.headwayMinutes! // минуты
+  const headway = intervalSchedules.length > 0 ? intervalSchedules[0]!.headwayMinutes! : 15 // минуты
 
   // Создаём HTML-элемент badge
   const el = document.createElement('div')
@@ -254,35 +267,33 @@ function startBusAnimation(route: TransitRoute, direction: RouteDirection) {
   el.textContent = route.number
   el.style.backgroundColor = route.color
 
-  busMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
+  const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
     .setLngLat([coords[0]![0]!, coords[0]![1]!])
     .addTo(map)
 
   const segLengths = buildSegmentLengths(coords)
   const cycleDuration = headway * 60 * 1000 // мс — за headway минут баджик проходит весь маршрут
-  const startTime = performance.now()
+  const startTime = performance.now() - Math.random() * cycleDuration
 
+  let cancelFrame = 0
   function tick(now: number) {
-    if (!busMarker) return
     const elapsed = (now - startTime) % cycleDuration
     const t = elapsed / cycleDuration
     const [lng, lat] = interpolateAlong(coords, segLengths, t)
-    busMarker.setLngLat([lng, lat])
-    animationFrame = requestAnimationFrame(tick)
+    marker.setLngLat([lng, lat])
+    cancelFrame = requestAnimationFrame(tick)
   }
 
-  animationFrame = requestAnimationFrame(tick)
+  cancelFrame = requestAnimationFrame(tick)
+  busAnimations.set(direction.id, { marker, cancelFrame, el })
 }
 
 function stopBusAnimation() {
-  if (animationFrame !== null) {
-    cancelAnimationFrame(animationFrame)
-    animationFrame = null
+  for (const anim of busAnimations.values()) {
+    cancelAnimationFrame(anim.cancelFrame)
+    anim.marker.remove()
   }
-  if (busMarker) {
-    busMarker.remove()
-    busMarker = null
-  }
+  busAnimations.clear()
 }
 
 // ─── Геолокация (expose) ──────────────────────────────────────────────────────
