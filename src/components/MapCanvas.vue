@@ -293,33 +293,7 @@ function getCurrentDayAndMinutes() {
   }
 }
 
-function getAbsoluteRatio(coords: number[][], lengths: number[], totalLength: number, stop: number[]): number {
-  if (totalLength === 0) return 0
-  let minDist = Infinity
-  let bestRatio = 0
-  for (let i = 0; i < coords.length - 1; i++) {
-    const a = coords[i]!
-    const b = coords[i + 1]!
-    const dx = b[0]! - a[0]!
-    const dy = b[1]! - a[1]!
-    const lenSq = dx * dx + dy * dy
-    let t = 0
-    if (lenSq !== 0) {
-      t = ((stop[0]! - a[0]!) * dx + (stop[1]! - a[1]!) * dy) / lenSq
-      t = Math.max(0, Math.min(1, t))
-    }
-    const projX = a[0]! + t * dx
-    const projY = a[1]! + t * dy
-    const distSq = (stop[0]! - projX) ** 2 + (stop[1]! - projY) ** 2
-    if (distSq < minDist) {
-      minDist = distSq
-      bestRatio = (lengths[i]! + t * Math.sqrt(lenSq)) / totalLength
-    }
-  }
-  return bestRatio
-}
-
-function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
+function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] | null {
   const lengths = [0]
   for (let i = 0; i < coords.length - 1; i++) {
     const dx = coords[i + 1]![0]! - coords[i]![0]!
@@ -371,7 +345,7 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
 
     searchStartIndex = bestSegmentIndex
     if (k > 0 && bestRatio < mapped[k - 1]!) {
-      bestRatio = mapped[k - 1]!
+      return null
     }
     mapped.push(bestRatio)
   }
@@ -407,7 +381,7 @@ function interpolateMissingTimes(tripStopTimes: (number | null)[]) {
   }
 }
 
-function buildTrips(direction: RouteDirection, weekday: number): ActiveTrip[] {
+function buildTrips(routeId: string, direction: RouteDirection, weekday: number): ActiveTrip[] {
   const baseTrips: number[][] = []
   if (!direction.schedules || !direction.schedules.length) return []
 
@@ -499,9 +473,9 @@ function buildTrips(direction: RouteDirection, weekday: number): ActiveTrip[] {
   const allTrips: ActiveTrip[] = []
   for (let i = 0; i < baseTrips.length; i++) {
     const trip = baseTrips[i]!
-    allTrips.push({ id: `${direction.id}-trip-${i}-base`, times: trip })
-    allTrips.push({ id: `${direction.id}-trip-${i}-prev`, times: trip.map((t) => t - 1440) })
-    allTrips.push({ id: `${direction.id}-trip-${i}-next`, times: trip.map((t) => t + 1440) })
+    allTrips.push({ id: `${routeId}::${direction.id}-trip-${i}-base`, times: trip })
+    allTrips.push({ id: `${routeId}::${direction.id}-trip-${i}-prev`, times: trip.map((t) => t - 1440) })
+    allTrips.push({ id: `${routeId}::${direction.id}-trip-${i}-next`, times: trip.map((t) => t + 1440) })
   }
   return allTrips
 }
@@ -520,34 +494,17 @@ function initBusAnimations() {
 
       if (stopCoords.length !== direction.stopIds.length) return
       
-      const lengths = [0]
-      for (let i = 0; i < coords.length - 1; i++) {
-        const dx = coords[i + 1]![0]! - coords[i]![0]!
-        const dy = coords[i + 1]![1]! - coords[i]![1]!
-        lengths.push(lengths[i]! + Math.sqrt(dx * dx + dy * dy))
-      }
-      const totalLength = lengths[lengths.length - 1]!
-
-      let increasing = 0
-      let decreasing = 0
-      let prevRatio = getAbsoluteRatio(coords, lengths, totalLength, stopCoords[0]!)
-      
-      for (let i = 1; i < stopCoords.length; i++) {
-        const ratio = getAbsoluteRatio(coords, lengths, totalLength, stopCoords[i]!)
-        if (ratio > prevRatio) increasing++
-        if (ratio < prevRatio) decreasing++
-        prevRatio = ratio
-      }
-
-      if (decreasing > increasing) {
-        coords = [...coords].reverse()
-      }
-
-      const stopRatios = mapStopsToPath(coords, stopCoords)
-      const trips = buildTrips(direction, weekday)
-      if (!trips.length) return
-
       const segLengths = buildSegmentLengths(coords)
+      const stopRatios = mapStopsToPath(coords, stopCoords)
+      if (!stopRatios) {
+        if (settings.debugMode) {
+          console.warn(`[Debug] Skipped route ${route.routeId} direction ${direction.id}: Invalid geometry matching (stops out of order on path).`)
+        }
+        return
+      }
+
+      const trips = buildTrips(route.routeId, direction, weekday)
+      if (!trips.length) return
 
       activeDirections.push({
         directionId: direction.id,
@@ -576,6 +533,7 @@ function tickGlobal() {
   const selectedDirId = selectedKey ? selectedKey.split('::')[1] : null
 
   const currentlyActiveTripIds = new Set<string>()
+  const updatesThisFrame = new Map<string, number>()
   const shouldPrintDebug = settings.debugMode && Date.now() - lastDebugPrint > 2000
   if (shouldPrintDebug) {
     lastDebugPrint = Date.now()
@@ -595,6 +553,12 @@ function tickGlobal() {
 
     for (const tripObj of activeTrips) {
       currentlyActiveTripIds.add(tripObj.id)
+      const updates = (updatesThisFrame.get(tripObj.id) || 0) + 1
+      updatesThisFrame.set(tripObj.id, updates)
+      if (updates > 1) {
+        console.warn(`[Debug] Collision: Marker updated multiple times per frame: ${tripObj.id}`)
+      }
+
       const trip = tripObj.times
 
       if (shouldPrintDebug && isVisible) {
@@ -605,13 +569,19 @@ function tickGlobal() {
       if (!markerObj) {
         const el = document.createElement('div')
         el.className = 'bus-badge'
-        el.textContent = dir.routeNumber
         el.style.backgroundColor = dir.routeColor
         const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
           .setLngLat(dir.coords[0] as [number, number])
           .addTo(map)
         markerObj = { el, marker }
         busAnimations.set(tripObj.id, markerObj)
+      }
+
+      if (settings.debugMode) {
+        const tripIdx = tripObj.id.split('-').slice(-2, -1)[0]
+        markerObj.el.textContent = `${dir.routeNumber} · ${tripIdx}`
+      } else {
+        markerObj.el.textContent = dir.routeNumber
       }
 
       markerObj.el.style.display = isVisible ? '' : 'none'
