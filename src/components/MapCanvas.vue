@@ -300,16 +300,11 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
   if (totalLength === 0) return stopCoords.map(() => 0)
 
   const mapped = []
-  let searchStartIndex = 0
-
-  for (let k = 0; k < stopCoords.length; k++) {
-    const stop = stopCoords[k]!
+  for (const stop of stopCoords) {
     let minDist = Infinity
-    let bestRatio = lengths[searchStartIndex]! / totalLength
-    let bestSegmentIndex = searchStartIndex
-    let distanceIncreasedCount = 0
+    let bestRatio = 0
 
-    for (let i = searchStartIndex; i < coords.length - 1; i++) {
+    for (let i = 0; i < coords.length - 1; i++) {
       const a = coords[i]!
       const b = coords[i + 1]!
       const dx = b[0]! - a[0]!
@@ -328,27 +323,15 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
 
       if (distSq < minDist) {
         minDist = distSq
-        bestSegmentIndex = i
         bestRatio = (lengths[i]! + t * Math.sqrt(lenSq)) / totalLength
-        distanceIncreasedCount = 0
-      } else {
-        distanceIncreasedCount++
-        if (distanceIncreasedCount > 10) {
-          break
-        }
       }
-    }
-
-    searchStartIndex = bestSegmentIndex
-    if (k > 0 && bestRatio < mapped[k - 1]!) {
-      bestRatio = mapped[k - 1]!
     }
     mapped.push(bestRatio)
   }
   return mapped
 }
 
-function interpolateMissingTimes(tripStopTimes: (number | null)[], stopRatios: number[]) {
+function interpolateMissingTimes(tripStopTimes: (number | null)[]) {
   for (let i = 0; i < tripStopTimes.length; i++) {
     if (tripStopTimes[i] === null) {
       let prevIdx = i - 1
@@ -364,11 +347,7 @@ function interpolateMissingTimes(tripStopTimes: (number | null)[], stopRatios: n
           nextTime += 1440
         }
 
-        const prevDist = stopRatios[prevIdx]!
-        const nextDist = stopRatios[nextIdx]!
-        const currDist = stopRatios[i]!
-        const fraction =
-          nextDist - prevDist === 0 ? 0 : (currDist - prevDist) / (nextDist - prevDist)
+        const fraction = (i - prevIdx) / (nextIdx - prevIdx)
         tripStopTimes[i] = prevTime + fraction * (nextTime - prevTime)
       } else if (prevIdx >= 0) {
         tripStopTimes[i] = tripStopTimes[prevIdx]! + 1
@@ -381,7 +360,7 @@ function interpolateMissingTimes(tripStopTimes: (number | null)[], stopRatios: n
   }
 }
 
-function buildTrips(direction: RouteDirection, weekday: number, stopRatios: number[]): ActiveTrip[] {
+function buildTrips(direction: RouteDirection, weekday: number): ActiveTrip[] {
   const baseTrips: number[][] = []
   if (!direction.schedules || !direction.schedules.length) return []
 
@@ -418,7 +397,7 @@ function buildTrips(direction: RouteDirection, weekday: number, stopRatios: numb
             tripStopTimes.push(null)
           }
 
-          interpolateMissingTimes(tripStopTimes, stopRatios)
+          interpolateMissingTimes(tripStopTimes)
           baseTrips.push(tripStopTimes as number[])
         }
       }
@@ -463,7 +442,7 @@ function buildTrips(direction: RouteDirection, weekday: number, stopRatios: numb
             tripStopTimes.push(null)
           }
         }
-        interpolateMissingTimes(tripStopTimes, stopRatios)
+        interpolateMissingTimes(tripStopTimes)
         baseTrips.push(tripStopTimes as number[])
       }
     }
@@ -495,7 +474,7 @@ function initBusAnimations() {
       if (stopCoords.length !== direction.stopIds.length) return
 
       const stopRatios = mapStopsToPath(coords, stopCoords)
-      const trips = buildTrips(direction, weekday, stopRatios)
+      const trips = buildTrips(direction, weekday)
       if (!trips.length) return
 
       const segLengths = buildSegmentLengths(coords)
