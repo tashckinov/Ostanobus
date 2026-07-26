@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, BusFront, Check, MapPin, Search, Square, X } from '@lucide/vue'
+import { ArrowLeft, BusFront, Check, MapPin, Search, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
@@ -33,10 +33,8 @@ const emit = defineEmits<{
 const transit = useTransitStore()
 const ride = useRideStore()
 const sheet = ref<HTMLElement | null>(null)
-const savingArrival = ref(false)
 const startingRide = ref(false)
 const markingStop = ref(false)
-const actionMessage = ref('')
 const scheduleClock = ref(new Date())
 let scheduleClockTimer: ReturnType<typeof setInterval> | null = null
 let resizeObserver: ResizeObserver | null = null
@@ -74,27 +72,13 @@ const rideComplete = computed(
     ride.activeRide!.nextStopIndex >= activeDirection.value!.stopIds.length,
 )
 
-async function recordArrival(service: StopService) {
-  const stop = transit.selectedStop
-  if (!stop) return
-
-  savingArrival.value = true
-  actionMessage.value = ''
-  try {
-    await ride.recordArrival(service.route.routeId, stop.properties.id, service.direction.id)
-    actionMessage.value = 'Прибытие сохранено · pending'
-  } finally {
-    savingArrival.value = false
-  }
-}
-
 async function startRide(service: StopService) {
   const stop = transit.selectedStop
   if (!stop) return
 
   startingRide.value = true
   try {
-    await ride.startRide(service.route, service.direction, stop.properties.id)
+    await ride.boardBus(service.route, service.direction, stop.properties.id)
     emit('rideStarted')
   } finally {
     startingRide.value = false
@@ -219,22 +203,28 @@ onBeforeUnmount(() => {
           class="border-b border-border px-4 py-3"
         >
           <div class="flex items-start gap-3">
-            <span class="w-16 shrink-0 text-base font-semibold">№ {{ service.route.number }}</span>
+            <span
+              class="inline-flex min-w-12 shrink-0 items-center justify-center rounded px-2 py-1 text-sm font-bold text-white"
+              :style="{ backgroundColor: service.route.color }"
+            >
+              № {{ service.route.number }}
+            </span>
             <div class="min-w-0 flex-1">
               <p class="truncate text-xs text-muted-foreground">
                 {{ service.direction.name || `к ${service.direction.terminal}` }}
               </p>
               <template v-if="service.nextArrival">
-                <p class="mt-0.5 text-[15px] font-medium">
-                  Ближайший в {{ service.nextArrival.timeLabel }}
+                <p class="mt-1 text-2xl font-semibold leading-none">
+                  {{ service.nextArrival.relativeLabel }}
                 </p>
-                <p class="text-xs text-muted-foreground">
-                  {{ service.nextArrival.relativeLabel }} · по расписанию
+                <p class="mt-1 text-base font-medium">
+                  Ближайший в {{ service.nextArrival.timeLabel }}
+                  <span class="text-xs font-normal text-muted-foreground">· по расписанию</span>
                 </p>
               </template>
               <template v-else-if="service.forecast">
-                <p class="mt-0.5 text-[15px] font-medium">
-                  {{ service.forecast.minMinutes }}–{{ service.forecast.maxMinutes }} мин
+                <p class="mt-1 text-2xl font-semibold leading-none">
+                  через {{ service.forecast.minMinutes }}–{{ service.forecast.maxMinutes }} мин
                 </p>
                 <p class="text-xs text-muted-foreground">Вероятностный прогноз</p>
               </template>
@@ -256,21 +246,13 @@ onBeforeUnmount(() => {
             </p>
           </div>
 
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <Button :disabled="savingArrival" @click="recordArrival(service)">
-              <Check class="size-4" />
-              Автобус прибыл
-            </Button>
-            <Button variant="outline" :disabled="startingRide" @click="startRide(service)">
+          <div class="mt-3">
+            <Button class="w-full" :disabled="startingRide" @click="startRide(service)">
               <BusFront class="size-4" />
               Я сел
             </Button>
           </div>
         </article>
-
-        <p v-if="actionMessage" class="px-4 py-2 text-xs text-muted-foreground">
-          {{ actionMessage }}
-        </p>
       </div>
 
       <p v-else class="px-4 py-4 text-sm text-muted-foreground">
@@ -279,16 +261,17 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else-if="mode === 'ride' && ride.activeRide && activeRoute && activeDirection">
-      <div class="flex items-start border-b border-border px-4 py-3">
+      <div class="border-b border-border px-4 py-3">
         <div class="flex-1">
-          <p class="text-sm text-muted-foreground">
-            Маршрут {{ activeRoute.number }} · {{ activeDirection.name }}
+          <p class="text-lg font-semibold">Вы едете на {{ activeRoute.number }}</p>
+          <p class="text-sm text-muted-foreground">{{ activeDirection.name }}</p>
+          <p class="mt-2 text-base">
+            Следующая:
+            <span class="font-semibold">
+              {{ nextStop ? nextStop.properties.name : 'конечная остановка' }}
+            </span>
           </p>
-          <h2 class="mt-1 text-lg font-semibold">
-            {{ nextStop ? nextStop.properties.name : 'Конечная остановка' }}
-          </h2>
         </div>
-        <span class="text-xs text-muted-foreground">{{ ride.pendingCount }} pending</span>
       </div>
 
       <p
@@ -299,20 +282,21 @@ onBeforeUnmount(() => {
         {{ transit.stopsById.get(ride.justSavedStopId)?.properties.name }} сохранена
       </p>
 
-      <div class="flex gap-2 px-4 pt-3">
-        <Button v-if="!rideComplete" class="flex-1" :disabled="markingStop" @click="markNextStop">
-          <MapPin class="size-4" />
-          Проехали остановку
-        </Button>
-        <Button v-else class="flex-1" @click="ride.finishRide()">Завершить поездку</Button>
+      <div class="px-4 pt-3">
+        <p v-if="!rideComplete" class="mb-2 text-xs text-muted-foreground">
+          Не удалось точно определить остановку? Нажмите «Мы проехали остановку».
+        </p>
         <Button
+          v-if="!rideComplete"
           variant="outline"
-          size="icon"
-          aria-label="Завершить поездку"
-          @click="ride.finishRide()"
+          class="w-full"
+          :disabled="markingStop"
+          @click="markNextStop"
         >
-          <Square class="size-4 fill-current" />
+          <MapPin class="size-4" />
+          Мы проехали остановку
         </Button>
+        <Button class="mt-2 w-full" @click="ride.finishRide()"> Я вышел </Button>
       </div>
     </div>
   </section>

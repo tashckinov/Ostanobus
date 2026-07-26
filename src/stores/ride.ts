@@ -74,6 +74,19 @@ export const useRideStore = defineStore('ride', () => {
     justSavedStopId.value = null
   }
 
+  async function boardBus(route: TransitRoute, direction: RouteDirection, startStopId: string) {
+    const arrival = await saveEvent({
+      type: 'bus_arrival',
+      routeId: route.routeId,
+      directionId: direction.id,
+      stopId: startStopId,
+    })
+    events.value = [arrival, ...events.value].slice(0, 50)
+    await startRide(route, direction, startStopId)
+    void trySync()
+    return arrival
+  }
+
   async function markNextStop(direction: RouteDirection) {
     if (!activeRide.value) return null
 
@@ -115,6 +128,7 @@ export const useRideStore = defineStore('ride', () => {
     refreshEvents,
     recordArrival,
     startRide,
+    boardBus,
     markNextStop,
     finishRide,
     trySync,

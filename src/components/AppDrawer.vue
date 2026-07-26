@@ -9,7 +9,6 @@ import {
   History,
   Info,
   MapPin,
-  Send,
   Settings,
   Star,
   X,
@@ -17,25 +16,21 @@ import {
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
-import { refreshSupportTickets, submitSupportTicket, type SupportTicketDraft } from '@/lib/support'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
-import type { SupportTicketReference } from '@/types/transit'
 
-type DrawerView =
-  'menu' | 'routes' | 'history' | 'marks' | 'favorites' | 'support' | 'about' | 'settings'
+type DrawerView = 'menu' | 'routes' | 'history' | 'marks' | 'favorites' | 'about' | 'settings'
+type DrawerTarget = DrawerView | 'support'
 
 const props = defineProps<{ open: boolean }>()
-const emit = defineEmits<{ 'update:open': [open: boolean] }>()
+const emit = defineEmits<{
+  'update:open': [open: boolean]
+  openSupport: []
+}>()
 
 const transit = useTransitStore()
 const ride = useRideStore()
 const view = ref<DrawerView>('menu')
-const supportMessage = ref('')
-const supportCategory = ref<SupportTicketDraft['category']>('other')
-const supportSending = ref(false)
-const supportError = ref('')
-const supportTickets = ref<SupportTicketReference[]>([])
 
 const title = computed(() => {
   const titles: Record<DrawerView, string> = {
@@ -44,7 +39,6 @@ const title = computed(() => {
     history: 'История поездок',
     marks: 'Мои отметки',
     favorites: 'Избранные остановки',
-    support: 'Поддержка',
     about: 'О приложении',
     settings: 'Настройки',
   }
@@ -69,9 +63,12 @@ function close() {
   emit('update:open', false)
 }
 
-function openView(next: DrawerView) {
+function openView(next: DrawerTarget) {
+  if (next === 'support') {
+    emit('openSupport')
+    return
+  }
   view.value = next
-  if (next === 'support') void loadTickets()
 }
 
 function eventTitle(type: 'bus_arrival' | 'stop_passage', routeId: string) {
@@ -93,30 +90,6 @@ function formatEventTime(createdAt: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(createdAt))
-}
-
-async function loadTickets() {
-  supportTickets.value = await refreshSupportTickets()
-}
-
-async function sendTicket() {
-  if (supportMessage.value.trim().length < 3) return
-  supportSending.value = true
-  supportError.value = ''
-  try {
-    await submitSupportTicket({
-      category: supportCategory.value,
-      message: supportMessage.value.trim(),
-      stopId: transit.selectedStopId,
-      routeId: null,
-    })
-    supportMessage.value = ''
-    await loadTickets()
-  } catch (error) {
-    supportError.value = error instanceof Error ? error.message : 'Не удалось отправить обращение'
-  } finally {
-    supportSending.value = false
-  }
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -238,56 +211,6 @@ onBeforeUnmount(() => {
 
           <div v-else-if="view === 'favorites'" class="px-4 py-5">
             <p class="text-sm text-muted-foreground">Избранных остановок пока нет.</p>
-          </div>
-
-          <div v-else-if="view === 'support'" class="px-4 py-4">
-            <label class="block text-xs font-medium text-muted-foreground">
-              Тема
-              <select
-                v-model="supportCategory"
-                class="mt-1 h-10 w-full rounded border border-border bg-background px-2 text-sm"
-              >
-                <option value="stop">Остановка</option>
-                <option value="route">Маршрут</option>
-                <option value="schedule">Расписание</option>
-                <option value="forecast">Прогноз</option>
-                <option value="other">Другое</option>
-              </select>
-            </label>
-            <label class="mt-3 block text-xs font-medium text-muted-foreground">
-              Сообщение
-              <textarea
-                v-model="supportMessage"
-                rows="4"
-                maxlength="4000"
-                class="mt-1 w-full resize-none rounded border border-border bg-background p-2 text-sm"
-                placeholder="Опишите проблему"
-              />
-            </label>
-            <Button
-              class="mt-2 w-full"
-              :disabled="supportSending || supportMessage.trim().length < 3"
-              @click="sendTicket"
-            >
-              <Send class="size-4" />
-              {{ supportSending ? 'Отправляем…' : 'Отправить обращение' }}
-            </Button>
-            <p v-if="supportError" class="mt-2 text-xs text-red-600">{{ supportError }}</p>
-
-            <div v-if="supportTickets.length" class="mt-4 border-t border-border">
-              <div
-                v-for="ticket in supportTickets"
-                :key="ticket.id"
-                class="border-b border-border py-3"
-              >
-                <div class="flex justify-between gap-2">
-                  <span class="text-sm font-medium">Обращение</span>
-                  <span class="text-xs text-muted-foreground">{{ ticket.status }}</span>
-                </div>
-                <p v-if="ticket.adminReply" class="mt-1 text-sm">{{ ticket.adminReply }}</p>
-                <p v-else class="mt-1 text-xs text-muted-foreground">Ответа пока нет</p>
-              </div>
-            </div>
           </div>
 
           <div v-else-if="view === 'about'" class="space-y-3 px-4 py-5">

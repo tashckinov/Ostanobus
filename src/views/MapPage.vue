@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import AppDrawer from '@/components/AppDrawer.vue'
 import MapCanvas from '@/components/MapCanvas.vue'
+import SupportSheet from '@/components/SupportSheet.vue'
 import TransitSheet from '@/components/TransitSheet.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { useRideStore } from '@/stores/ride'
@@ -19,6 +20,7 @@ const transit = useTransitStore()
 const ride = useRideStore()
 const mapCanvas = ref<MapCanvasExposed | null>(null)
 const drawerOpen = ref(false)
+const supportOpen = ref(false)
 const searchQuery = ref('')
 const searchOpen = ref(false)
 const locating = ref(false)
@@ -122,6 +124,11 @@ function openDrawer() {
   drawerOpen.value = true
 }
 
+function openSupport() {
+  drawerOpen.value = false
+  supportOpen.value = true
+}
+
 function locateUser() {
   locationMessage.value = ''
   if (!navigator.geolocation) {
@@ -193,6 +200,7 @@ function locateUser() {
       @height-change="sheetHeight = $event"
     />
 
-    <AppDrawer v-model:open="drawerOpen" />
+    <AppDrawer v-model:open="drawerOpen" @open-support="openSupport" />
+    <SupportSheet v-model:open="supportOpen" />
   </main>
 </template>
