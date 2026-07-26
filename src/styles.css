@@ -97,9 +97,9 @@ a {
 @keyframes bus-pulse {
   0%,
   100% {
-    transform: scale(1);
+    scale: 1;
   }
   50% {
-    transform: scale(1.12);
+    scale: 1.12;
   }
 }

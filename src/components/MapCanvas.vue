@@ -3,7 +3,7 @@ import type { Feature, Point } from 'geojson'
 import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { buildRouteLines } from '@/lib/route-geometry'
+import { buildRouteLines, decodePolyline } from '@/lib/route-geometry'
 import { useTransitStore } from '@/stores/transit'
 import type { RouteDirection, TransitRoute } from '@/types/transit'
 
@@ -217,6 +217,7 @@ watch(
 
 function getRouteCoordinates(direction: RouteDirection): number[][] {
   if (direction.geometry) return direction.geometry.coordinates
+  if (direction.path) return decodePolyline(direction.path.value, direction.path.precision)
   return direction.stopIds
     .map((id) => transit.stopsById.get(id)?.geometry.coordinates)
     .filter((c): c is number[] => Boolean(c))
