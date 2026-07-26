@@ -269,15 +269,27 @@ button.tab.active {
   overflow: auto;
   list-style: none;
 }
-.waypoints li {
+.waypoint-card {
   display: grid;
-  grid-template-columns: 16px 25px minmax(0, 1fr) 24px 24px 24px;
+  grid-template-columns: 22px 25px minmax(0, 1fr) 26px;
   align-items: center;
   gap: 5px;
   border-bottom: 1px solid #e5e7eb;
-  padding: 7px 0;
+  padding: 7px 2px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-radius: 4px;
+  transition: background 0.1s, opacity 0.15s;
 }
-.waypoints li > span {
+.waypoint-card:hover {
+  background: #f5f7fb;
+}
+.waypoint-card.dragging {
+  opacity: 0.38;
+  background: #eaf3fb;
+}
+.waypoint-card > span {
   display: grid;
   place-items: center;
   width: 21px;
@@ -287,20 +299,41 @@ button.tab.active {
   color: #fff;
   font-size: 10px;
 }
-.waypoints li > span.via {
+.waypoint-card > span.via {
   background: #f59e0b;
 }
-.waypoints li strong {
+.waypoint-card strong {
   overflow: hidden;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.waypoints li button {
+.waypoint-card .remove-btn {
   border: 0;
   background: transparent;
-  color: #4b5563;
+  color: #9aa3ad;
   padding: 2px;
+  font-size: 15px;
+  line-height: 1;
+  min-height: 0;
+}
+.waypoint-card .remove-btn:hover {
+  color: #b42318;
+}
+.drop-zone {
+  list-style: none;
+  height: 4px;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
+  background: transparent;
+  transition: height 0.12s, background 0.12s;
+  pointer-events: none;
+}
+.drop-zone.active {
+  height: 8px;
+  background: #006fca;
+  box-shadow: 0 0 0 2px rgb(0 111 202 / 25%);
 }
 .waypoints .drag-handle {
   width: auto;
@@ -308,8 +341,9 @@ button.tab.active {
   cursor: grab;
   background: transparent;
   color: #9aa3ad;
-  font-size: 13px;
-  letter-spacing: -3px;
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
 }
 .notice,
 .success {
