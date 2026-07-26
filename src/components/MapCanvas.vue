@@ -5,10 +5,13 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { buildRouteLines } from '@/lib/route-geometry'
 import { useTransitStore } from '@/stores/transit'
+import type { RouteDirection, TransitRoute } from '@/types/transit'
 
 const transit = useTransitStore()
 const mapContainer = ref<HTMLElement | null>(null)
 let map: MapLibreMap | null = null
+let animationFrame: number | null = null
+let busMarker: maplibregl.Marker | null = null
 
 const mapStyle: maplibregl.StyleSpecification = {
   version: 8,
@@ -64,6 +67,8 @@ onMounted(() => {
       id: 'route-line-outline',
       type: 'line',
       source: 'route-lines',
+      // скрыт по умолчанию — показывается только для выбранного маршрута
+      filter: ['==', ['get', 'directionId'], ''],
       paint: {
         'line-color': '#ffffff',
         'line-width': 7,
@@ -74,6 +79,8 @@ onMounted(() => {
       id: 'route-lines',
       type: 'line',
       source: 'route-lines',
+      // скрыт по умолчанию
+      filter: ['==', ['get', 'directionId'], ''],
       paint: {
         'line-color': ['get', 'color'],
         'line-width': 4,
@@ -145,6 +152,8 @@ onMounted(() => {
   })
 })
 
+// ─── Реакция на выбранную остановку ──────────────────────────────────────────
+
 watch(
   () => transit.selectedStopId,
   (stopId) => {
@@ -163,6 +172,120 @@ watch(
     }
   },
 )
+
+// ─── Реакция на выбранный маршрут ────────────────────────────────────────────
+
+watch(
+  () => transit.selectedRouteKey,
+  (key) => {
+    stopBusAnimation()
+
+    if (!map?.getLayer('route-lines')) return
+
+    if (!key) {
+      // Скрыть маршруты
+      map.setFilter('route-line-outline', ['==', ['get', 'directionId'], ''])
+      map.setFilter('route-lines', ['==', ['get', 'directionId'], ''])
+      return
+    }
+
+    const [, directionId] = key.split('::')
+    map.setFilter('route-line-outline', ['==', ['get', 'directionId'], directionId ?? ''])
+    map.setFilter('route-lines', ['==', ['get', 'directionId'], directionId ?? ''])
+
+    const info = transit.selectedRouteInfo
+    if (info) startBusAnimation(info.route, info.direction)
+  },
+)
+
+// ─── Анимированный badge ──────────────────────────────────────────────────────
+
+function getRouteCoordinates(direction: RouteDirection): number[][] {
+  if (direction.geometry) return direction.geometry.coordinates
+  return direction.stopIds
+    .map((id) => transit.stopsById.get(id)?.geometry.coordinates)
+    .filter((c): c is number[] => Boolean(c))
+}
+
+/** Суммарные длины сегментов (евклид в градусах — достаточно для анимации) */
+function buildSegmentLengths(coords: number[][]): number[] {
+  const lengths: number[] = []
+  for (let i = 0; i < coords.length - 1; i++) {
+    const dx = (coords[i + 1]![0]! - coords[i]![0]!)
+    const dy = (coords[i + 1]![1]! - coords[i]![1]!)
+    lengths.push(Math.sqrt(dx * dx + dy * dy))
+  }
+  return lengths
+}
+
+/** Возвращает [lng, lat] в точке t ∈ [0, 1] вдоль полилинии */
+function interpolateAlong(coords: number[][], lengths: number[], t: number): [number, number] {
+  const total = lengths.reduce((a, b) => a + b, 0)
+  let target = t * total
+  for (let i = 0; i < lengths.length; i++) {
+    const len = lengths[i]!
+    if (target <= len || i === lengths.length - 1) {
+      const ratio = len > 0 ? Math.min(target / len, 1) : 0
+      const a = coords[i]!
+      const b = coords[i + 1]!
+      return [a[0]! + (b[0]! - a[0]!) * ratio, a[1]! + (b[1]! - a[1]!) * ratio]
+    }
+    target -= len
+  }
+  const last = coords[coords.length - 1]!
+  return [last[0]!, last[1]!]
+}
+
+function startBusAnimation(route: TransitRoute, direction: RouteDirection) {
+  if (!map) return
+
+  const coords = getRouteCoordinates(direction)
+  if (coords.length < 2) return
+
+  // Проверяем что есть хоть одно interval-расписание
+  const intervalSchedules = (direction.schedules ?? []).filter((s) => s.type === 'interval' && s.headwayMinutes)
+  if (!intervalSchedules.length) return
+
+  const headway = intervalSchedules[0]!.headwayMinutes! // минуты
+
+  // Создаём HTML-элемент badge
+  const el = document.createElement('div')
+  el.className = 'bus-badge'
+  el.textContent = route.number
+  el.style.backgroundColor = route.color
+
+  busMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat([coords[0]![0]!, coords[0]![1]!])
+    .addTo(map)
+
+  const segLengths = buildSegmentLengths(coords)
+  const cycleDuration = headway * 60 * 1000 // мс — за headway минут баджик проходит весь маршрут
+  const startTime = performance.now()
+
+  function tick(now: number) {
+    if (!busMarker) return
+    const elapsed = (now - startTime) % cycleDuration
+    const t = elapsed / cycleDuration
+    const [lng, lat] = interpolateAlong(coords, segLengths, t)
+    busMarker.setLngLat([lng, lat])
+    animationFrame = requestAnimationFrame(tick)
+  }
+
+  animationFrame = requestAnimationFrame(tick)
+}
+
+function stopBusAnimation() {
+  if (animationFrame !== null) {
+    cancelAnimationFrame(animationFrame)
+    animationFrame = null
+  }
+  if (busMarker) {
+    busMarker.remove()
+    busMarker = null
+  }
+}
+
+// ─── Геолокация (expose) ──────────────────────────────────────────────────────
 
 function showUserLocation(longitude: number, latitude: number) {
   if (!map) return
@@ -215,6 +338,7 @@ function showUserLocation(longitude: number, latitude: number) {
 defineExpose({ showUserLocation })
 
 onBeforeUnmount(() => {
+  stopBusAnimation()
   map?.remove()
   map = null
 })

@@ -39,6 +39,17 @@ export const useTransitStore = defineStore('transit', () => {
       new Map<string, StopFeature>(stops.value.features.map((stop) => [stop.properties.id, stop])),
   )
 
+  /** «routeId::directionId» выбранного пользователем маршрута, null = скрыты все */
+  const selectedRouteKey = ref<string | null>(null)
+
+  const selectedRouteInfo = computed(() => {
+    if (!selectedRouteKey.value) return null
+    const [routeId, directionId] = selectedRouteKey.value.split('::')
+    const route = routeStops.value.routes.find((r) => r.routeId === routeId)
+    const direction = route?.directions.find((d) => d.id === directionId)
+    return route && direction ? { route, direction } : null
+  })
+
   async function initialise() {
     if (stops.value.features.length || loading.value) return
 
@@ -59,7 +70,12 @@ export const useTransitStore = defineStore('transit', () => {
 
   function selectStop(stopId: string | null) {
     selectedStopId.value = stopId
+    selectedRouteKey.value = null
     if (stopId) void refreshForecasts(stopId)
+  }
+
+  function selectRoute(key: string | null) {
+    selectedRouteKey.value = key
   }
 
   async function refreshForecasts(stopId: string) {
@@ -86,6 +102,8 @@ export const useTransitStore = defineStore('transit', () => {
     selectedStopId,
     selectedStop,
     selectedStopForecasts,
+    selectedRouteKey,
+    selectedRouteInfo,
     stopsById,
     loading,
     error,
@@ -93,5 +111,6 @@ export const useTransitStore = defineStore('transit', () => {
     initialise,
     refreshApiHealth,
     selectStop,
+    selectRoute,
   }
 })
