@@ -83,6 +83,7 @@ onMounted(() => {
     map.addSource('route-lines', {
       type: 'geojson',
       data: buildRouteLines(transit.routeStops.routes, transit.stopsById),
+      tolerance: 0,
     })
     map.addLayer({
       id: 'route-line-outline',
