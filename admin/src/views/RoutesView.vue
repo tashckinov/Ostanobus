@@ -344,36 +344,6 @@ function pointOrder(index: number) {
     .length
 }
 
-function movePoint(index: number, delta: number) {
-  if (!direction.value) return
-  const next = index + delta
-  if (next < 0 || next >= direction.value.routingPoints.length) return
-  const points = direction.value.routingPoints
-  const [current] = points.splice(index, 1)
-  if (!current) return
-  points.splice(next, 0, current)
-  rebuildStopIds()
-  scheduleGeometryBuild()
-}
-
-function dropPoint(insertBeforeIndex: number) {
-  if (!direction.value || dragIndex.value === null) return
-  const from = dragIndex.value
-  if (from === insertBeforeIndex || from + 1 === insertBeforeIndex) {
-    dragIndex.value = null
-    dragOverIndex.value = null
-    return
-  }
-  const [current] = direction.value.routingPoints.splice(from, 1)
-  if (!current) return
-  const adjustedTarget = insertBeforeIndex > from ? insertBeforeIndex - 1 : insertBeforeIndex
-  direction.value.routingPoints.splice(adjustedTarget, 0, current)
-  dragIndex.value = null
-  dragOverIndex.value = null
-  rebuildStopIds()
-  scheduleGeometryBuild()
-}
-
 function removePoint(index: number) {
   direction.value?.routingPoints.splice(index, 1)
   rebuildStopIds()
@@ -381,8 +351,6 @@ function removePoint(index: number) {
 }
 
 // ─── Pointer-based drag & drop ───────────────────────────────────────────────
-
-let pointerDragCleanup: (() => void) | null = null
 
 function startDrag(event: PointerEvent, index: number) {
   event.preventDefault()
@@ -405,23 +373,34 @@ function startDrag(event: PointerEvent, index: number) {
     dragOverIndex.value = insertAt
   }
 
-  const onUp = (e: PointerEvent) => {
-    if (dragOverIndex.value !== null) {
-      dropPoint(dragOverIndex.value)
-    } else {
-      dragIndex.value = null
-      dragOverIndex.value = null
-    }
+  const onUp = () => {
+    const insertBeforeIndex = dragOverIndex.value
+    const from = dragIndex.value
     cleanup()
+    if (
+      direction.value &&
+      from !== null &&
+      insertBeforeIndex !== null &&
+      from !== insertBeforeIndex &&
+      from + 1 !== insertBeforeIndex
+    ) {
+      const [current] = direction.value.routingPoints.splice(from, 1)
+      if (current) {
+        const adjustedTarget = insertBeforeIndex > from ? insertBeforeIndex - 1 : insertBeforeIndex
+        direction.value.routingPoints.splice(adjustedTarget, 0, current)
+        rebuildStopIds()
+        scheduleGeometryBuild()
+      }
+    }
+    dragIndex.value = null
+    dragOverIndex.value = null
   }
 
   const cleanup = () => {
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
-    pointerDragCleanup = null
   }
 
-  pointerDragCleanup = cleanup
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
 }
