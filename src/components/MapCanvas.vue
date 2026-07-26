@@ -4,10 +4,12 @@ import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { buildRouteLines, decodePolyline } from '@/lib/route-geometry'
+import { useSettingsStore } from '@/stores/settings'
 import { useTransitStore } from '@/stores/transit'
 import type { RouteDirection } from '@/types/transit'
 
 const transit = useTransitStore()
+const settings = useSettingsStore()
 const mapContainer = ref<HTMLElement | null>(null)
 let map: MapLibreMap | null = null
 
@@ -274,7 +276,8 @@ function parseTime(value: string | null) {
 
 function getCurrentDayAndMinutes() {
   const d = new Date()
-  const moscowMs = d.getTime() + 3 * 60 * 60 * 1000
+  const offsetMs = settings.timeOffsetHours * 60 * 60 * 1000
+  const moscowMs = d.getTime() + 3 * 60 * 60 * 1000 + offsetMs
   const moscowDate = new Date(moscowMs)
 
   const jsWeekday = moscowDate.getUTCDay()
@@ -563,6 +566,8 @@ function initBusAnimations() {
   }
 }
 
+let lastDebugPrint = 0
+
 function tickGlobal() {
   if (!map) return
 
@@ -571,6 +576,11 @@ function tickGlobal() {
   const selectedDirId = selectedKey ? selectedKey.split('::')[1] : null
 
   const currentlyActiveTripIds = new Set<string>()
+  const shouldPrintDebug = settings.debugMode && Date.now() - lastDebugPrint > 2000
+  if (shouldPrintDebug) {
+    lastDebugPrint = Date.now()
+    console.log(`[Debug] tickGlobal | nowMinutes: ${nowMinutes.toFixed(2)} | selectedDirId: ${selectedDirId}`)
+  }
 
   for (const dir of activeDirections) {
     const isVisible = !selectedDirId || dir.directionId === selectedDirId
@@ -579,9 +589,17 @@ function tickGlobal() {
       (t) => t.times.length > 1 && nowMinutes >= t.times[0]! && nowMinutes <= t.times[t.times.length - 1]!,
     )
 
+    if (shouldPrintDebug && isVisible && activeTrips.length > 0) {
+      console.log(`[Debug]   Dir: ${dir.routeNumber} (${dir.directionId}) | Active Trips: ${activeTrips.length}`)
+    }
+
     for (const tripObj of activeTrips) {
       currentlyActiveTripIds.add(tripObj.id)
       const trip = tripObj.times
+
+      if (shouldPrintDebug && isVisible) {
+        console.log(`[Debug]     Trip ${tripObj.id} is active (Time range: ${tripObj.times[0]} - ${tripObj.times[tripObj.times.length - 1]})`)
+      }
 
       let markerObj = busAnimations.get(tripObj.id)
       if (!markerObj) {

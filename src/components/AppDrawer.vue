@@ -17,6 +17,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import { useRideStore } from '@/stores/ride'
+import { useSettingsStore } from '@/stores/settings'
 import { useTransitStore } from '@/stores/transit'
 
 type DrawerView = 'menu' | 'routes' | 'history' | 'marks' | 'favorites' | 'about' | 'settings'
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 
 const transit = useTransitStore()
 const ride = useRideStore()
+const settings = useSettingsStore()
 const view = ref<DrawerView>('menu')
 
 const title = computed(() => {
@@ -231,6 +233,14 @@ onBeforeUnmount(() => {
               >
                 {{ transit.apiOnline ? 'Онлайн' : 'Оффлайн' }}
               </span>
+            </div>
+            <div class="flex items-center justify-between border-b border-border py-3">
+              <label for="debug-mode" class="text-sm cursor-pointer">Режим отладки (Debug)</label>
+              <input id="debug-mode" type="checkbox" v-model="settings.debugMode" class="cursor-pointer" />
+            </div>
+            <div class="flex items-center justify-between border-b border-border py-3">
+              <label for="time-offset" class="text-sm">Смещение времени (часы)</label>
+              <input id="time-offset" type="number" v-model.number="settings.timeOffsetHours" class="w-16 rounded border border-input bg-background px-2 py-1 text-sm" />
             </div>
             <div class="flex items-center gap-3 py-3 text-sm text-muted-foreground">
               <MapPin class="size-4" />
