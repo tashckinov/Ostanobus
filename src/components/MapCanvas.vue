@@ -272,32 +272,19 @@ function parseTime(value: string | null) {
 
 function getCurrentDayAndMinutes() {
   const d = new Date()
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Moscow',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(d)
+  const moscowMs = d.getTime() + 3 * 60 * 60 * 1000
+  const moscowDate = new Date(moscowMs)
 
-  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value)
-  const year = value('year')
-  const month = value('month')
-  const day = value('day')
-  const hours = value('hour')
-  const minutes = value('minute')
-  const seconds = value('second')
-  const ms = d.getMilliseconds()
-
-  const jsWeekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  const jsWeekday = moscowDate.getUTCDay()
   const weekday = jsWeekday === 0 ? 7 : jsWeekday
 
   return {
     weekday,
-    minutes: hours * 60 + minutes + seconds / 60 + ms / 60000,
+    minutes:
+      moscowDate.getUTCHours() * 60 +
+      moscowDate.getUTCMinutes() +
+      moscowDate.getUTCSeconds() / 60 +
+      moscowDate.getUTCMilliseconds() / 60000,
   }
 }
 
@@ -333,12 +320,45 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] {
   return mapped
 }
 
+function interpolateMissingTimes(tripStopTimes: (number | null)[], stopRatios: number[]) {
+  for (let i = 0; i < tripStopTimes.length; i++) {
+    if (tripStopTimes[i] === null) {
+      let prevIdx = i - 1
+      while (prevIdx >= 0 && tripStopTimes[prevIdx] === null) prevIdx--
+      let nextIdx = i + 1
+      while (nextIdx < tripStopTimes.length && tripStopTimes[nextIdx] === null) nextIdx++
+
+      if (prevIdx >= 0 && nextIdx < tripStopTimes.length) {
+        const prevTime = tripStopTimes[prevIdx]!
+        let nextTime = tripStopTimes[nextIdx]!
+        
+        if (nextTime < prevTime && prevTime - nextTime > 720) {
+          nextTime += 1440
+        }
+
+        const prevDist = stopRatios[prevIdx]!
+        const nextDist = stopRatios[nextIdx]!
+        const currDist = stopRatios[i]!
+        const fraction =
+          nextDist - prevDist === 0 ? 0 : (currDist - prevDist) / (nextDist - prevDist)
+        tripStopTimes[i] = prevTime + fraction * (nextTime - prevTime)
+      } else if (prevIdx >= 0) {
+        tripStopTimes[i] = tripStopTimes[prevIdx]! + 1
+      } else if (nextIdx < tripStopTimes.length) {
+        tripStopTimes[i] = tripStopTimes[nextIdx]! - 1
+      } else {
+        tripStopTimes[i] = 0
+      }
+    }
+  }
+}
+
 function buildTrips(direction: RouteDirection, weekday: number, stopRatios: number[]): number[][] {
-  const trips: number[][] = []
-  if (!direction.schedules || !direction.schedules.length) return trips
+  const baseTrips: number[][] = []
+  if (!direction.schedules || !direction.schedules.length) return baseTrips
 
   const daily = direction.schedules.filter((s) => s.days.includes(weekday))
-  if (!daily.length) return trips
+  if (!daily.length) return baseTrips
 
   const intervalSchedules = daily.filter((s) => s.type === 'interval')
   if (intervalSchedules.length > 0) {
@@ -346,58 +366,89 @@ function buildTrips(direction: RouteDirection, weekday: number, stopRatios: numb
       (s) => s.stopId && s.startTime && s.endTime && s.headwayMinutes,
     )
     if (!baseSch) baseSch = intervalSchedules[0]
-    if (!baseSch || !baseSch.headwayMinutes || !baseSch.startTime || !baseSch.endTime) return trips
+    
+    if (baseSch && baseSch.headwayMinutes && baseSch.startTime && baseSch.endTime) {
+      const startTime = parseTime(baseSch.startTime)
+      let endTime = parseTime(baseSch.endTime)
+      if (startTime !== null && endTime !== null) {
+        if (endTime < startTime) endTime += 1440
 
-    const startTime = parseTime(baseSch.startTime)
-    const endTime = parseTime(baseSch.endTime)
-    if (startTime === null || endTime === null) return trips
+        const headway = baseSch.headwayMinutes
+        const numTrips = Math.floor((endTime - startTime) / headway) + 1
 
-    const headway = baseSch.headwayMinutes
-    const numTrips = Math.floor((endTime - startTime) / headway) + 1
+        for (let k = 0; k < numTrips; k++) {
+          const tripStopTimes: (number | null)[] = []
+          for (const stopId of direction.stopIds) {
+            const sch = intervalSchedules.find((s) => s.stopId === stopId)
+            if (sch && sch.startTime) {
+              const st = parseTime(sch.startTime)
+              if (st !== null) {
+                tripStopTimes.push(st + k * headway)
+                continue
+              }
+            }
+            tripStopTimes.push(null)
+          }
 
-    for (let k = 0; k < numTrips; k++) {
-      const tripStopTimes: (number | null)[] = []
+          interpolateMissingTimes(tripStopTimes, stopRatios)
+          baseTrips.push(tripStopTimes as number[])
+        }
+      }
+    }
+  } else {
+    // Exact schedules
+    const exactSchedules = daily.filter((s) => s.type === 'exact')
+    if (exactSchedules.length > 0) {
+      const byStop = new Map<string, number[]>()
+      for (const sch of exactSchedules) {
+        if (!sch.stopId || !sch.departureTime) continue
+        const t = parseTime(sch.departureTime)
+        if (t !== null) {
+          if (!byStop.has(sch.stopId)) byStop.set(sch.stopId, [])
+          byStop.get(sch.stopId)!.push(t)
+        }
+      }
+
+      for (const times of byStop.values()) {
+        times.sort((a, b) => a - b)
+      }
+
+      let numTrips = 0
       for (const stopId of direction.stopIds) {
-        const sch = intervalSchedules.find((s) => s.stopId === stopId)
-        if (sch && sch.startTime) {
-          const st = parseTime(sch.startTime)
-          if (st !== null) {
-            tripStopTimes.push(st + k * headway)
-            continue
-          }
-        }
-        tripStopTimes.push(null)
+        const times = byStop.get(stopId)
+        if (times && times.length > numTrips) numTrips = times.length
       }
 
-      for (let i = 0; i < tripStopTimes.length; i++) {
-        if (tripStopTimes[i] === null) {
-          let prevIdx = i - 1
-          while (prevIdx >= 0 && tripStopTimes[prevIdx] === null) prevIdx--
-          let nextIdx = i + 1
-          while (nextIdx < tripStopTimes.length && tripStopTimes[nextIdx] === null) nextIdx++
-
-          if (prevIdx >= 0 && nextIdx < tripStopTimes.length) {
-            const prevTime = tripStopTimes[prevIdx]!
-            const nextTime = tripStopTimes[nextIdx]!
-            const prevDist = stopRatios[prevIdx]!
-            const nextDist = stopRatios[nextIdx]!
-            const currDist = stopRatios[i]!
-            const fraction =
-              nextDist - prevDist === 0 ? 0 : (currDist - prevDist) / (nextDist - prevDist)
-            tripStopTimes[i] = prevTime + fraction * (nextTime - prevTime)
-          } else if (prevIdx >= 0) {
-            tripStopTimes[i] = tripStopTimes[prevIdx]! + 1
-          } else if (nextIdx < tripStopTimes.length) {
-            tripStopTimes[i] = tripStopTimes[nextIdx]! - 1
+      for (let k = 0; k < numTrips; k++) {
+        const tripStopTimes: (number | null)[] = []
+        for (const stopId of direction.stopIds) {
+          const times = byStop.get(stopId)
+          if (times && k < times.length) {
+            let t = times[k]!
+            // Adjust for midnight crossing in exact schedules if needed
+            if (tripStopTimes.length > 0) {
+               const prevTime = tripStopTimes[tripStopTimes.length - 1]
+               if (prevTime !== null && t < prevTime && prevTime - t > 720) t += 1440
+            }
+            tripStopTimes.push(t)
           } else {
-            tripStopTimes[i] = 0
+            tripStopTimes.push(null)
           }
         }
+        interpolateMissingTimes(tripStopTimes, stopRatios)
+        baseTrips.push(tripStopTimes as number[])
       }
-      trips.push(tripStopTimes as number[])
     }
   }
-  return trips
+
+  // Cross-day trips replication
+  const allTrips: number[][] = []
+  for (const trip of baseTrips) {
+    allTrips.push(trip)
+    allTrips.push(trip.map(t => t - 1440))
+    allTrips.push(trip.map(t => t + 1440))
+  }
+  return allTrips
 }
 
 function initBusAnimations() {
