@@ -7,23 +7,26 @@ import EventsView from './views/EventsView.vue'
 import ForecastsView from './views/ForecastsView.vue'
 import LoginView from './views/LoginView.vue'
 import RoutesView from './views/RoutesView.vue'
-import SchedulesView from './views/SchedulesView.vue'
 import StopsView from './views/StopsView.vue'
 import SupportView from './views/SupportView.vue'
 
-type Page = 'dashboard' | 'stops' | 'routes' | 'schedules' | 'forecasts' | 'events' | 'support'
+type Page = 'dashboard' | 'stops' | 'routes' | 'forecasts' | 'events' | 'support'
 
 const authenticated = ref(Boolean(getToken()))
-const page = ref<Page>((location.hash.slice(1) as Page) || 'dashboard')
 const pages: Array<{ id: Page; label: string }> = [
   { id: 'dashboard', label: 'Обзор' },
   { id: 'stops', label: 'Остановки' },
   { id: 'routes', label: 'Маршруты' },
-  { id: 'schedules', label: 'Расписание' },
   { id: 'forecasts', label: 'Прогнозы' },
   { id: 'events', label: 'Отметки' },
   { id: 'support', label: 'Обращения' },
 ]
+const initialPage = location.hash.slice(1)
+const page = ref<Page>(
+  initialPage === 'schedules'
+    ? 'routes'
+    : (pages.find((item) => item.id === initialPage)?.id ?? 'dashboard'),
+)
 
 function navigate(next: Page) {
   page.value = next
@@ -39,10 +42,16 @@ const unauthorized = () => {
   authenticated.value = false
 }
 const hashChanged = () => {
-  const requested = location.hash.slice(1) as Page
-  if (pages.some((item) => item.id === requested)) page.value = requested
+  const requested = location.hash.slice(1)
+  if (requested === 'schedules') {
+    navigate('routes')
+    return
+  }
+  const matched = pages.find((item) => item.id === requested)
+  if (matched) page.value = matched.id
 }
 onMounted(() => {
+  if (location.hash.slice(1) === 'schedules') location.hash = 'routes'
   window.addEventListener('admin-unauthorized', unauthorized)
   window.addEventListener('hashchange', hashChanged)
 })
@@ -73,7 +82,6 @@ onBeforeUnmount(() => {
       <DashboardView v-if="page === 'dashboard'" />
       <StopsView v-else-if="page === 'stops'" />
       <RoutesView v-else-if="page === 'routes'" />
-      <SchedulesView v-else-if="page === 'schedules'" />
       <ForecastsView v-else-if="page === 'forecasts'" />
       <EventsView v-else-if="page === 'events'" />
       <SupportView v-else-if="page === 'support'" />

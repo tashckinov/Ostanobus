@@ -86,8 +86,15 @@ export const api = {
       body: JSON.stringify({ coordinates }),
     }),
 
-  schedules: () =>
-    request<{ schedules: Schedule[] }>('/api/admin/schedules').then((result) => result.schedules),
+  schedules: (directionId?: string, stopId?: string) => {
+    const query = new URLSearchParams()
+    if (directionId) query.set('directionId', directionId)
+    if (stopId) query.set('stopId', stopId)
+    const suffix = query.size ? `?${query.toString()}` : ''
+    return request<{ schedules: Schedule[] }>(`/api/admin/schedules${suffix}`).then(
+      (result) => result.schedules,
+    )
+  },
   saveSchedule: (schedule: Schedule) =>
     request<Schedule>('/api/admin/schedules', {
       method: 'POST',
