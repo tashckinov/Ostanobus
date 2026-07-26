@@ -29,13 +29,21 @@ describe('ride scenario', () => {
     setActivePinia(createPinia())
   })
 
-  it('starts from the selected stop and stores the next passage as pending', async () => {
+  it('records boarding and starts from the selected stop with one action', async () => {
     const ride = useRideStore()
     await ride.initialise()
 
-    await ride.startRide(route, direction, 'stop-a')
+    const arrival = await ride.boardBus(route, direction, 'stop-a')
+    expect(arrival).toMatchObject({
+      type: 'bus_arrival',
+      routeId: '3k',
+      directionId: '3k-vzmeo-artemida',
+      stopId: 'stop-a',
+      status: 'pending',
+    })
     expect(ride.activeRide?.nextStopIndex).toBe(1)
     expect(await loadActiveRide()).toMatchObject({ nextStopIndex: 1 })
+    expect(ride.pendingCount).toBe(1)
 
     const event = await ride.markNextStop(direction)
     expect(event).toMatchObject({
@@ -43,7 +51,7 @@ describe('ride scenario', () => {
       stopId: 'stop-b',
       status: 'pending',
     })
-    expect(ride.pendingCount).toBe(1)
+    expect(ride.pendingCount).toBe(2)
     expect(ride.activeRide?.nextStopIndex).toBe(2)
   })
 })

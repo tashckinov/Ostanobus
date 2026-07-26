@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { LocateFixed, LoaderCircle, Search, X } from '@lucide/vue'
-import { computed, onMounted, ref, watch } from 'vue'
-import { onBeforeUnmount } from 'vue'
+import { LocateFixed, LoaderCircle, Menu } from '@lucide/vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import AppDrawer from '@/components/AppDrawer.vue'
 import MapCanvas from '@/components/MapCanvas.vue'
+import SupportSheet from '@/components/SupportSheet.vue'
 import TransitSheet from '@/components/TransitSheet.vue'
 import Button from '@/components/ui/button/Button.vue'
-import Input from '@/components/ui/input/Input.vue'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 
-type SheetMode = 'idle' | 'search' | 'stop' | 'ride' | 'history' | 'support'
+type SheetMode = 'idle' | 'stop' | 'ride'
 
 interface MapCanvasExposed {
   showUserLocation(longitude: number, latitude: number): void
@@ -19,19 +19,17 @@ interface MapCanvasExposed {
 const transit = useTransitStore()
 const ride = useRideStore()
 const mapCanvas = ref<MapCanvasExposed | null>(null)
+const drawerOpen = ref(false)
+const supportOpen = ref(false)
 const searchQuery = ref('')
 const searchOpen = ref(false)
-const historyOpen = ref(false)
-const supportOpen = ref(false)
 const locating = ref(false)
 const locationMessage = ref('')
+const sheetHeight = ref(72)
 let healthTimer: number | undefined
 
 const sheetMode = computed<SheetMode>(() => {
   if (ride.isActive) return 'ride'
-  if (supportOpen.value) return 'support'
-  if (historyOpen.value) return 'history'
-  if (searchOpen.value) return 'search'
   if (transit.selectedStop) return 'stop'
   return 'idle'
 })
@@ -58,6 +56,10 @@ const searchResults = computed(() => {
     .slice(0, 6)
 })
 
+const locationButtonStyle = computed(() => ({
+  bottom: `calc(${sheetHeight.value}px + 12px)`,
+}))
+
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
   window.addEventListener('online', handleOnline)
@@ -77,8 +79,6 @@ watch(
     const stop = transit.stopsById.get(stopId)
     if (stop) searchQuery.value = stop.properties.name
     searchOpen.value = false
-    historyOpen.value = false
-    supportOpen.value = false
   },
 )
 
@@ -87,8 +87,6 @@ function selectSearchResult(stopId: string) {
   if (stop) searchQuery.value = stop.properties.name
   transit.selectStop(stopId)
   searchOpen.value = false
-  historyOpen.value = false
-  supportOpen.value = false
 }
 
 async function handleOnline() {
@@ -99,15 +97,15 @@ function handleOffline() {
   void transit.refreshApiHealth()
 }
 
+function updateSearch(value: string) {
+  searchQuery.value = value
+  if (!ride.isActive) searchOpen.value = true
+}
+
 function clearSearch() {
   searchQuery.value = ''
   transit.selectStop(null)
   searchOpen.value = true
-}
-
-function closeSearch() {
-  searchOpen.value = false
-  if (!searchQuery.value) transit.selectStop(null)
 }
 
 function closeStop() {
@@ -115,37 +113,20 @@ function closeStop() {
   transit.selectStop(null)
 }
 
-function openSearch() {
-  if (!ride.isActive) searchOpen.value = true
-}
-
-function openHistory() {
-  transit.selectStop(null)
-  searchOpen.value = false
-  historyOpen.value = true
-  supportOpen.value = false
-}
-
-function openSupport() {
-  searchOpen.value = false
-  historyOpen.value = false
-  supportOpen.value = true
-}
-
-function closeSupport() {
-  supportOpen.value = false
-}
-
-function closeHistory() {
-  historyOpen.value = false
-  supportOpen.value = false
-}
-
 function onRideStarted() {
   searchQuery.value = ''
   searchOpen.value = false
-  historyOpen.value = false
   transit.selectStop(null)
+}
+
+function openDrawer() {
+  searchOpen.value = false
+  drawerOpen.value = true
+}
+
+function openSupport() {
+  drawerOpen.value = false
+  supportOpen.value = true
 }
 
 function locateUser() {
@@ -178,61 +159,48 @@ function locateUser() {
   <main class="relative h-full w-full bg-muted">
     <MapCanvas v-if="transit.stops.features.length" ref="mapCanvas" />
 
-    <div class="safe-top fixed inset-x-0 top-0 z-20 flex items-start gap-2 px-2" role="search">
-      <div class="relative min-w-0 flex-1">
-        <Search
-          class="pointer-events-none absolute left-3 top-1/2 z-10 size-5 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          v-model="searchQuery"
-          class="border-border bg-background pl-10 pr-28 shadow-sm"
-          placeholder="Остановка или маршрут"
-          autocomplete="off"
-          :disabled="ride.isActive"
-          @focus="openSearch"
-        />
-        <span
-          v-if="!transit.apiOnline"
-          class="pointer-events-none absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600"
-          :class="searchQuery ? 'right-11' : 'right-3'"
-        >
-          Оффлайн
-        </span>
-        <button
-          v-if="searchQuery"
-          class="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted"
-          aria-label="Очистить поиск"
-          @click="clearSearch"
-        >
-          <X class="size-4" />
-        </button>
-      </div>
-
+    <div class="safe-top fixed left-2 top-0 z-20">
       <Button
         variant="outline"
         size="icon"
-        class="shrink-0 bg-background shadow-sm"
-        :disabled="locating"
-        aria-label="Моё местоположение"
-        @click="locateUser"
+        class="bg-background shadow-sm"
+        aria-label="Открыть меню"
+        @click="openDrawer"
       >
-        <LoaderCircle v-if="locating" class="size-5 animate-spin" />
-        <LocateFixed v-else class="size-5" />
+        <Menu class="size-5" />
       </Button>
     </div>
 
+    <Button
+      variant="outline"
+      size="icon"
+      class="fixed right-3 z-20 bg-background shadow-sm transition-[bottom]"
+      :style="locationButtonStyle"
+      :disabled="locating"
+      aria-label="Моё местоположение"
+      @click="locateUser"
+    >
+      <LoaderCircle v-if="locating" class="size-5 animate-spin" />
+      <LocateFixed v-else class="size-5" />
+    </Button>
+
     <TransitSheet
       :mode="sheetMode"
+      :search-query="searchQuery"
+      :search-open="searchOpen"
       :search-results="searchResults"
+      :api-online="transit.apiOnline"
       :location-message="locationMessage"
+      @update-search="updateSearch"
+      @open-search="searchOpen = true"
+      @clear-search="clearSearch"
       @select-stop="selectSearchResult"
-      @close-search="closeSearch"
       @close-stop="closeStop"
-      @open-history="openHistory"
-      @close-history="closeHistory"
-      @open-support="openSupport"
-      @close-support="closeSupport"
       @ride-started="onRideStarted"
+      @height-change="sheetHeight = $event"
     />
+
+    <AppDrawer v-model:open="drawerOpen" @open-support="openSupport" />
+    <SupportSheet v-model:open="supportOpen" />
   </main>
 </template>
