@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft, BusFront, Check, MapPin, Search, X } from '@lucide/vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
@@ -36,6 +36,7 @@ const sheet = ref<HTMLElement | null>(null)
 const startingRide = ref(false)
 const markingStop = ref(false)
 const scheduleClock = ref(new Date())
+const selectedServiceKey = ref<string | null>(null)
 let scheduleClockTimer: ReturnType<typeof setInterval> | null = null
 let resizeObserver: ResizeObserver | null = null
 
@@ -48,6 +49,12 @@ const selectedStopServices = computed(() =>
         scheduleClock.value,
       )
     : [],
+)
+const selectedService = computed(
+  () =>
+    selectedStopServices.value.find(
+      (service) => serviceKey(service) === selectedServiceKey.value,
+    ) ?? null,
 )
 const activeRoute = computed(() =>
   ride.activeRide
@@ -71,6 +78,39 @@ const rideComplete = computed(
     Boolean(ride.activeRide && activeDirection.value) &&
     ride.activeRide!.nextStopIndex >= activeDirection.value!.stopIds.length,
 )
+
+watch(
+  () => transit.selectedStopId,
+  () => {
+    selectedServiceKey.value = null
+  },
+)
+
+function serviceKey(service: StopService) {
+  return `${service.route.routeId}-${service.direction.id}`
+}
+
+function arrivalLabel(service: StopService) {
+  if (service.nextArrival) return service.nextArrival.relativeLabel
+  if (service.forecast) {
+    return `через ${service.forecast.minMinutes}–${service.forecast.maxMinutes} мин`
+  }
+  return 'Нет данных'
+}
+
+function arrivalDetails(service: StopService) {
+  if (service.nextArrival) return `в ${service.nextArrival.timeLabel}`
+  if (service.forecast) return 'вероятностный прогноз'
+  return ''
+}
+
+function goBackFromStop() {
+  if (selectedServiceKey.value) {
+    selectedServiceKey.value = null
+    return
+  }
+  emit('closeStop')
+}
 
 async function startRide(service: StopService) {
   const stop = transit.selectedStop
@@ -187,7 +227,7 @@ onBeforeUnmount(() => {
           size="icon"
           class="size-10"
           aria-label="Назад"
-          @click="emit('closeStop')"
+          @click="goBackFromStop"
         >
           <ArrowLeft class="size-5" />
         </Button>
@@ -196,35 +236,34 @@ onBeforeUnmount(() => {
         </h2>
       </div>
 
-      <div v-if="selectedStopServices.length">
-        <article
-          v-for="service in selectedStopServices"
-          :key="`${service.route.routeId}-${service.direction.id}`"
-          class="border-b border-border px-4 py-3"
-        >
+      <div v-if="selectedService" class="px-4 py-3">
+        <article>
           <div class="flex items-start gap-3">
             <span
               class="inline-flex min-w-12 shrink-0 items-center justify-center rounded px-2 py-1 text-sm font-bold text-white"
-              :style="{ backgroundColor: service.route.color }"
+              :style="{ backgroundColor: selectedService.route.color }"
             >
-              № {{ service.route.number }}
+              № {{ selectedService.route.number }}
             </span>
             <div class="min-w-0 flex-1">
               <p class="truncate text-xs text-muted-foreground">
-                {{ service.direction.name || `к ${service.direction.terminal}` }}
+                {{ selectedService.direction.name || `к ${selectedService.direction.terminal}` }}
               </p>
-              <template v-if="service.nextArrival">
+              <template v-if="selectedService.nextArrival">
                 <p class="mt-1 text-2xl font-semibold leading-none">
-                  {{ service.nextArrival.relativeLabel }}
+                  {{ selectedService.nextArrival.relativeLabel }}
                 </p>
                 <p class="mt-1 text-base font-medium">
-                  Ближайший в {{ service.nextArrival.timeLabel }}
+                  Ближайший в {{ selectedService.nextArrival.timeLabel }}
                   <span class="text-xs font-normal text-muted-foreground">· по расписанию</span>
                 </p>
               </template>
-              <template v-else-if="service.forecast">
+              <template v-else-if="selectedService.forecast">
                 <p class="mt-1 text-2xl font-semibold leading-none">
-                  через {{ service.forecast.minMinutes }}–{{ service.forecast.maxMinutes }} мин
+                  через {{ selectedService.forecast.minMinutes }}–{{
+                    selectedService.forecast.maxMinutes
+                  }}
+                  мин
                 </p>
                 <p class="text-xs text-muted-foreground">Вероятностный прогноз</p>
               </template>
@@ -235,24 +274,57 @@ onBeforeUnmount(() => {
           <div class="mt-3 border-t border-border pt-2">
             <p class="text-xs font-medium">Расписание сегодня</p>
             <p
-              v-for="label in service.scheduleLabels"
+              v-for="label in selectedService.scheduleLabels"
               :key="label"
               class="mt-1 text-sm text-muted-foreground"
             >
               {{ label }}
             </p>
-            <p v-if="!service.scheduleLabels.length" class="mt-1 text-sm text-muted-foreground">
+            <p
+              v-if="!selectedService.scheduleLabels.length"
+              class="mt-1 text-sm text-muted-foreground"
+            >
               Для этой остановки расписание сегодня не задано.
             </p>
           </div>
 
           <div class="mt-3">
-            <Button class="w-full" :disabled="startingRide" @click="startRide(service)">
+            <Button class="w-full" :disabled="startingRide" @click="startRide(selectedService)">
               <BusFront class="size-4" />
               Я сел
             </Button>
           </div>
         </article>
+      </div>
+
+      <div v-else-if="selectedStopServices.length">
+        <button
+          v-for="service in selectedStopServices"
+          :key="serviceKey(service)"
+          class="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 py-2 text-left hover:bg-muted"
+          @click="selectedServiceKey = serviceKey(service)"
+        >
+          <span
+            class="inline-flex min-w-12 shrink-0 items-center justify-center rounded px-2 py-1 text-sm font-bold text-white"
+            :style="{ backgroundColor: service.route.color }"
+          >
+            № {{ service.route.number }}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-medium">
+              {{ service.direction.name || `к ${service.direction.terminal}` }}
+            </span>
+            <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+              {{ service.scheduleLabels[0] || 'Расписание не задано' }}
+            </span>
+          </span>
+          <span class="shrink-0 text-right">
+            <span class="block text-sm font-semibold">{{ arrivalLabel(service) }}</span>
+            <span class="mt-0.5 block text-xs text-muted-foreground">
+              {{ arrivalDetails(service) }}
+            </span>
+          </span>
+        </button>
       </div>
 
       <p v-else class="px-4 py-4 text-sm text-muted-foreground">
