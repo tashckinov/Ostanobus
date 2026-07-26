@@ -11,6 +11,7 @@ const props = defineProps<{
   selectedStopId?: string | null
   selectedStopIds?: string[]
   routingPoints?: Array<{ longitude: number; latitude: number }>
+  previewCoordinates?: number[][]
   routeColor?: string
 }>()
 
@@ -37,10 +38,12 @@ function stopsGeoJson(): FeatureCollection<Point> {
 }
 
 function routeGeoJson(): FeatureCollection<LineString> {
-  const previewCoordinates = (props.selectedStopIds ?? [])
-    .map((stopId) => props.stops.find((stop) => stop.id === stopId))
-    .filter((stop): stop is Stop => Boolean(stop))
-    .map((stop) => [stop.longitude, stop.latitude])
+  const previewCoordinates =
+    props.previewCoordinates ??
+    (props.selectedStopIds ?? [])
+      .map((stopId) => props.stops.find((stop) => stop.id === stopId))
+      .filter((stop): stop is Stop => Boolean(stop))
+      .map((stop) => [stop.longitude, stop.latitude])
   const geometry =
     props.geometry ??
     (previewCoordinates.length >= 2
@@ -173,6 +176,11 @@ watch(
     ;(map?.getSource('stops') as GeoJSONSource | undefined)?.setData(stopsGeoJson())
     ;(map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson())
   },
+  { deep: true },
+)
+watch(
+  () => props.previewCoordinates,
+  () => (map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson()),
   { deep: true },
 )
 watch(

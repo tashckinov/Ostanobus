@@ -31,6 +31,7 @@ export interface RouteDirection {
   geometry?: LineString | null
   schedules?: Array<{
     id: string
+    stopId: string | null
     days: number[]
     type: 'exact' | 'interval'
     departureTime: string | null

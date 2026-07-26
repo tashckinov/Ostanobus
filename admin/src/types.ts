@@ -38,6 +38,7 @@ export interface Route {
 export interface Schedule {
   id?: string
   directionId: string
+  stopId: string | null
   days: number[]
   type: 'exact' | 'interval'
   departureTime: string | null

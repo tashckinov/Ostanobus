@@ -72,6 +72,7 @@ export async function readRoutes(
           .filter((schedule) => schedule.directionId === direction.id)
           .map((schedule) => ({
             id: schedule.id,
+            stopId: schedule.stopId,
             days: schedule.days,
             type: schedule.type,
             departureTime: schedule.departureTime,

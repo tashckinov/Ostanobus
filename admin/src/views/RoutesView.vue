@@ -28,6 +28,11 @@ const viaPoints = computed(() =>
     .map((point) => ({ longitude: point.longitude, latitude: point.latitude })),
 )
 const selectedStopIds = computed(() => direction.value?.stopIds ?? [])
+const previewCoordinates = computed(() =>
+  (direction.value?.routingPoints ?? [])
+    .map(routingPointCoordinate)
+    .filter((point): point is number[] => Boolean(point)),
+)
 
 function generatedId(kind: 'route' | 'direction') {
   return `${kind}-${crypto.randomUUID()}`
@@ -82,6 +87,13 @@ function createRoute() {
   message.value = ''
 }
 
+function backToRoutes() {
+  edited.value = null
+  directionIndex.value = 0
+  pointMode.value = 'stop'
+  message.value = ''
+}
+
 function addDirection() {
   if (!edited.value) return
   edited.value.directions.push(newDirection())
@@ -116,10 +128,50 @@ function addStop(stop: Stop) {
   message.value = ''
 }
 
+function routingPointCoordinate(point: RoutingPoint) {
+  if (point.type === 'via') return [point.longitude, point.latitude]
+  const stop = stopById.value.get(point.stopId)
+  return stop ? [stop.longitude, stop.latitude] : null
+}
+
+function distanceToSegmentSquared(point: number[], segmentStart: number[], segmentEnd: number[]) {
+  const x = point[0] ?? 0
+  const y = point[1] ?? 0
+  const startX = segmentStart[0] ?? 0
+  const startY = segmentStart[1] ?? 0
+  const deltaX = (segmentEnd[0] ?? 0) - startX
+  const deltaY = (segmentEnd[1] ?? 0) - startY
+  const lengthSquared = deltaX * deltaX + deltaY * deltaY
+  const ratio =
+    lengthSquared === 0
+      ? 0
+      : Math.max(0, Math.min(1, ((x - startX) * deltaX + (y - startY) * deltaY) / lengthSquared))
+  const nearestX = startX + ratio * deltaX
+  const nearestY = startY + ratio * deltaY
+  return (x - nearestX) ** 2 + (y - nearestY) ** 2
+}
+
 function addVia(longitude: number, latitude: number) {
   if (!direction.value || pointMode.value !== 'via') return
-  direction.value.routingPoints.push({ type: 'via', longitude, latitude })
+  const points = direction.value.routingPoints
+  const coordinates = points.map(routingPointCoordinate)
+  let insertAt = points.length
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (let index = 0; index < coordinates.length - 1; index += 1) {
+    const start = coordinates[index]
+    const end = coordinates[index + 1]
+    if (!start || !end) continue
+    const distance = distanceToSegmentSquared([longitude, latitude], start, end)
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      insertAt = index + 1
+    }
+  }
+
+  points.splice(insertAt, 0, { type: 'via', longitude, latitude })
   rebuildStopIds()
+  showMessage('Точка коррекции вставлена в ближайший участок маршрута')
 }
 
 function pointName(point: RoutingPoint) {
@@ -169,13 +221,7 @@ function directionFallback(item: Direction) {
 
 async function buildGeometry() {
   if (!direction.value) return
-  const coordinates = direction.value.routingPoints
-    .map((point) => {
-      if (point.type === 'via') return [point.longitude, point.latitude]
-      const stop = stopById.value.get(point.stopId)
-      return stop ? [stop.longitude, stop.latitude] : null
-    })
-    .filter((point): point is number[] => Boolean(point))
+  const coordinates = previewCoordinates.value
 
   if (coordinates.length < 2) {
     showMessage('Выберите на карте минимум две остановки', 'error')
@@ -187,7 +233,7 @@ async function buildGeometry() {
     const result = await api.buildGeometry(coordinates)
     direction.value.geometry = result.geometry
     direction.value.distanceMeters = result.distanceMeters
-    showMessage(`Трасса построена: ${(result.distanceMeters / 1000).toFixed(1)} км`)
+    showMessage(`Трасса построена через все точки: ${(result.distanceMeters / 1000).toFixed(1)} км`)
   } catch (error) {
     showMessage(error instanceof Error ? error.message : 'Не удалось построить трассу', 'error')
   } finally {
@@ -217,7 +263,7 @@ async function save() {
   try {
     await api.saveRoute(edited.value)
     const routeId = edited.value.routeId
-    await load(false)
+    await load()
     const saved = routes.value.find((route) => route.routeId === routeId)
     if (saved) cloneRoute(saved)
     showMessage('Маршрут сохранён')
@@ -232,15 +278,14 @@ async function removeRoute() {
   if (!edited.value || !isExistingRoute.value) return
   if (!confirm(`Удалить маршрут № ${edited.value.number}?`)) return
   await api.deleteRoute(edited.value.routeId)
-  edited.value = null
   await load()
+  backToRoutes()
 }
 
-async function load(selectFirst = true) {
+async function load() {
   loading.value = true
   try {
     ;[routes.value, stops.value] = await Promise.all([api.routes(), api.stops()])
-    if (selectFirst && !edited.value && routes.value[0]) cloneRoute(routes.value[0])
   } finally {
     loading.value = false
   }
@@ -254,32 +299,33 @@ onMounted(load)
     <header class="page-header">
       <div>
         <h1>Маршруты</h1>
-        <p>Выберите маршрут для редактирования или создайте новый.</p>
+        <p>
+          {{
+            edited
+              ? 'Настройте маршрут и порядок движения.'
+              : 'Выберите маршрут на карте или в списке.'
+          }}
+        </p>
       </div>
-      <button @click="createRoute">Создать маршрут</button>
+      <button v-if="!edited" @click="createRoute">Создать маршрут</button>
     </header>
 
-    <div class="routes-workspace">
-      <aside class="route-list-panel">
+    <div class="routes-workspace" :class="{ editing: edited }">
+      <aside v-if="!edited" class="route-list-panel">
         <div class="route-list-heading">
           <strong>Маршруты</strong>
           <span>{{ routes.length }}</span>
         </div>
         <div v-if="loading" class="empty-state compact">Загрузка…</div>
         <div v-else-if="routes.length" class="route-list">
-          <button
-            v-for="route in routes"
-            :key="route.routeId"
-            :class="{ active: edited?.routeId === route.routeId && isExistingRoute }"
-            @click="cloneRoute(route)"
-          >
-            <span class="route-number" :style="{ borderColor: route.color }">{{
-              route.number
-            }}</span>
+          <button v-for="route in routes" :key="route.routeId" @click="cloneRoute(route)">
+            <span class="route-number" :style="{ borderColor: route.color }">
+              {{ route.number }}
+            </span>
             <span class="route-list-copy">
-              <strong>{{
-                route.name || route.directions[0]?.name || `Маршрут № ${route.number}`
-              }}</strong>
+              <strong>
+                {{ route.name || route.directions[0]?.name || `Маршрут № ${route.number}` }}
+              </strong>
               <small>
                 {{ route.directions.length }}
                 {{
@@ -299,146 +345,148 @@ onMounted(load)
         <div v-else class="empty-state compact">Маршрутов пока нет.</div>
       </aside>
 
-      <template v-if="edited && direction">
-        <div class="map-stage">
-          <TransitMap
-            :stops="stops"
-            :geometry="direction.geometry"
-            :routing-points="viaPoints"
-            :selected-stop-ids="selectedStopIds"
-            :route-color="edited.color"
-            @stop-click="addStop"
-            @map-click="addVia"
-          />
-          <div class="map-hint">
-            {{
-              pointMode === 'stop'
-                ? 'Нажимайте на остановки в порядке движения'
-                : 'Нажимайте на дорогу, чтобы уточнить трассу'
-            }}
+      <aside v-else class="panel route-properties-panel">
+        <div class="route-back-heading">
+          <button class="back-button" title="Назад к маршрутам" @click="backToRoutes">←</button>
+          <div>
+            <span>Маршруты</span>
+            <strong>{{ edited.number ? `Маршрут № ${edited.number}` : 'Новый маршрут' }}</strong>
           </div>
         </div>
 
-        <aside class="panel route-panel">
-          <div class="route-panel-heading">
-            <div>
-              <span>{{ isExistingRoute ? 'Редактирование' : 'Новый маршрут' }}</span>
-              <strong>{{ edited.number ? `Маршрут № ${edited.number}` : 'Без номера' }}</strong>
-            </div>
-            <label class="switch-control">
-              <input v-model="edited.active" type="checkbox" />
-              <span>{{ edited.active ? 'Включён' : 'Выключен' }}</span>
-            </label>
-          </div>
+        <label class="switch-control">
+          <input v-model="edited.active" type="checkbox" />
+          <span>{{ edited.active ? 'Маршрут включён' : 'Маршрут выключен' }}</span>
+        </label>
 
-          <div class="route-main-fields">
-            <label
-              >Номер маршрута<input v-model="edited.number" placeholder="Например, 3К"
-            /></label>
-            <label class="color-field"
-              >Цвет<input v-model="edited.color" type="color" title="Цвет линии маршрута"
-            /></label>
-          </div>
-          <label
-            >Название
-            <input v-model="edited.name" placeholder="Необязательно, например «ВЗМЭО — Артемида»"
-          /></label>
+        <div class="route-main-fields">
+          <label>
+            Номер
+            <input v-model="edited.number" placeholder="Например, 3К" />
+          </label>
+          <label class="color-field">
+            Цвет
+            <input v-model="edited.color" type="color" title="Цвет линии маршрута" />
+          </label>
+        </div>
+        <label>
+          Название
+          <input v-model="edited.name" placeholder="Например, «ВЗМЭО — Артемида»" />
+        </label>
 
-          <div class="direction-header">
-            <strong>Направления</strong>
-            <button class="secondary small-button" @click="addDirection">Добавить</button>
-          </div>
-          <div class="direction-tabs">
-            <button
-              v-for="(item, index) in edited.directions"
-              :key="item.id"
-              class="direction-tab"
-              :class="{ active: index === directionIndex }"
-              @click="directionIndex = index"
-            >
-              <strong>{{ index + 1 }}</strong>
-              <span>{{ item.terminal || `Направление ${index + 1}` }}</span>
-            </button>
-          </div>
+        <div class="direction-header">
+          <strong>Направления</strong>
+          <button class="secondary small-button" @click="addDirection">Добавить</button>
+        </div>
+        <div class="direction-tabs">
+          <button
+            v-for="(item, index) in edited.directions"
+            :key="item.id"
+            class="direction-tab"
+            :class="{ active: index === directionIndex }"
+            @click="directionIndex = index"
+          >
+            <strong>{{ index + 1 }}</strong>
+            <span>{{ item.terminal || `Направление ${index + 1}` }}</span>
+          </button>
+        </div>
 
-          <div class="row">
-            <label
-              >Конечная <input v-model="direction.terminal" placeholder="По последней остановке"
-            /></label>
-            <label class="switch-control direction-switch">
-              <input v-model="direction.active" type="checkbox" />
-              <span>Направление активно</span>
-            </label>
-          </div>
-          <label
-            >Название направления
-            <input v-model="direction.name" placeholder="Заполнится автоматически"
-          /></label>
+        <template v-if="direction">
+          <label>
+            Конечная
+            <input v-model="direction.terminal" placeholder="По последней остановке" />
+          </label>
+          <label>
+            Название направления
+            <input v-model="direction.name" placeholder="Заполнится автоматически" />
+          </label>
+          <label class="switch-control">
+            <input v-model="direction.active" type="checkbox" />
+            <span>Направление активно</span>
+          </label>
 
-          <div class="mode-switch">
+          <div class="mode-switch vertical">
             <button :class="{ active: pointMode === 'stop' }" @click="pointMode = 'stop'">
-              Остановки
+              Выбирать остановки
             </button>
             <button :class="{ active: pointMode === 'via' }" @click="pointMode = 'via'">
-              Коррекция трассы
+              Добавлять точки коррекции
             </button>
           </div>
+        </template>
 
-          <div class="waypoints-heading">
-            <strong>Порядок движения</strong>
-            <span>{{ direction.stopIds.length }} остановок</span>
-          </div>
-          <ol v-if="direction.routingPoints.length" class="waypoints">
-            <li
-              v-for="(point, index) in direction.routingPoints"
-              :key="`${point.type}-${index}`"
-              draggable="true"
-              @dragstart="dragIndex = index"
-              @dragend="dragIndex = null"
-              @dragover.prevent
-              @drop="dropPoint(index)"
-            >
-              <span class="drag-handle" title="Перетащить">⋮⋮</span>
-              <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
-              <strong>{{ pointName(point) }}</strong>
-              <button title="Выше" @click="movePoint(index, -1)">↑</button>
-              <button title="Ниже" @click="movePoint(index, 1)">↓</button>
-              <button title="Удалить" @click="removePoint(index)">×</button>
-            </li>
-          </ol>
-          <div v-else class="empty-state">
-            Выберите первую остановку на карте, затем остальные по порядку.
-          </div>
+        <button v-if="edited.directions.length > 1" class="text-danger" @click="removeDirection">
+          Удалить направление
+        </button>
+        <button v-if="isExistingRoute" class="text-danger" @click="removeRoute">
+          Удалить маршрут
+        </button>
+      </aside>
 
-          <p v-if="message" class="notice" :class="{ error: messageType === 'error' }">
-            {{ message }}
-          </p>
-
-          <div class="route-actions">
-            <button class="secondary" :disabled="routing" @click="buildGeometry">
-              {{ routing ? 'Прокладываем…' : 'Проложить по дорогам' }}
-            </button>
-            <button :disabled="saving" @click="save">
-              {{ saving ? 'Сохраняем…' : 'Сохранить маршрут' }}
-            </button>
-            <button
-              v-if="edited.directions.length > 1"
-              class="text-danger"
-              @click="removeDirection"
-            >
-              Удалить направление
-            </button>
-            <button v-if="isExistingRoute" class="text-danger" @click="removeRoute">
-              Удалить маршрут
-            </button>
-          </div>
-        </aside>
-      </template>
-
-      <div v-else class="route-empty-workspace">
-        <strong>Выберите маршрут</strong>
-        <span>или создайте новый, чтобы начать работу с картой.</span>
+      <div class="map-stage">
+        <TransitMap
+          :stops="stops"
+          :geometry="direction?.geometry"
+          :routing-points="viaPoints"
+          :preview-coordinates="previewCoordinates"
+          :selected-stop-ids="selectedStopIds"
+          :route-color="edited?.color"
+          @stop-click="addStop"
+          @map-click="addVia"
+        />
+        <div v-if="edited" class="map-hint">
+          {{
+            pointMode === 'stop'
+              ? 'Нажимайте на остановки в порядке движения'
+              : 'Нажмите возле нужного участка — точка вставится между ближайшими остановками'
+          }}
+        </div>
       </div>
+
+      <aside v-if="edited && direction" class="panel route-order-panel">
+        <div class="route-order-heading">
+          <div>
+            <span>Направление {{ directionIndex + 1 }}</span>
+            <strong>Порядок движения</strong>
+          </div>
+          <span>{{ direction.stopIds.length }} остановок</span>
+        </div>
+
+        <ol v-if="direction.routingPoints.length" class="waypoints route-waypoints">
+          <li
+            v-for="(point, index) in direction.routingPoints"
+            :key="`${point.type}-${index}`"
+            draggable="true"
+            @dragstart="dragIndex = index"
+            @dragend="dragIndex = null"
+            @dragover.prevent
+            @drop="dropPoint(index)"
+          >
+            <span class="drag-handle" title="Перетащить">⋮⋮</span>
+            <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
+            <strong>{{ pointName(point) }}</strong>
+            <button title="Выше" @click="movePoint(index, -1)">↑</button>
+            <button title="Ниже" @click="movePoint(index, 1)">↓</button>
+            <button title="Удалить" @click="removePoint(index)">×</button>
+          </li>
+        </ol>
+        <div v-else class="empty-state">
+          Выберите первую остановку на карте, затем остальные по порядку.
+        </div>
+
+        <p v-if="message" class="notice" :class="{ error: messageType === 'error' }">
+          {{ message }}
+        </p>
+
+        <div class="route-actions">
+          <button class="secondary" :disabled="routing" @click="buildGeometry">
+            {{ routing ? 'Прокладываем…' : 'Проложить по дорогам' }}
+          </button>
+          <button :disabled="saving" @click="save">
+            {{ saving ? 'Сохраняем…' : 'Сохранить маршрут' }}
+          </button>
+        </div>
+      </aside>
     </div>
   </section>
 </template>
