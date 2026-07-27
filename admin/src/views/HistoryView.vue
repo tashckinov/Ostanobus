@@ -234,6 +234,7 @@ onMounted(load)
             v-for="(stopId, index) in direction.stopIds"
             :key="stopId"
             class="waypoint-card"
+            style="grid-template-columns: 25px minmax(0, 1fr); cursor: pointer;"
             :class="{ dragging: selectedMapStopId === stopId }"
             @click="selectedMapStopId = stopId"
           >
