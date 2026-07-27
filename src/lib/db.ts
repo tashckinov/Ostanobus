@@ -2,7 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 
 import type { ActiveRide } from '@/types/transit'
 
-export type TransitEventType = 'bus_arrival' | 'stop_passage'
+export type TransitEventType = 'bus_arrival' | 'stop_passage' | 'bus_missing'
 
 export interface TransitEvent {
   id: string

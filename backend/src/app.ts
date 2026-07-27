@@ -720,6 +720,35 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
     },
   )
 
+  app.post(
+    '/api/admin/events',
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      const input = z
+        .object({
+          type: z.enum(['bus_arrival', 'stop_passage', 'bus_missing']),
+          routeId: id,
+          stopId: id,
+          time: z.string().datetime(),
+        })
+        .safeParse(request.body)
+      if (!input.success) return validationError(reply, input.error)
+
+      const event = new TransitEvent()
+      event.id = crypto.randomUUID()
+      event.clientId = 'admin'
+      event.type = input.data.type
+      event.routeId = input.data.routeId
+      event.stopId = input.data.stopId
+      event.directionId = null
+      event.occurredAt = new Date(input.data.time)
+      event.receivedAt = event.occurredAt
+
+      await dataSource.getRepository(TransitEvent).save(event)
+      return event
+    },
+  )
+
   app.get('/api/admin/support/tickets', { preHandler: requireAdmin }, async () => ({
     tickets: await dataSource
       .getRepository(SupportTicket)

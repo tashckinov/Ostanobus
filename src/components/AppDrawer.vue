@@ -73,9 +73,10 @@ function openView(next: DrawerTarget) {
   view.value = next
 }
 
-function eventTitle(type: 'bus_arrival' | 'stop_passage', routeId: string) {
+function eventTitle(type: 'bus_arrival' | 'stop_passage' | 'bus_missing', routeId: string) {
   const route = transit.routeStops.routes.find((item) => item.routeId === routeId)
   const routeNumber = route?.number ?? routeId
+  if (type === 'bus_missing') return `Автобуса ${routeNumber} не было`
   return type === 'bus_arrival'
     ? `Автобус ${routeNumber} прибыл`
     : `Проехали остановку · ${routeNumber}`

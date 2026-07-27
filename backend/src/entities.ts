@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm'
 
-export type EventType = 'bus_arrival' | 'stop_passage'
+export type EventType = 'bus_arrival' | 'stop_passage' | 'bus_missing'
 export type ScheduleType = 'exact' | 'interval'
 export type Confidence = 'high' | 'medium' | 'low'
 export type TicketStatus = 'new' | 'in_progress' | 'resolved' | 'rejected'

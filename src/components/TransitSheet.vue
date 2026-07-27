@@ -151,6 +151,25 @@ async function confirmArrival(service: StopService) {
   }
 }
 
+const missingServiceKey = ref<string | null>(null)
+
+async function missingBus(service: StopService) {
+  const stop = transit.selectedStop
+  if (!stop) return
+
+  try {
+    await ride.recordMissing(service.route.routeId, stop.properties.id, service.direction.id)
+    missingServiceKey.value = serviceKey(service)
+    setTimeout(() => {
+      if (missingServiceKey.value === serviceKey(service)) {
+        missingServiceKey.value = null
+      }
+    }, 3000)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 async function markNextStop() {
   if (!activeDirection.value) return
   markingStop.value = true
@@ -333,6 +352,26 @@ onBeforeUnmount(() => {
             >
               <BusFront class="mr-2 size-4" />
               Подтвердить прибытие
+            </Button>
+            <Button 
+              v-if="missingServiceKey === serviceKey(selectedService)"
+              variant="outline" 
+              class="w-full mt-2" 
+              :disabled="true"
+            >
+              <Check class="mr-2 size-4 text-green-600" />
+              Отметка отправлена
+            </Button>
+            <Button 
+              v-else-if="
+                (selectedService.forecast && selectedService.forecast.minMinutes >= -2 && selectedService.forecast.minMinutes <= 2) || 
+                (selectedService.nextArrival && selectedService.nextArrival.minutesUntil >= -2 && selectedService.nextArrival.minutesUntil <= 2)
+              "
+              variant="outline" 
+              class="w-full mt-2" 
+              @click="missingBus(selectedService)"
+            >
+              Автобуса нету
             </Button>
             <Button class="w-full" :disabled="startingRide" @click="startRide(selectedService)">
               <BusFront class="mr-2 size-4" />
