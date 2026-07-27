@@ -212,7 +212,7 @@ function syncSegments() {
       newSegments.push({
         fromStopId,
         toStopId,
-        status: 'error',
+        status: 'auto',
         viaPoints: [],
         geometry: null,
         distanceMeters: null,
@@ -387,7 +387,8 @@ function addVia(longitude: number, latitude: number) {
 
   // Just push the anchor to the segment
   segment.viaPoints.push({ longitude, latitude })
-  segment.status = 'error'
+  segment.status = 'auto'
+  segment.geometry = null
   scheduleGeometryBuild()
   showMessage('Дорожный якорь добавлен, перестраиваем сегмент...')
 }
@@ -480,7 +481,7 @@ function scheduleGeometryBuild() {
   autoRouteTimer = setTimeout(() => {
     autoRouteTimer = null
     void buildGeometry(true)
-  }, 350)
+  }, 50)
 }
 
 async function buildGeometry(automatic = false) {
@@ -491,7 +492,7 @@ async function buildGeometry(automatic = false) {
   }
 
   const indices = direction.value.segments
-    .map((s, i) => (s.status !== 'verified' && s.status !== 'manual' ? i : -1))
+    .map((s, i) => (s.status !== 'verified' && s.status !== 'manual' && (!s.geometry || s.status === 'error') ? i : -1))
     .filter((i) => i >= 0)
 
   if (indices.length === 0) {
@@ -522,11 +523,13 @@ async function buildGeometry(automatic = false) {
 
     try {
       const result = await api.buildSegmentGeometry(fromCoord, toCoord, viaCoords)
+      if (requestVersion !== routeRequestVersion) return
       segment.geometry = result.geometry
       segment.distanceMeters = result.distanceMeters
       segment.status = 'auto'
       successCount++
     } catch (error) {
+      if (requestVersion !== routeRequestVersion) return
       segment.status = 'error'
       errorCount++
     }
@@ -872,7 +875,7 @@ onBeforeUnmount(() => {
                 <div class="segment-actions">
                   <button v-if="direction.segments[index].status !== 'verified'" class="secondary small-button" @click.stop="direction.segments[index].status = 'verified'">Фикс.</button>
                   <button v-else class="secondary small-button" @click.stop="direction.segments[index].status = 'auto'">Изменить</button>
-                  <button v-if="direction.segments[index].viaPoints.length" title="Сбросить якоря" class="remove-btn" @click.stop="direction.segments[index].viaPoints = []; scheduleGeometryBuild()">×</button>
+                  <button v-if="direction.segments[index].viaPoints.length" title="Сбросить якоря" class="remove-btn" @click.stop="direction.segments[index].viaPoints = []; direction.segments[index].status = 'auto'; direction.segments[index].geometry = null; scheduleGeometryBuild()">×</button>
                 </div>
               </li>
             </template>
