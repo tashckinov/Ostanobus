@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from '../api'
 import StopScheduleEditor from '../components/StopScheduleEditor.vue'
 import TransitMap from '../components/TransitMap.vue'
-import type { Direction, Route, RoutingPoint, Stop } from '../types'
+import type { Direction, Route, RoutingPoint, Stop, RouteSegment } from '../types'
 
 const routes = ref<Route[]>([])
 const stops = ref<Stop[]>([])
@@ -138,7 +138,7 @@ function duplicateRoute() {
   copy.directions = copy.directions.map((item) => ({
     ...item,
     id: generatedId('direction'),
-    segments: item.segments?.map((seg: any) => ({ ...seg, status: 'auto' })) ?? [],
+    segments: item.segments?.map((seg: RouteSegment) => ({ ...seg, status: 'auto' as const })) ?? [],
   }))
   edited.value = copy
   directionIndex.value = 0
@@ -250,25 +250,7 @@ function closeStopMenu() {
   roadAnchorEditingStopId.value = null
 }
 
-function nearestInsertIndex(longitude: number, latitude: number) {
-  const points = direction.value?.routingPoints ?? []
-  const coordinates = points.map(routingPointCoordinate)
-  let insertAt = points.length
-  let nearestDistance = Number.POSITIVE_INFINITY
-
-  for (let index = 0; index < coordinates.length - 1; index += 1) {
-    const start = coordinates[index]
-    const end = coordinates[index + 1]
-    if (!start || !end) continue
-    const distance = distanceToSegmentSquared([longitude, latitude], start, end)
-    if (distance < nearestDistance) {
-      nearestDistance = distance
-      insertAt = index + 1
-    }
-  }
-
-  return insertAt
-}
+// (Removed nearestInsertIndex since it is unused)
 
 function addSelectedStop() {
   const stop = selectedMapStop.value
@@ -363,22 +345,7 @@ function routingPointCoordinate(point: RoutingPoint) {
   return stop ? [stop.longitude, stop.latitude] : null
 }
 
-function distanceToSegmentSquared(point: number[], segmentStart: number[], segmentEnd: number[]) {
-  const x = point[0] ?? 0
-  const y = point[1] ?? 0
-  const startX = segmentStart[0] ?? 0
-  const startY = segmentStart[1] ?? 0
-  const deltaX = (segmentEnd[0] ?? 0) - startX
-  const deltaY = (segmentEnd[1] ?? 0) - startY
-  const lengthSquared = deltaX * deltaX + deltaY * deltaY
-  const ratio =
-    lengthSquared === 0
-      ? 0
-      : Math.max(0, Math.min(1, ((x - startX) * deltaX + (y - startY) * deltaY) / lengthSquared))
-  const nearestX = startX + ratio * deltaX
-  const nearestY = startY + ratio * deltaY
-  return (x - nearestX) ** 2 + (y - nearestY) ** 2
-}
+// Removed unused distanceToSegmentSquared
 
 function addVia(longitude: number, latitude: number) {
   if (!direction.value || pointMode.value !== 'via' || selectedSegmentIndex.value === null) return
@@ -399,10 +366,7 @@ function pointName(point: RoutingPoint) {
     : 'Точка коррекции трассы'
 }
 
-function pointOrder(index: number) {
-  return direction.value?.routingPoints.slice(0, index + 1).filter((point) => point.type === 'stop')
-    .length
-}
+// (Removed pointOrder since it is unused)
 
 function removePoint(index: number) {
   direction.value?.routingPoints.splice(index, 1)
@@ -514,8 +478,8 @@ async function buildGeometry(automatic = false) {
     const toStop = stopById.value.get(segment.toStopId)
     if (!fromStop || !toStop) continue
 
-    const fromPoint = direction.value.routingPoints.find((p) => p.type === 'stop' && p.stopId === segment.fromStopId) as any
-    const toPoint = direction.value.routingPoints.find((p) => p.type === 'stop' && p.stopId === segment.toStopId) as any
+    const fromPoint = direction.value.routingPoints.find((p) => p.type === 'stop' && p.stopId === segment.fromStopId) as Extract<RoutingPoint, { type: 'stop' }> | undefined
+    const toPoint = direction.value.routingPoints.find((p) => p.type === 'stop' && p.stopId === segment.toStopId) as Extract<RoutingPoint, { type: 'stop' }> | undefined
 
     const fromCoord = [fromPoint?.longitude ?? fromStop.longitude, fromPoint?.latitude ?? fromStop.latitude]
     const toCoord = [toPoint?.longitude ?? toStop.longitude, toPoint?.latitude ?? toStop.latitude]
@@ -528,7 +492,7 @@ async function buildGeometry(automatic = false) {
       segment.distanceMeters = result.distanceMeters
       segment.status = 'auto'
       successCount++
-    } catch (error) {
+    } catch {
       if (requestVersion !== routeRequestVersion) return
       segment.status = 'error'
       errorCount++

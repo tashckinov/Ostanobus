@@ -5,12 +5,13 @@ import { getToken, setToken } from './api'
 import DashboardView from './views/DashboardView.vue'
 import EventsView from './views/EventsView.vue'
 import ForecastsView from './views/ForecastsView.vue'
+import HistoryView from './views/HistoryView.vue'
 import LoginView from './views/LoginView.vue'
 import RoutesView from './views/RoutesView.vue'
 import StopsView from './views/StopsView.vue'
 import SupportView from './views/SupportView.vue'
 
-type Page = 'dashboard' | 'stops' | 'routes' | 'forecasts' | 'events' | 'support'
+type Page = 'dashboard' | 'stops' | 'routes' | 'forecasts' | 'events' | 'history' | 'support'
 
 const authenticated = ref(Boolean(getToken()))
 const pages: Array<{ id: Page; label: string }> = [
@@ -18,6 +19,7 @@ const pages: Array<{ id: Page; label: string }> = [
   { id: 'stops', label: 'Остановки' },
   { id: 'routes', label: 'Маршруты' },
   { id: 'forecasts', label: 'Прогнозы' },
+  { id: 'history', label: 'История' },
   { id: 'events', label: 'Отметки' },
   { id: 'support', label: 'Обращения' },
 ]
@@ -83,6 +85,7 @@ onBeforeUnmount(() => {
       <StopsView v-else-if="page === 'stops'" />
       <RoutesView v-else-if="page === 'routes'" />
       <ForecastsView v-else-if="page === 'forecasts'" />
+      <HistoryView v-else-if="page === 'history'" />
       <EventsView v-else-if="page === 'events'" />
       <SupportView v-else-if="page === 'support'" />
     </main>

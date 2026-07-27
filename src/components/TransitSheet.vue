@@ -130,6 +130,27 @@ async function startRide(service: StopService) {
   }
 }
 
+const confirmingRide = ref(false)
+const confirmedServiceKey = ref<string | null>(null)
+
+async function confirmArrival(service: StopService) {
+  const stop = transit.selectedStop
+  if (!stop) return
+
+  confirmingRide.value = true
+  try {
+    await ride.recordArrival(service.route.routeId, stop.properties.id, service.direction.id)
+    confirmedServiceKey.value = serviceKey(service)
+    setTimeout(() => {
+      if (confirmedServiceKey.value === serviceKey(service)) {
+        confirmedServiceKey.value = null
+      }
+    }, 3000)
+  } finally {
+    confirmingRide.value = false
+  }
+}
+
 async function markNextStop() {
   if (!activeDirection.value) return
   markingStop.value = true
@@ -293,10 +314,29 @@ onBeforeUnmount(() => {
             </p>
           </div>
 
-          <div class="mt-3">
+          <div class="mt-3 flex flex-col gap-2">
+            <Button 
+              v-if="confirmedServiceKey === serviceKey(selectedService)"
+              variant="outline" 
+              class="w-full" 
+              :disabled="true"
+            >
+              <Check class="mr-2 size-4 text-green-600" />
+              Прибытие подтверждено
+            </Button>
+            <Button 
+              v-else
+              variant="outline" 
+              class="w-full" 
+              :disabled="confirmingRide" 
+              @click="confirmArrival(selectedService)"
+            >
+              <BusFront class="mr-2 size-4" />
+              Подтвердить прибытие
+            </Button>
             <Button class="w-full" :disabled="startingRide" @click="startRide(selectedService)">
-              <BusFront class="size-4" />
-              Я сел
+              <BusFront class="mr-2 size-4" />
+              Я сел в этот автобус
             </Button>
           </div>
         </article>
