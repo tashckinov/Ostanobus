@@ -1047,3 +1047,26 @@ dd {
     grid-template-columns: 1fr;
   }
 }
+
+.segment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-left: 1.5rem;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: #f9fafb;
+}
+.segment-row:hover { background-color: #f3f4f6; }
+.segment-row.selected { background-color: #eff6ff; border-left-color: #3b82f6; }
+.segment-status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #6b7280; flex-shrink: 0; }
+.segment-row.auto .segment-status-dot { background-color: #f59e0b; }
+.segment-row.manual .segment-status-dot { background-color: #8b5cf6; }
+.segment-row.verified .segment-status-dot { background-color: #10b981; }
+.segment-row.error .segment-status-dot { background-color: #ef4444; }
+.segment-info { flex: 1; display: flex; flex-direction: column; font-size: 0.8rem; }
+.segment-info small { color: #6b7280; font-size: 0.7rem; }
+.segment-actions { display: flex; gap: 0.25rem; }
+

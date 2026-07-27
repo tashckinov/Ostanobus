@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { FeatureCollection, LineString, Point } from 'geojson'
+import type { FeatureCollection, LineString, Point, Feature } from 'geojson'
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import type { Stop } from '../types'
+import type { Stop, RouteSegment } from '../types'
 
 const props = defineProps<{
   stops: Stop[]
@@ -18,12 +18,15 @@ const props = defineProps<{
   } | null
   previewCoordinates?: number[][]
   routeColor?: string
+  segments?: RouteSegment[]
+  selectedSegmentIndex?: number | null
 }>()
 
 const emit = defineEmits<{
   stopClick: [stop: Stop]
   mapClick: [longitude: number, latitude: number]
   routeAnchorMove: [stopId: string, longitude: number, latitude: number]
+  segmentClick: [index: number]
 }>()
 
 const container = ref<HTMLElement | null>(null)
@@ -45,6 +48,27 @@ function stopsGeoJson(): FeatureCollection<Point> {
 }
 
 function routeGeoJson(): FeatureCollection<LineString> {
+  if (props.segments) {
+    const features: Feature<LineString>[] = []
+    props.segments.forEach((seg, index) => {
+      if (!seg.geometry) return
+      const isSelected = index === props.selectedSegmentIndex
+      let color = '#6b7280'
+      if (isSelected) color = '#3b82f6'
+      else if (seg.status === 'auto') color = '#f59e0b'
+      else if (seg.status === 'manual') color = '#8b5cf6'
+      else if (seg.status === 'verified') color = '#10b981'
+      else if (seg.status === 'error') color = '#ef4444'
+
+      features.push({
+        type: 'Feature',
+        properties: { index, color, isSelected },
+        geometry: seg.geometry,
+      })
+    })
+    return { type: 'FeatureCollection', features }
+  }
+
   const previewCoordinates =
     props.previewCoordinates ??
     (props.selectedStopIds ?? [])
@@ -58,7 +82,7 @@ function routeGeoJson(): FeatureCollection<LineString> {
       : null)
   return {
     type: 'FeatureCollection',
-    features: geometry ? [{ type: 'Feature', properties: {}, geometry }] : [],
+    features: geometry ? [{ type: 'Feature', properties: { color: props.routeColor ?? '#006fca' }, geometry }] : [],
   }
 }
 
@@ -125,16 +149,22 @@ onMounted(() => {
       id: 'route-outline',
       type: 'line',
       source: 'route',
-      paint: { 'line-color': '#ffffff', 'line-width': 7 },
+      paint: { 'line-color': '#ffffff', 'line-width': 9 }, // Thicker outline
     })
-    renderRouteAnchor()
     map.addLayer({
       id: 'route',
       type: 'line',
       source: 'route',
-      paint: { 'line-color': props.routeColor ?? '#006fca', 'line-width': 4 },
+      paint: {
+        'line-color': ['coalesce', ['get', 'color'], props.routeColor ?? '#006fca'],
+        'line-width': 5
+      },
     })
+    
     map.addSource('stops', { type: 'geojson', data: stopsGeoJson() })
+    
+    // Line joining stop to route anchor? Too complex for MapLibre without explicit data. 
+    // Just draw stops.
     map.addLayer({
       id: 'stops',
       type: 'circle',
@@ -143,9 +173,9 @@ onMounted(() => {
         'circle-radius': [
           'case',
           ['>', ['get', 'selectedOrder'], 0],
-          9,
+          12,
           ['==', ['get', 'id'], props.selectedStopId ?? ''],
-          9,
+          10,
           6,
         ],
         'circle-color': [
@@ -160,10 +190,27 @@ onMounted(() => {
         'circle-stroke-width': 2,
       },
     })
+    // Add text labels to selected stops
+    map.addLayer({
+      id: 'stops-label',
+      type: 'symbol',
+      source: 'stops',
+      filter: ['>', ['get', 'selectedOrder'], 0],
+      layout: {
+        'text-field': ['to-string', ['get', 'selectedOrder']],
+        'text-size': 12,
+        'text-allow-overlap': true,
+      },
+      paint: {
+        'text-color': '#ffffff',
+      }
+    })
+
     map.addSource('routing-points', {
       type: 'geojson',
       data: routingPointsGeoJson(),
     })
+    // Draw anchors as diamonds/squares by using a rotated image, or just use a circle for now
     map.addLayer({
       id: 'routing-points',
       type: 'circle',
@@ -175,6 +222,7 @@ onMounted(() => {
         'circle-stroke-width': 2,
       },
     })
+    
     map.on('click', 'stops', (event) => {
       const stopId = event.features?.[0]?.properties?.id as string | undefined
       const stop = props.stops.find((item) => item.id === stopId)
@@ -186,10 +234,31 @@ onMounted(() => {
     map.on('mouseleave', 'stops', () => {
       if (map) map.getCanvas().style.cursor = ''
     })
-    map.on('click', (event) => {
-      const features = map?.queryRenderedFeatures(event.point, { layers: ['stops'] })
-      if (!features?.length) emit('mapClick', event.lngLat.lng, event.lngLat.lat)
+    
+    map.on('click', 'route', (event) => {
+      const index = event.features?.[0]?.properties?.index as number | undefined
+      if (index !== undefined) {
+        emit('segmentClick', index)
+      } else {
+        emit('mapClick', event.lngLat.lng, event.lngLat.lat)
+      }
     })
+    map.on('mouseenter', 'route', () => {
+      if (props.segments) if (map) map.getCanvas().style.cursor = 'pointer'
+    })
+    map.on('mouseleave', 'route', () => {
+      if (props.segments) if (map) map.getCanvas().style.cursor = ''
+    })
+
+    map.on('click', (event) => {
+      const stops = map?.queryRenderedFeatures(event.point, { layers: ['stops'] })
+      const routes = map?.queryRenderedFeatures(event.point, { layers: ['route'] })
+      if (!stops?.length && !routes?.length) {
+        emit('mapClick', event.lngLat.lng, event.lngLat.lat)
+      }
+    })
+    
+    renderRouteAnchor()
   })
 })
 
@@ -200,7 +269,7 @@ watch(
 )
 watch([() => props.activeRouteAnchor, () => props.routeColor], renderRouteAnchor, { deep: true })
 watch(
-  () => props.geometry,
+  [() => props.geometry, () => props.segments, () => props.selectedSegmentIndex],
   () => (map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson()),
   { deep: true },
 )
@@ -228,9 +297,6 @@ watch(
 watch(
   () => props.routeColor,
   (color) => {
-    if (map?.getLayer('route')) {
-      map.setPaintProperty('route', 'line-color', color ?? '#006fca')
-    }
     if (map?.getLayer('stops')) {
       map.setPaintProperty('stops', 'circle-color', [
         'case',
@@ -250,9 +316,9 @@ watch(
       map.setPaintProperty('stops', 'circle-radius', [
         'case',
         ['>', ['get', 'selectedOrder'], 0],
-        9,
+        12,
         ['==', ['get', 'id'], id ?? ''],
-        9,
+        10,
         6,
       ])
     }

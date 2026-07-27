@@ -19,6 +19,7 @@ const messageType = ref<'success' | 'error'>('success')
 const dragIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 const selectedMapStopId = ref<string | null>(null)
+const selectedSegmentIndex = ref<number | null>(null)
 const roadAnchorEditingStopId = ref<string | null>(null)
 const rightPanelMode = ref<'order' | 'schedule'>('order')
 let autoRouteTimer: ReturnType<typeof setTimeout> | null = null
@@ -61,11 +62,11 @@ const selectedStopCanEditSchedule = computed(() => {
     selectedMapStop.value && savedDirection?.stopIds.includes(selectedMapStop.value.id),
   )
 })
-const viaPoints = computed(() =>
-  (direction.value?.routingPoints ?? [])
-    .filter((point): point is Extract<RoutingPoint, { type: 'via' }> => point.type === 'via')
-    .map((point) => ({ longitude: point.longitude, latitude: point.latitude })),
-)
+const viaPoints = computed(() => {
+  if (!direction.value || selectedSegmentIndex.value === null) return []
+  const segment = direction.value.segments[selectedSegmentIndex.value]
+  return segment?.viaPoints ?? []
+})
 const selectedStopIds = computed(() => direction.value?.stopIds ?? [])
 const previewCoordinates = computed(() =>
   (direction.value?.routingPoints ?? [])
@@ -82,8 +83,10 @@ function newDirection(): Direction {
     id: generatedId('direction'),
     name: '',
     terminal: '',
+    routeType: 'linear',
     stopIds: [],
     routingPoints: [],
+    segments: [],
     geometry: null,
     distanceMeters: null,
     active: true,
@@ -104,6 +107,7 @@ function cancelAutoRouting() {
 
 function resetStopTools() {
   selectedMapStopId.value = null
+  selectedSegmentIndex.value = null
   roadAnchorEditingStopId.value = null
   rightPanelMode.value = 'order'
 }
@@ -170,6 +174,40 @@ function removeDirection() {
   resetStopTools()
 }
 
+
+function syncSegments() {
+  if (!direction.value) return
+  const stopIds = direction.value.stopIds
+  const oldSegments = direction.value.segments || []
+  const newSegments: typeof oldSegments = []
+  
+  const loopCount = direction.value.routeType === 'circular' && stopIds.length > 1 ? stopIds.length : Math.max(0, stopIds.length - 1)
+
+  for (let i = 0; i < loopCount; i++) {
+    const fromStopId = stopIds[i]
+    const toStopId = stopIds[(i + 1) % stopIds.length]
+    if (!fromStopId || !toStopId) continue
+    
+    const existing = oldSegments.find((s) => s.fromStopId === fromStopId && s.toStopId === toStopId)
+    if (existing) {
+      newSegments.push(existing)
+    } else {
+      newSegments.push({
+        fromStopId,
+        toStopId,
+        status: 'error',
+        viaPoints: [],
+        geometry: null,
+        distanceMeters: null,
+      })
+    }
+  }
+  direction.value.segments = newSegments
+  if (selectedSegmentIndex.value !== null && selectedSegmentIndex.value >= newSegments.length) {
+    selectedSegmentIndex.value = null
+  }
+}
+
 function rebuildStopIds() {
   if (!direction.value) return
   direction.value.stopIds = direction.value.routingPoints
@@ -179,6 +217,7 @@ function rebuildStopIds() {
     direction.value.geometry = null
     direction.value.distanceMeters = null
   }
+  syncSegments()
 }
 
 function selectMapStop(stop: Stop) {
@@ -190,6 +229,7 @@ function selectMapStop(stop: Stop) {
 
 function closeStopMenu() {
   selectedMapStopId.value = null
+  selectedSegmentIndex.value = null
   roadAnchorEditingStopId.value = null
 }
 
@@ -298,7 +338,7 @@ function changeDirection(index: number) {
 }
 
 function routingPointCoordinate(point: RoutingPoint) {
-  if (point.type === 'via') return [point.longitude, point.latitude]
+  if (point.type === 'anchor') return [point.longitude, point.latitude]
   if (point.longitude !== undefined && point.latitude !== undefined) {
     return [point.longitude, point.latitude]
   }
@@ -324,13 +364,15 @@ function distanceToSegmentSquared(point: number[], segmentStart: number[], segme
 }
 
 function addVia(longitude: number, latitude: number) {
-  if (!direction.value || pointMode.value !== 'via') return
-  const points = direction.value.routingPoints
-  const insertAt = nearestInsertIndex(longitude, latitude)
-  points.splice(insertAt, 0, { type: 'via', longitude, latitude })
-  rebuildStopIds()
+  if (!direction.value || pointMode.value !== 'via' || selectedSegmentIndex.value === null) return
+  const segment = direction.value.segments[selectedSegmentIndex.value]
+  if (!segment) return
+
+  // Just push the anchor to the segment
+  segment.viaPoints.push({ longitude, latitude })
+  segment.status = 'error'
   scheduleGeometryBuild()
-  showMessage('Точка коррекции добавлена, трасса перестраивается')
+  showMessage('Дорожный якорь добавлен, перестраиваем сегмент...')
 }
 
 function pointName(point: RoutingPoint) {
@@ -430,28 +472,56 @@ async function buildGeometry(automatic = false) {
     clearTimeout(autoRouteTimer)
     autoRouteTimer = null
   }
-  const coordinates = previewCoordinates.value
 
-  if (coordinates.length < 2) {
-    if (!automatic) showMessage('Выберите на карте минимум две остановки', 'error')
+  const indices = direction.value.segments
+    .map((s, i) => (s.status !== 'verified' && s.status !== 'manual' ? i : -1))
+    .filter((i) => i >= 0)
+
+  if (indices.length === 0) {
+    if (!automatic) showMessage('Все сегменты уже построены или зафиксированы')
     return
   }
 
-  const editedDirection = direction.value
-  const requestVersion = ++routeRequestVersion
   routing.value = true
-  try {
-    const result = await api.buildGeometry(coordinates)
-    if (requestVersion !== routeRequestVersion || direction.value?.id !== editedDirection.id) return
-    editedDirection.geometry = result.geometry
-    editedDirection.distanceMeters = result.distanceMeters
-    showMessage(`Трасса построена через все точки: ${(result.distanceMeters / 1000).toFixed(1)} км`)
-  } catch (error) {
-    if (requestVersion === routeRequestVersion) {
-      showMessage(error instanceof Error ? error.message : 'Не удалось построить трассу', 'error')
+  const requestVersion = ++routeRequestVersion
+  let successCount = 0
+  let errorCount = 0
+
+  for (const idx of indices) {
+    if (requestVersion !== routeRequestVersion) return
+    const segment = direction.value.segments[idx]
+    if (!segment) continue
+
+    const fromStop = stopById.value.get(segment.fromStopId)
+    const toStop = stopById.value.get(segment.toStopId)
+    if (!fromStop || !toStop) continue
+
+    const fromPoint = direction.value.routingPoints.find((p) => p.type === 'stop' && p.stopId === segment.fromStopId) as any
+    const toPoint = direction.value.routingPoints.find((p) => p.type === 'stop' && p.stopId === segment.toStopId) as any
+
+    const fromCoord = [fromPoint?.longitude ?? fromStop.longitude, fromPoint?.latitude ?? fromStop.latitude]
+    const toCoord = [toPoint?.longitude ?? toStop.longitude, toPoint?.latitude ?? toStop.latitude]
+    const viaCoords = segment.viaPoints.map((p) => [p.longitude, p.latitude])
+
+    try {
+      const result = await api.buildSegmentGeometry(fromCoord, toCoord, viaCoords)
+      segment.geometry = result.geometry
+      segment.distanceMeters = result.distanceMeters
+      segment.status = 'auto'
+      successCount++
+    } catch (error) {
+      segment.status = 'error'
+      errorCount++
     }
-  } finally {
-    if (requestVersion === routeRequestVersion) routing.value = false
+  }
+
+  if (requestVersion === routeRequestVersion) {
+    routing.value = false
+    if (errorCount > 0) {
+      showMessage(`Построено сегментов: ${successCount}. Ошибок: ${errorCount}`, 'error')
+    } else if (!automatic) {
+      showMessage(`Все черновые сегменты успешно проложены`)
+    }
   }
 }
 
@@ -625,10 +695,18 @@ onBeforeUnmount(() => {
         </div>
 
         <template v-if="direction">
-          <label>
+                    <label>
             Конечная
             <input v-model="direction.terminal" placeholder="По последней остановке" />
           </label>
+          <div class="mode-switch">
+            <button :class="{ active: direction.routeType === 'linear' }" @click="direction.routeType = 'linear'; rebuildStopIds()">
+              Линейный
+            </button>
+            <button :class="{ active: direction.routeType === 'circular' }" @click="direction.routeType = 'circular'; rebuildStopIds()">
+              Кольцевой
+            </button>
+          </div>
           <label>
             Название направления
             <input v-model="direction.name" placeholder="Заполнится автоматически" />
@@ -643,7 +721,7 @@ onBeforeUnmount(() => {
               Выбирать остановки
             </button>
             <button :class="{ active: pointMode === 'via' }" @click="pointMode = 'via'">
-              Добавлять точки коррекции
+              Добавлять дорожные якоря
             </button>
           </div>
         </template>
@@ -666,8 +744,11 @@ onBeforeUnmount(() => {
           :selected-stop-id="selectedMapStopId"
           :selected-stop-ids="selectedStopIds"
           :route-color="edited?.color"
+          :segments="direction?.segments"
+          :selected-segment-index="selectedSegmentIndex"
           @stop-click="selectMapStop"
           @map-click="addVia"
+          @segment-click="selectedSegmentIndex = $event"
           @route-anchor-move="moveRouteAnchor"
         />
         <div v-if="edited" class="map-hint">
@@ -745,29 +826,36 @@ onBeforeUnmount(() => {
           </div>
 
           <ol v-if="direction.routingPoints.length" class="waypoints route-waypoints">
-            <template v-for="(point, index) in direction.routingPoints" :key="`${point.type}-${index}`">
-              <!-- Drop zone BEFORE this card -->
-              <li
-                class="drop-zone"
-                :class="{ active: dragOverIndex === index && dragIndex !== index && dragIndex !== index - 1 }"
-              />
-              <!-- Card itself -->
+            <template v-for="(point, index) in direction.routingPoints" :key="`stop-${index}`">
               <li
                 class="waypoint-card"
                 :class="{ dragging: dragIndex === index }"
                 @pointerdown="startDrag($event, index)"
               >
                 <span class="drag-handle" title="Перетащить">⠿</span>
-                <span :class="point.type">{{ point.type === 'stop' ? pointOrder(index) : '•' }}</span>
+                <span class="stop">{{ index + 1 }}</span>
                 <strong>{{ pointName(point) }}</strong>
                 <button title="Удалить" class="remove-btn" @click.stop="removePoint(index)">×</button>
               </li>
+              
+              <li 
+                v-if="direction.segments[index]" 
+                class="segment-row" 
+                :class="[direction.segments[index].status, { selected: selectedSegmentIndex === index }]"
+                @click="selectedSegmentIndex = index"
+              >
+                <div class="segment-status-dot"></div>
+                <div class="segment-info">
+                  <span>{{ direction.segments[index].status === 'verified' ? 'Зафиксирован' : direction.segments[index].status === 'auto' ? 'Автоматический' : direction.segments[index].status === 'manual' ? 'Ручной' : 'Ошибка' }}</span>
+                  <small v-if="direction.segments[index].distanceMeters">{{ (direction.segments[index].distanceMeters / 1000).toFixed(1) }} км</small>
+                </div>
+                <div class="segment-actions">
+                  <button v-if="direction.segments[index].status !== 'verified'" class="secondary small-button" @click.stop="direction.segments[index].status = 'verified'">Фикс.</button>
+                  <button v-else class="secondary small-button" @click.stop="direction.segments[index].status = 'auto'">Изменить</button>
+                  <button v-if="direction.segments[index].viaPoints.length" title="Сбросить якоря" class="remove-btn" @click.stop="direction.segments[index].viaPoints = []; scheduleGeometryBuild()">×</button>
+                </div>
+              </li>
             </template>
-            <!-- Drop zone AFTER the last card -->
-            <li
-              class="drop-zone"
-              :class="{ active: dragOverIndex === direction.routingPoints.length && dragIndex !== direction.routingPoints.length - 1 }"
-            />
           </ol>
           <div v-else class="empty-state">
             Выберите первую остановку на карте, затем остальные по порядку.
@@ -779,7 +867,7 @@ onBeforeUnmount(() => {
 
           <div class="route-actions">
             <button class="secondary" :disabled="routing" @click="buildGeometry()">
-              {{ routing ? 'Прокладываем…' : 'Проложить по дорогам' }}
+              {{ routing ? 'Прокладываем…' : 'Построить черновые сегменты' }}
             </button>
             <button :disabled="saving" @click="save">
               {{ saving ? 'Сохраняем…' : 'Сохранить маршрут' }}

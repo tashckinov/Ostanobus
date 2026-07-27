@@ -25,7 +25,18 @@ export type RoutingPoint =
       longitude?: number | undefined
       latitude?: number | undefined
     }
-  | { type: 'via'; longitude: number; latitude: number }
+  | { type: 'anchor'; longitude: number; latitude: number }
+
+export type SegmentStatus = 'auto' | 'manual' | 'verified' | 'error'
+
+export interface RouteSegment {
+  fromStopId: string
+  toStopId: string
+  status: SegmentStatus
+  viaPoints: Array<{ longitude: number; latitude: number }>
+  geometry: GeoJsonLineString | null
+  distanceMeters: number | null
+}
 
 @Entity('cities')
 export class City {
@@ -127,11 +138,17 @@ export class Direction {
   @Column('varchar')
   terminal!: string
 
+  @Column({ type: 'varchar', default: 'linear' })
+  routeType!: 'linear' | 'circular'
+
   @Column({ type: 'simple-json', nullable: true })
   geometry!: GeoJsonLineString | null
 
   @Column({ type: 'simple-json', default: '[]' })
   routingPoints!: RoutingPoint[]
+
+  @Column({ type: 'simple-json', default: '[]' })
+  segments!: RouteSegment[]
 
   @Column({ type: 'integer', nullable: true })
   distanceMeters!: number | null

@@ -17,14 +17,27 @@ export type RoutingPoint =
       longitude?: number | undefined
       latitude?: number | undefined
     }
-  | { type: 'via'; longitude: number; latitude: number }
+  | { type: 'anchor'; longitude: number; latitude: number }
+
+export type SegmentStatus = 'auto' | 'manual' | 'verified' | 'error'
+
+export interface RouteSegment {
+  fromStopId: string
+  toStopId: string
+  status: SegmentStatus
+  viaPoints: Array<{ longitude: number; latitude: number }>
+  geometry: GeoJSON.LineString | null
+  distanceMeters: number | null
+}
 
 export interface Direction {
   id: string
   name: string
   terminal: string
+  routeType: 'linear' | 'circular'
   stopIds: string[]
   routingPoints: RoutingPoint[]
+  segments: RouteSegment[]
   geometry: GeoJSON.LineString | null
   distanceMeters: number | null
   active: boolean

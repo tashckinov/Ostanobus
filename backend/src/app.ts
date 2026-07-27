@@ -51,7 +51,7 @@ const routingPointSchema = z.discriminatedUnion('type', [
     latitude: coordinate.min(-90).max(90).optional(),
   }),
   z.object({
-    type: z.literal('via'),
+    type: z.literal('anchor'),
     longitude: coordinate.min(-180).max(180),
     latitude: coordinate.min(-90).max(90),
   }),
@@ -65,13 +65,29 @@ const lineStringSchema = z
   .nullable()
   .optional()
 
+const segmentSchema = z.object({
+  fromStopId: id,
+  toStopId: id,
+  status: z.enum(['auto', 'manual', 'verified', 'error']),
+  viaPoints: z.array(
+    z.object({
+      longitude: coordinate.min(-180).max(180),
+      latitude: coordinate.min(-90).max(90),
+    })
+  ),
+  geometry: lineStringSchema,
+  distanceMeters: z.number().int().nonnegative().nullable().optional(),
+})
+
 const directionSchema = z
   .object({
     id,
     name: z.string().trim().min(1).max(200),
     terminal: z.string().trim().min(1).max(200),
+    routeType: z.enum(['linear', 'circular']).default('linear'),
     stopIds: z.array(id).min(2),
     routingPoints: z.array(routingPointSchema).min(2),
+    segments: z.array(segmentSchema).default([]),
     geometry: lineStringSchema,
     distanceMeters: z.number().int().nonnegative().nullable().optional(),
     active: z.boolean().default(true),
@@ -505,8 +521,17 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
           routeId: input.data.routeId,
           name: direction.name,
           terminal: direction.terminal,
+          routeType: direction.routeType,
           geometry: direction.geometry ?? null,
           routingPoints: direction.routingPoints,
+          segments: direction.segments.map((seg) => ({
+            fromStopId: seg.fromStopId,
+            toStopId: seg.toStopId,
+            status: seg.status,
+            viaPoints: seg.viaPoints,
+            geometry: seg.geometry ?? null,
+            distanceMeters: seg.distanceMeters ?? null,
+          })),
           distanceMeters: direction.distanceMeters ?? null,
           active: direction.active,
         })
@@ -565,6 +590,32 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
     }
     const route = payload.routes?.[0]
     if (!route) return reply.code(422).send({ error: 'route_not_found' })
+    return { distanceMeters: Math.round(route.distance), geometry: route.geometry }
+  })
+
+  app.post('/api/admin/routing/segment', { preHandler: requireAdmin }, async (request, reply) => {
+    const input = z
+      .object({
+        from: z.tuple([coordinate, coordinate]),
+        to: z.tuple([coordinate, coordinate]),
+        via: z.array(z.tuple([coordinate, coordinate])).max(50).default([]),
+      })
+      .safeParse(request.body)
+    if (!input.success) return validationError(reply, input.error)
+    const allPoints = [input.data.from, ...input.data.via, input.data.to]
+    const routerUrl =
+      process.env.ROUTER_URL ?? 'https://routing.openstreetmap.de/routed-car/route/v1/driving'
+    const coordinates = allPoints.map((point) => point.join(',')).join(';')
+    const response = await fetch(
+      `${routerUrl}/${coordinates}?overview=full&geometries=geojson&steps=false`,
+    )
+    if (!response.ok) return reply.code(502).send({ error: 'routing_service_unavailable' })
+    const payload = (await response.json()) as {
+      code: string
+      routes?: Array<{ distance: number; geometry: object }>
+    }
+    const route = payload.routes?.[0]
+    if (!route) return reply.code(422).send({ error: 'segment_not_found' })
     return { distanceMeters: Math.round(route.distance), geometry: route.geometry }
   })
 

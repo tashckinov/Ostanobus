@@ -85,6 +85,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ coordinates }),
     }),
+  buildSegmentGeometry: (from: number[], to: number[], via: number[][]) =>
+    request<{ distanceMeters: number; geometry: GeoJSON.LineString }>(
+      '/api/admin/routing/segment',
+      {
+        method: 'POST',
+        body: JSON.stringify({ from, to, via }),
+      },
+    ),
 
   schedules: (directionId?: string, stopId?: string) => {
     const query = new URLSearchParams()
