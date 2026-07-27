@@ -385,4 +385,9 @@ onMounted(load)
 .history-row .remove-btn {
   margin-left: auto;
 }
+
+.waypoint-card {
+  grid-template-columns: 25px minmax(0, 1fr) !important;
+  cursor: pointer;
+}
 </style>
