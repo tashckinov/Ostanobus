@@ -354,16 +354,7 @@ onBeforeUnmount(() => {
               Подтвердить прибытие
             </Button>
             <Button 
-              v-if="missingServiceKey === serviceKey(selectedService)"
-              variant="outline" 
-              class="w-full mt-2" 
-              :disabled="true"
-            >
-              <Check class="mr-2 size-4 text-green-600" />
-              Отметка отправлена
-            </Button>
-            <Button 
-              v-else-if="
+              v-if="
                 (selectedService.forecast && selectedService.forecast.minMinutes >= -2 && selectedService.forecast.minMinutes <= 2) || 
                 (selectedService.nextArrival && selectedService.nextArrival.minutesUntil >= -2 && selectedService.nextArrival.minutesUntil <= 2)
               "
@@ -371,7 +362,13 @@ onBeforeUnmount(() => {
               class="w-full mt-2" 
               @click="missingBus(selectedService)"
             >
-              Автобуса нету
+              <template v-if="missingServiceKey === serviceKey(selectedService)">
+                <Check class="mr-2 size-4 text-green-600" />
+                Отметка отправлена
+              </template>
+              <template v-else>
+                Автобуса нету
+              </template>
             </Button>
             <Button class="w-full" :disabled="startingRide" @click="startRide(selectedService)">
               <BusFront class="mr-2 size-4" />
