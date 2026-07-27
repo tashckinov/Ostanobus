@@ -75,7 +75,9 @@ async function addManualEvent(type: 'bus_arrival' | 'bus_missing') {
   addingTime.value = true
   try {
     const today = new Date()
-    const [hours, minutes] = newTimeValue.value.split(':').map(Number)
+    const parts = newTimeValue.value.split(':').map(Number)
+    const hours = parts[0] ?? 0
+    const minutes = parts[1] ?? 0
     today.setHours(hours, minutes, 0, 0)
     
     const newEvent = await api.addEvent({
