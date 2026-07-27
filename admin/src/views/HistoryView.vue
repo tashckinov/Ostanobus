@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import type { Stop } from '../types'
 import { api } from '../api'
 
 const events = ref<Array<Record<string, string>>>([])
+const stops = ref<Stop[]>([])
+const selectedStopId = ref<string>('')
+
 onMounted(async () => {
-  events.value = await api.events()
+  const [fetchedEvents, fetchedStops] = await Promise.all([
+    api.events(),
+    api.stops()
+  ])
+  events.value = fetchedEvents
+  stops.value = fetchedStops
 })
 
 const routesHistory = computed(() => {
-  const arrivals = events.value.filter((e) => e.type === 'bus_arrival')
-  const grouped: Record<string, string[]> = {}
+  const arrivals = events.value.filter((e) => e.type === 'bus_arrival' && (!selectedStopId.value || e.stopId === selectedStopId.value))
+  const grouped: Record<string, Array<{ id: string, time: string, stopId: string }>> = {}
   
   for (const event of arrivals) {
     const routeId = event.routeId
@@ -20,7 +29,7 @@ const routesHistory = computed(() => {
     if (!grouped[routeId]) {
       grouped[routeId] = []
     }
-    grouped[routeId].push(time)
+    grouped[routeId].push({ id: event.id ?? '', time, stopId: event.stopId ?? '' })
   }
   
   const entries = Object.entries(grouped)
@@ -28,11 +37,23 @@ const routesHistory = computed(() => {
   
   return entries.map(([routeId, times]) => ({ routeId, times }))
 })
+
+async function deleteEvent(id: string) {
+  if (!confirm('Удалить эту отметку?')) return
+  await api.deleteEvent(id)
+  events.value = events.value.filter((e) => e.id !== id)
+}
 </script>
 
 <template>
   <section>
-    <header class="page-header"><h1>История по маршрутам</h1></header>
+    <header class="page-header" style="flex-wrap: wrap;">
+      <h1>История по маршрутам</h1>
+      <select v-model="selectedStopId" style="padding: 6px; border-radius: 4px; border: 1px solid #d8dde2; font-size: 14px;">
+        <option value="">Все остановки</option>
+        <option v-for="stop in stops" :key="stop.id" :value="stop.id">{{ stop.name }}</option>
+      </select>
+    </header>
     <div style="padding: 22px;">
       <div v-if="!routesHistory.length" class="empty-state">Нет данных о прибытиях.</div>
       <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
@@ -45,8 +66,11 @@ const routesHistory = computed(() => {
             Маршрут {{ route.routeId }}
           </h2>
           <div style="display: flex; flex-direction: column; gap: 4px; max-height: 400px; overflow-y: auto;">
-            <div v-for="(time, i) in route.times" :key="i" style="font-family: monospace; font-size: 14px; color: #38424c; padding: 4px 8px; background: #f9fafb; border-radius: 4px;">
-              {{ time }}
+            <div v-for="record in route.times" :key="record.id" style="display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 14px; color: #38424c; padding: 4px 8px; background: #f9fafb; border-radius: 4px;">
+              <span>{{ record.time }}</span>
+              <button style="background: none; border: none; color: #b42318; padding: 2px 6px; border-radius: 4px;" title="Удалить" @click="deleteEvent(record.id)">
+                &times;
+              </button>
             </div>
           </div>
         </div>

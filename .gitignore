@@ -8,3 +8,4 @@ coverage
 *.sqlite-wal
 *.tsbuildinfo
 backend/data
+dev-dist

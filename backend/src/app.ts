@@ -709,6 +709,17 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       .find({ order: { receivedAt: 'DESC' }, take: 500 }),
   }))
 
+  app.delete(
+    '/api/admin/events/:eventId',
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      const params = z.object({ eventId: id }).safeParse(request.params)
+      if (!params.success) return validationError(reply, params.error)
+      await dataSource.getRepository(TransitEvent).delete(params.data.eventId)
+      return reply.code(204).send()
+    },
+  )
+
   app.get('/api/admin/support/tickets', { preHandler: requireAdmin }, async () => ({
     tickets: await dataSource
       .getRepository(SupportTicket)

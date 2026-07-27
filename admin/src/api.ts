@@ -123,6 +123,7 @@ export const api = {
     request<{ events: Array<Record<string, string>> }>('/api/admin/events').then(
       (result) => result.events,
     ),
+  deleteEvent: (id: string) => request<void>(`/api/admin/events/${id}`, { method: 'DELETE' }),
   tickets: () =>
     request<{ tickets: Array<Record<string, string | null>> }>('/api/admin/support/tickets').then(
       (result) => result.tickets,
