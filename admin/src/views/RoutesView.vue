@@ -129,6 +129,23 @@ function cloneRoute(route: Route) {
   message.value = ''
 }
 
+function duplicateRoute() {
+  if (!edited.value) return
+  const copy = JSON.parse(JSON.stringify(edited.value)) as Route
+  copy.routeId = generatedId('route')
+  copy.number = `${copy.number} (копия)`
+  copy.name = copy.name ? `${copy.name} (копия)` : ''
+  copy.directions = copy.directions.map((item) => ({
+    ...item,
+    id: generatedId('direction'),
+    segments: item.segments?.map((seg: any) => ({ ...seg, status: 'auto' })) ?? [],
+  }))
+  edited.value = copy
+  directionIndex.value = 0
+  resetStopTools()
+  showMessage('Маршрут скопирован. Измените номер и сохраните.')
+}
+
 function createRoute() {
   cancelAutoRouting()
   edited.value = {
@@ -728,6 +745,9 @@ onBeforeUnmount(() => {
 
         <button v-if="edited.directions.length > 1" class="text-danger" @click="removeDirection">
           Удалить направление
+        </button>
+        <button v-if="isExistingRoute" class="secondary" @click="duplicateRoute">
+          Копировать маршрут
         </button>
         <button v-if="isExistingRoute" class="text-danger" @click="removeRoute">
           Удалить маршрут
