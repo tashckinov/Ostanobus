@@ -567,10 +567,13 @@ function tickGlobal() {
 
       let markerObj = busAnimations.get(tripObj.id)
       if (!markerObj) {
+        const container = document.createElement('div')
+        container.className = 'bus-badge-container'
         const el = document.createElement('div')
         el.className = 'bus-badge'
         el.style.backgroundColor = dir.routeColor
-        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        container.appendChild(el)
+        const marker = new maplibregl.Marker({ element: container, anchor: 'center' })
           .setLngLat(dir.coords[0] as [number, number])
           .addTo(map)
         markerObj = { el, marker }

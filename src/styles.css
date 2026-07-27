@@ -73,6 +73,13 @@ a {
 }
 
 /* Анимированный badge автобуса на карте */
+.bus-badge-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
 .bus-badge {
   display: inline-flex;
   align-items: center;
@@ -97,9 +104,9 @@ a {
 @keyframes bus-pulse {
   0%,
   100% {
-    scale: 1;
+    transform: scale(1);
   }
   50% {
-    scale: 1.12;
+    transform: scale(1.12);
   }
 }
