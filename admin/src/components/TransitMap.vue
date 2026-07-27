@@ -48,8 +48,32 @@ function stopsGeoJson(): FeatureCollection<Point> {
 }
 
 function routeGeoJson(): FeatureCollection<LineString> {
+  const features: Feature<LineString>[] = []
+  const hasAllSegmentGeometries = props.segments && props.segments.length > 0 && props.segments.every((seg) => seg.geometry)
+
+  if (!hasAllSegmentGeometries) {
+    const previewCoordinates =
+      props.previewCoordinates ??
+      (props.selectedStopIds ?? [])
+        .map((stopId) => props.stops.find((stop) => stop.id === stopId))
+        .filter((stop): stop is Stop => Boolean(stop))
+        .map((stop) => [stop.longitude, stop.latitude])
+    const geometry =
+      props.geometry ??
+      (previewCoordinates.length >= 2
+        ? ({ type: 'LineString', coordinates: previewCoordinates } as LineString)
+        : null)
+        
+    if (geometry) {
+      features.push({
+        type: 'Feature',
+        properties: { color: props.segments?.length ? '#9ca3af' : (props.routeColor ?? '#006fca') },
+        geometry,
+      })
+    }
+  }
+
   if (props.segments) {
-    const features: Feature<LineString>[] = []
     props.segments.forEach((seg, index) => {
       if (!seg.geometry) return
       const isSelected = index === props.selectedSegmentIndex
@@ -66,24 +90,9 @@ function routeGeoJson(): FeatureCollection<LineString> {
         geometry: seg.geometry,
       })
     })
-    return { type: 'FeatureCollection', features }
   }
 
-  const previewCoordinates =
-    props.previewCoordinates ??
-    (props.selectedStopIds ?? [])
-      .map((stopId) => props.stops.find((stop) => stop.id === stopId))
-      .filter((stop): stop is Stop => Boolean(stop))
-      .map((stop) => [stop.longitude, stop.latitude])
-  const geometry =
-    props.geometry ??
-    (previewCoordinates.length >= 2
-      ? ({ type: 'LineString', coordinates: previewCoordinates } as LineString)
-      : null)
-  return {
-    type: 'FeatureCollection',
-    features: geometry ? [{ type: 'Feature', properties: { color: props.routeColor ?? '#006fca' }, geometry }] : [],
-  }
+  return { type: 'FeatureCollection', features }
 }
 
 function routingPointsGeoJson(): FeatureCollection<Point> {
