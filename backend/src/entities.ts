@@ -266,6 +266,12 @@ export class TransitEvent {
   @Column({ type: 'varchar', nullable: true })
   directionId!: string | null
 
+  @Column({ type: 'varchar', nullable: true })
+  vehicleInstanceId!: string | null
+
+  @Column({ type: 'datetime', nullable: true })
+  scheduledArrival!: Date | null
+
   @Column('varchar')
   stopId!: string
 
@@ -331,8 +337,10 @@ export class Admin {
   createdAt!: Date
 }
 
-export type ObservationType = 'delay_report' | 'arrival_confirmation' | 'system_prediction'
-export type VehicleState = 'predicted' | 'unconfirmed' | 'observed' | 'stale' | 'finished' | 'cancelled'
+export type ObservationType =
+  'delay_report' | 'arrival_confirmation' | 'stop_passage' | 'system_prediction'
+export type VehicleState =
+  'predicted' | 'unconfirmed' | 'observed' | 'stale' | 'finished' | 'cancelled'
 
 @Entity('user_observations')
 @Index(['vehicleInstanceId', 'stopId'])
@@ -457,6 +465,41 @@ export class SegmentStat {
   updatedAt!: Date
 }
 
+@Entity('segment_travel_samples')
+@Index(['vehicleInstanceId', 'fromStopId', 'toStopId', 'deviceId'], { unique: true })
+@Index(['routeId', 'directionId', 'fromStopId', 'toStopId', 'observedAt'])
+export class SegmentTravelSample {
+  @PrimaryColumn('varchar')
+  id!: string
+
+  @Column('varchar')
+  vehicleInstanceId!: string
+
+  @Column('varchar')
+  deviceId!: string
+
+  @Column('varchar')
+  routeId!: string
+
+  @Column('varchar')
+  directionId!: string
+
+  @Column('varchar')
+  fromStopId!: string
+
+  @Column('varchar')
+  toStopId!: string
+
+  @Column('integer')
+  travelSeconds!: number
+
+  @Column('varchar')
+  timeBucket!: string
+
+  @Column({ type: 'datetime' })
+  observedAt!: Date
+}
+
 export const entities = [
   City,
   Stop,
@@ -471,4 +514,5 @@ export const entities = [
   UserObservation,
   VehicleInstance,
   SegmentStat,
+  SegmentTravelSample,
 ]

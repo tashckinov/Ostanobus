@@ -10,7 +10,9 @@ export function apiUrl(path: string) {
   return `${configuredApiBase()}${path}`
 }
 
-export async function checkApiHealth(timeoutMs = 5_000): Promise<{ online: boolean; version?: string }> {
+export async function checkApiHealth(
+  timeoutMs = 5_000,
+): Promise<{ online: boolean; version?: string }> {
   if (!apiIsConfigured() || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
     return { online: false }
   }
@@ -41,21 +43,21 @@ export interface DelayReportPayload {
   deviceId: string
 }
 
-export async function sendDelayReport(
-  tripId: string,
-  stopId: string,
-  payload: DelayReportPayload,
-) {
+export async function sendDelayReport(tripId: string, stopId: string, payload: DelayReportPayload) {
   if (!apiIsConfigured() || !navigator.onLine) {
     throw new Error('Offline')
   }
 
-  const response = await fetch(apiUrl(`/api/trips/${encodeURIComponent(tripId)}/stops/${encodeURIComponent(stopId)}/delay-reports`), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-
-  })
+  const response = await fetch(
+    apiUrl(
+      `/api/trips/${encodeURIComponent(tripId)}/stops/${encodeURIComponent(stopId)}/delay-reports`,
+    ),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  )
 
   if (!response.ok) {
     throw new Error('Failed to send delay report')
@@ -73,11 +75,16 @@ export async function sendArrivalConfirmation(
     throw new Error('Offline')
   }
 
-  const response = await fetch(apiUrl(`/api/trips/${encodeURIComponent(tripId)}/stops/${encodeURIComponent(stopId)}/arrival-confirmations`), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  const response = await fetch(
+    apiUrl(
+      `/api/trips/${encodeURIComponent(tripId)}/stops/${encodeURIComponent(stopId)}/arrival-confirmations`,
+    ),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  )
 
   if (!response.ok) {
     throw new Error('Failed to send arrival confirmation')

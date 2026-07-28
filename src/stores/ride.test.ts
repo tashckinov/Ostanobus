@@ -33,22 +33,34 @@ describe('ride scenario', () => {
     const ride = useRideStore()
     await ride.initialise()
 
-    const arrival = await ride.boardBus(route, direction, 'stop-a')
+    const arrival = await ride.boardBus(
+      route,
+      direction,
+      'stop-a',
+      '2026-07-28::3k::3k-vzmeo-artemida::10:00',
+      '2026-07-28T07:00:00.000Z',
+    )
     expect(arrival).toMatchObject({
       type: 'bus_arrival',
       routeId: '3k',
       directionId: '3k-vzmeo-artemida',
+      vehicleInstanceId: '2026-07-28::3k::3k-vzmeo-artemida::10:00',
+      scheduledArrival: '2026-07-28T07:00:00.000Z',
       stopId: 'stop-a',
       status: 'pending',
     })
     expect(ride.activeRide?.nextStopIndex).toBe(1)
-    expect(await loadActiveRide()).toMatchObject({ nextStopIndex: 1 })
+    expect(await loadActiveRide()).toMatchObject({
+      nextStopIndex: 1,
+      vehicleInstanceId: '2026-07-28::3k::3k-vzmeo-artemida::10:00',
+    })
     expect(ride.pendingCount).toBe(1)
 
     const event = await ride.markNextStop(direction)
     expect(event).toMatchObject({
       type: 'stop_passage',
       stopId: 'stop-b',
+      vehicleInstanceId: '2026-07-28::3k::3k-vzmeo-artemida::10:00',
       status: 'pending',
     })
     expect(ride.pendingCount).toBe(2)

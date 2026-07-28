@@ -14,12 +14,12 @@ describe('API health', () => {
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ status: 'ok', version: '0.1.0' }),
+        json: () => Promise.resolve({ status: 'ok', version: '0.2.0' }),
       }),
     )
 
     expect(apiUrl('/api/v1/health')).toBe('https://ostanobus.duckdns.org/api/v1/health')
-    await expect(checkApiHealth()).resolves.toEqual({ online: true, version: '0.1.0' })
+    await expect(checkApiHealth()).resolves.toEqual({ online: true, version: '0.2.0' })
   })
 
   it('reports offline when the health request fails', async () => {

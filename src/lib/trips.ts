@@ -23,7 +23,7 @@ export function interpolateMissingTimes(tripStopTimes: (number | null)[]) {
       if (prevIdx >= 0 && nextIdx < tripStopTimes.length) {
         const prevTime = tripStopTimes[prevIdx]!
         let nextTime = tripStopTimes[nextIdx]!
-        
+
         if (nextTime < prevTime && prevTime - nextTime > 720) {
           nextTime += 1440
         }
@@ -41,7 +41,11 @@ export function interpolateMissingTimes(tripStopTimes: (number | null)[]) {
   }
 }
 
-export function buildTrips(routeId: string, direction: RouteDirection, weekday: number): ActiveTrip[] {
+export function buildTrips(
+  routeId: string,
+  direction: RouteDirection,
+  weekday: number,
+): ActiveTrip[] {
   const baseTrips: number[][] = []
   if (!direction.schedules || !direction.schedules.length) return []
 
@@ -54,7 +58,7 @@ export function buildTrips(routeId: string, direction: RouteDirection, weekday: 
       (s) => s.stopId && s.startTime && s.endTime && s.headwayMinutes,
     )
     if (!baseSch) baseSch = intervalSchedules[0]
-    
+
     if (baseSch && baseSch.headwayMinutes && baseSch.startTime && baseSch.endTime) {
       const startTime = parseTime(baseSch.startTime)
       let endTime = parseTime(baseSch.endTime)
@@ -115,8 +119,8 @@ export function buildTrips(routeId: string, direction: RouteDirection, weekday: 
             let t = times[k]!
             // Adjust for midnight crossing in exact schedules if needed
             if (tripStopTimes.length > 0) {
-               const prevTime = tripStopTimes[tripStopTimes.length - 1]
-               if (prevTime !== null && t < prevTime && prevTime - t > 720) t += 1440
+              const prevTime = tripStopTimes[tripStopTimes.length - 1]
+              if (prevTime !== null && t < prevTime && prevTime - t > 720) t += 1440
             }
             tripStopTimes.push(t)
           } else {
@@ -134,8 +138,14 @@ export function buildTrips(routeId: string, direction: RouteDirection, weekday: 
   for (let i = 0; i < baseTrips.length; i++) {
     const trip = baseTrips[i]!
     allTrips.push({ id: `${routeId}::${direction.id}-trip-${i}-base`, times: trip })
-    allTrips.push({ id: `${routeId}::${direction.id}-trip-${i}-prev`, times: trip.map((t) => t - 1440) })
-    allTrips.push({ id: `${routeId}::${direction.id}-trip-${i}-next`, times: trip.map((t) => t + 1440) })
+    allTrips.push({
+      id: `${routeId}::${direction.id}-trip-${i}-prev`,
+      times: trip.map((t) => t - 1440),
+    })
+    allTrips.push({
+      id: `${routeId}::${direction.id}-trip-${i}-next`,
+      times: trip.map((t) => t + 1440),
+    })
   }
   return allTrips
 }

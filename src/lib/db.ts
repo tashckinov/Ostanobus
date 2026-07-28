@@ -10,6 +10,8 @@ export interface TransitEvent {
   type: TransitEventType
   routeId: string
   directionId: string | null
+  vehicleInstanceId?: string | null
+  scheduledArrival?: string | null
   stopId: string
   createdAt: string
   status: 'pending' | 'synced' | 'rejected'
@@ -93,6 +95,8 @@ export async function saveEvent(
 ) {
   const saved: TransitEvent = {
     ...event,
+    vehicleInstanceId: event.vehicleInstanceId ?? null,
+    scheduledArrival: event.scheduledArrival ?? null,
     id: crypto.randomUUID(),
     clientId: await getClientId(),
     createdAt: new Date().toISOString(),
