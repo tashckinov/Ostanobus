@@ -166,18 +166,21 @@ async function updateTravelTimes(
   const stopIds = visibleStopIds(stopList, direction)
 
   buttons.forEach((button, index) => {
-    button.querySelector('.segment-travel-time')?.remove()
     const fromStopId = stopIds[index]
     const toStopId = stopIds[index + 1] ?? (direction.routeType === 'circular' ? stopIds[0] : null)
-    const duration = fromStopId && toStopId
-      ? estimateTravelMinutes(schedules, fromStopId, toStopId)
-      : null
-    const label = document.createElement('small')
-    label.className = 'segment-travel-time'
-    label.textContent = duration === null
-      ? 'Время не рассчитано'
-      : `≈ ${Math.max(1, Math.round(duration))} мин в пути`
-    button.appendChild(label)
+    const duration =
+      fromStopId && toStopId ? estimateTravelMinutes(schedules, fromStopId, toStopId) : null
+    const text =
+      duration === null
+        ? 'Время не рассчитано'
+        : `≈ ${Math.max(1, Math.round(duration))} мин в пути`
+    let label = button.querySelector<HTMLElement>('.segment-travel-time')
+    if (!label) {
+      label = document.createElement('small')
+      label.className = 'segment-travel-time'
+      button.appendChild(label)
+    }
+    if (label.textContent !== text) label.textContent = text
   })
 }
 
@@ -186,7 +189,9 @@ async function enhance() {
   enhancing = true
   try {
     await ensureReferenceData()
-    const panel = document.querySelector<HTMLElement>('.segment-editor-panel:not(.route-schedule-panel)')
+    const panel = document.querySelector<HTMLElement>(
+      '.segment-editor-panel:not(.route-schedule-panel)',
+    )
     if (!panel) return
     const stopList = panel.querySelector<HTMLOListElement>('ol.route-waypoints')
     const segmentList = panel.querySelector<HTMLElement>('.segment-list')
@@ -201,15 +206,17 @@ async function enhance() {
     panel.querySelector('.stops-order-heading')?.classList.add('combined-hidden-heading')
 
     const heading = panel.querySelector<HTMLElement>('.route-order-heading strong')
-    if (heading) heading.textContent = 'Остановки и отрезки'
+    if (heading && heading.textContent !== 'Остановки и отрезки') {
+      heading.textContent = 'Остановки и отрезки'
+    }
 
     const stopItems = Array.from(stopList.querySelectorAll<HTMLElement>(':scope > li'))
     const buttons = collectSegmentButtons(panel, stopList)
     buttons.forEach((button, index) => {
       button.classList.add('combined-segment-row')
       const stopItem = stopItems[index]
-      if (stopItem) stopItem.after(button)
-      else stopList.appendChild(button)
+      if (stopItem && stopItem.nextElementSibling !== button) stopItem.after(button)
+      else if (!stopItem && button.parentElement !== stopList) stopList.appendChild(button)
     })
 
     void updateTravelTimes(stopList, buttons, direction)
