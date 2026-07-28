@@ -24,6 +24,7 @@ export const useTransitStore = defineStore('transit', () => {
   const error = ref<string | null>(null)
   const apiOnline = ref(false)
   const serverVersion = ref<string | null>(null)
+  const interactionLocked = ref(false)
 
   const selectedStop = computed<StopFeature | null>(
     () => stops.value.features.find((stop) => stop.properties.id === selectedStopId.value) ?? null,
@@ -70,13 +71,23 @@ export const useTransitStore = defineStore('transit', () => {
     }
   }
 
+  function setInteractionLocked(locked: boolean) {
+    interactionLocked.value = locked
+    if (locked) {
+      selectedStopId.value = null
+      selectedRouteKey.value = null
+    }
+  }
+
   function selectStop(stopId: string | null) {
+    if (interactionLocked.value && stopId !== null) return
     selectedStopId.value = stopId
     selectedRouteKey.value = null
     if (stopId) void refreshForecasts(stopId)
   }
 
   function selectRoute(key: string | null) {
+    if (interactionLocked.value && key !== null) return
     selectedRouteKey.value = key
   }
 
@@ -217,8 +228,10 @@ export const useTransitStore = defineStore('transit', () => {
     error,
     apiOnline,
     serverVersion,
+    interactionLocked,
     initialise,
     refreshApiHealth,
+    setInteractionLocked,
     selectStop,
     selectRoute,
     reportDelay,

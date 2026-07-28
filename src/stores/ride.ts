@@ -77,20 +77,30 @@ export const useRideStore = defineStore('ride', () => {
     direction: RouteDirection,
     startStopId: string,
     vehicleInstanceId: string | null = null,
+    scheduledArrival: string | null = null,
   ) {
+    if (activeRide.value) return activeRide.value
+
     const startIndex = direction.stopIds.indexOf(startStopId)
     const ride: ActiveRide = {
       id: 'current',
       routeId: route.routeId,
       directionId: direction.id,
       vehicleInstanceId,
+      boardingStopId: startStopId,
+      scheduledArrival,
       nextStopIndex: startIndex >= 0 ? startIndex + 1 : 0,
       startedAt: new Date().toISOString(),
+      lastLongitude: null,
+      lastLatitude: null,
+      lastHeading: null,
+      lastLocationAt: null,
     }
 
     await saveActiveRide(ride)
     activeRide.value = ride
     justSavedStopId.value = null
+    return ride
   }
 
   async function boardBus(
@@ -100,6 +110,8 @@ export const useRideStore = defineStore('ride', () => {
     vehicleInstanceId: string | null = null,
     scheduledArrival: string | null = null,
   ) {
+    if (activeRide.value) return null
+
     const arrival = await saveEvent({
       type: 'bus_arrival',
       routeId: route.routeId,
@@ -109,9 +121,27 @@ export const useRideStore = defineStore('ride', () => {
       stopId: startStopId,
     })
     events.value = [arrival, ...events.value].slice(0, 50)
-    await startRide(route, direction, startStopId, vehicleInstanceId)
+    await startRide(route, direction, startStopId, vehicleInstanceId, scheduledArrival)
     void trySync()
     return arrival
+  }
+
+  async function updateLocation(
+    longitude: number,
+    latitude: number,
+    heading: number | null = null,
+  ) {
+    if (!activeRide.value) return
+
+    const updatedRide: ActiveRide = {
+      ...activeRide.value,
+      lastLongitude: longitude,
+      lastLatitude: latitude,
+      lastHeading: Number.isFinite(heading) ? heading : null,
+      lastLocationAt: new Date().toISOString(),
+    }
+    activeRide.value = updatedRide
+    await saveActiveRide(updatedRide)
   }
 
   async function markNextStop(direction: RouteDirection) {
@@ -159,6 +189,7 @@ export const useRideStore = defineStore('ride', () => {
     recordMissing,
     startRide,
     boardBus,
+    updateLocation,
     markNextStop,
     finishRide,
     trySync,

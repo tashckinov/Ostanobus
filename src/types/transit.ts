@@ -111,6 +111,12 @@ export interface ActiveRide {
   routeId: string
   directionId: string
   vehicleInstanceId?: string | null
+  boardingStopId?: string | null
+  scheduledArrival?: string | null
   nextStopIndex: number
   startedAt: string
+  lastLongitude?: number | null
+  lastLatitude?: number | null
+  lastHeading?: number | null
+  lastLocationAt?: string | null
 }
