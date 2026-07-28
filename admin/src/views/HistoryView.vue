@@ -40,6 +40,11 @@ function selectMapStop(stop: Stop) {
   selectedMapStopId.value = stop.id
 }
 
+function changeDirection(index: number) {
+  directionIndex.value = index
+  selectedMapStopId.value = null
+}
+
 const schedule = computed(() => {
   if (!selectedRoute.value || !selectedMapStopId.value) return []
 
@@ -187,10 +192,7 @@ onMounted(load)
             :key="item.id"
             class="direction-tab"
             :class="{ active: index === directionIndex }"
-            @click="
-              directionIndex = index
-              selectedMapStopId = null
-            "
+            @click="changeDirection(index)"
           >
             <strong>{{ index + 1 }}</strong>
             <span>{{ item.terminal || `Направление ${index + 1}` }}</span>
