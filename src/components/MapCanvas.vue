@@ -454,8 +454,27 @@ function tickGlobal() {
       markerObj.el.style.display = isVisible ? '' : 'none'
       if (!isVisible) continue
 
+      // Check real vehicle instance first
+      const serviceDateStr = new Date().toISOString().split('T')[0]!
+      const scheduledTimeStr = `${Math.floor(trip[0]!/60).toString().padStart(2,'0')}:${Math.floor(trip[0]!%60).toString().padStart(2,'0')}`
+      const routeId = tripObj.id.split('::')[0]!
+      const actualVehicleId = `${serviceDateStr}::${routeId}::${dir.directionId}::${scheduledTimeStr}`
+      const realVehicle = transit.vehicles.find(v => v.id === actualVehicleId)
+
+      let effectiveNow = nowMinutes
+      let opacity = 0.5
+      let count = 0
+
+      if (realVehicle && (realVehicle.state === 'observed' || realVehicle.state === 'stale')) {
+        opacity = realVehicle.state === 'observed' ? 1.0 : 0.7
+        count = realVehicle.confirmationCount
+        if (realVehicle.delaySeconds) {
+          effectiveNow -= realVehicle.delaySeconds / 60
+        }
+      }
+
       let j = 0
-      while (j < trip.length - 2 && nowMinutes > trip[j + 1]!) {
+      while (j < trip.length - 2 && effectiveNow > trip[j + 1]!) {
         j++
       }
 
@@ -464,40 +483,14 @@ function tickGlobal() {
       const r1 = dir.stopRatios[j]!
       const r2 = dir.stopRatios[j + 1]!
 
-      let lng: number
-      let lat: number
-      let opacity = 0.5
-      let count = 0
-
-      // Default schedule interpolation
       let fraction = 0
-      if (t2 > t1) fraction = (nowMinutes - t1) / (t2 - t1)
+      if (t2 > t1) fraction = (effectiveNow - t1) / (t2 - t1)
       fraction = Math.max(0, Math.min(1, fraction))
+      
       const targetRatio = r1 + fraction * (r2 - r1)
       const interpolated = interpolateAlong(dir.coords, dir.segLengths, targetRatio)
-      lng = interpolated[0]
-      lat = interpolated[1]
-
-      // Check real vehicle instance
-      const serviceDateStr = new Date().toISOString().split('T')[0]!
-      const scheduledTimeStr = `${Math.floor(trip[0]!/60).toString().padStart(2,'0')}:${Math.floor(trip[0]!%60).toString().padStart(2,'0')}`
-      
-      // Note: routeId is used in API, wait: routeId is not dir.routeNumber.
-      const routeId = tripObj.id.split('::')[0]!
-      const actualVehicleId = `${serviceDateStr}::${routeId}::${dir.directionId}::${scheduledTimeStr}`
-      
-      const realVehicle = transit.vehicles.find(v => v.id === actualVehicleId)
-
-      if (realVehicle) {
-        if (realVehicle.state === 'observed' || realVehicle.state === 'stale') {
-          opacity = realVehicle.state === 'observed' ? 1.0 : 0.7
-          count = realVehicle.confirmationCount
-          if (realVehicle.positionLongitude && realVehicle.positionLatitude) {
-             lng = realVehicle.positionLongitude
-             lat = realVehicle.positionLatitude
-          }
-        }
-      }
+      const lng = interpolated[0]
+      const lat = interpolated[1]
 
       markerObj.marker.setLngLat([lng, lat])
       markerObj.el.style.opacity = opacity.toString()
