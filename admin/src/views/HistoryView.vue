@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 import { api } from '../api'
 import TransitMap from '../components/TransitMap.vue'
-import type { Route, RoutingPoint, Stop } from '../types'
+import type { Route, Stop } from '../types'
 
 const routes = ref<Route[]>([])
 const stops = ref<Stop[]>([])
@@ -23,31 +23,9 @@ const selectedMapStop = computed(() =>
   selectedMapStopId.value ? (stopById.value.get(selectedMapStopId.value) ?? null) : null,
 )
 const selectedStopIds = computed(() => direction.value?.stopIds ?? [])
-const previewCoordinates = computed(() =>
-  (direction.value?.routingPoints ?? [])
-    .map(routingPointCoordinate)
-    .filter((point): point is number[] => Boolean(point)),
-)
-
-function routingPointCoordinate(point: RoutingPoint) {
-  if (point.type === 'anchor') return [point.longitude, point.latitude]
-  if (point.longitude !== undefined && point.latitude !== undefined) {
-    return [point.longitude, point.latitude]
-  }
-  const stop = stopById.value.get(point.stopId)
-  return stop ? [stop.longitude, stop.latitude] : null
-}
 
 function selectRoute(route: Route) {
-  const copy = JSON.parse(JSON.stringify(route)) as Route
-  copy.directions = copy.directions.map((item) => ({
-    ...item,
-    routingPoints:
-      item.routingPoints?.length > 0
-        ? item.routingPoints
-        : item.stopIds.map((stopId) => ({ type: 'stop' as const, stopId })),
-  }))
-  selectedRoute.value = copy
+  selectedRoute.value = JSON.parse(JSON.stringify(route)) as Route
   directionIndex.value = 0
   selectedMapStopId.value = null
 }
@@ -62,16 +40,15 @@ function selectMapStop(stop: Stop) {
   selectedMapStopId.value = stop.id
 }
 
-// Schedule for the selected route + stop
 const schedule = computed(() => {
   if (!selectedRoute.value || !selectedMapStopId.value) return []
 
   return events.value
     .filter(
-      (e) =>
-        (e.type === 'bus_arrival' || e.type === 'bus_missing') &&
-        e.routeId === selectedRoute.value!.routeId &&
-        e.stopId === selectedMapStopId.value,
+      (event) =>
+        (event.type === 'bus_arrival' || event.type === 'bus_missing') &&
+        event.routeId === selectedRoute.value!.routeId &&
+        event.stopId === selectedMapStopId.value,
     )
     .map((event) => ({
       id: event.id ?? '',
@@ -89,13 +66,13 @@ const schedule = computed(() => {
           })
         : '',
     }))
-    .filter((t) => t.time)
+    .filter((record) => record.time)
 })
 
 async function deleteEvent(id: string) {
   if (!confirm('Удалить эту отметку?')) return
   await api.deleteEvent(id)
-  events.value = events.value.filter((e) => e.id !== id)
+  events.value = events.value.filter((event) => event.id !== id)
 }
 
 async function addManualEvent(type: 'bus_arrival' | 'bus_missing') {
@@ -105,9 +82,7 @@ async function addManualEvent(type: 'bus_arrival' | 'bus_missing') {
   try {
     const today = new Date()
     const parts = newTimeValue.value.split(':').map(Number)
-    const hours = parts[0] ?? 0
-    const minutes = parts[1] ?? 0
-    today.setHours(hours, minutes, 0, 0)
+    today.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0)
 
     const newEvent = await api.addEvent({
       type,
@@ -163,7 +138,6 @@ onMounted(load)
     </header>
 
     <div class="routes-workspace" :class="{ editing: selectedRoute }">
-      <!-- Left panel: route list (when no route selected) -->
       <aside v-if="!selectedRoute" class="route-list-panel">
         <div class="route-list-heading">
           <strong>Маршруты</strong>
@@ -198,7 +172,6 @@ onMounted(load)
         <div v-else class="empty-state compact">Маршрутов пока нет.</div>
       </aside>
 
-      <!-- Left panel: route info (when route selected) -->
       <aside v-else class="panel route-properties-panel">
         <div class="route-back-heading">
           <button class="back-button" title="Назад к маршрутам" @click="backToRoutes">←</button>
@@ -214,15 +187,17 @@ onMounted(load)
             :key="item.id"
             class="direction-tab"
             :class="{ active: index === directionIndex }"
-            @click="directionIndex = index; selectedMapStopId = null"
+            @click="
+              directionIndex = index
+              selectedMapStopId = null
+            "
           >
             <strong>{{ index + 1 }}</strong>
             <span>{{ item.terminal || `Направление ${index + 1}` }}</span>
           </button>
         </div>
 
-        <!-- Stop list for this direction -->
-        <div v-if="direction" class="route-order-heading" style="margin-top: 12px;">
+        <div v-if="direction" class="route-order-heading history-stops-heading">
           <div>
             <span>Направление {{ directionIndex + 1 }}</span>
             <strong>Остановки</strong>
@@ -233,35 +208,31 @@ onMounted(load)
           <li
             v-for="(stopId, index) in direction.stopIds"
             :key="stopId"
-            class="waypoint-card"
-            style="grid-template-columns: 25px minmax(0, 1fr); cursor: pointer;"
+            class="waypoint-card history-stop"
             :class="{ dragging: selectedMapStopId === stopId }"
             @click="selectedMapStopId = stopId"
           >
-            <span class="stop">{{ index + 1 }}</span>
+            <span class="stop">{{
+              index === 0 ? 'A' : index === direction.stopIds.length - 1 ? 'B' : index + 1
+            }}</span>
             <strong>{{ stopById.get(stopId)?.name ?? 'Неизвестная остановка' }}</strong>
           </li>
         </ol>
-        <div v-else class="empty-state">
-          Нет остановок в этом направлении.
-        </div>
+        <div v-else class="empty-state">Нет остановок в этом направлении.</div>
       </aside>
 
-      <!-- Center: Map -->
       <div class="map-stage">
         <TransitMap
           :stops="stops"
-          :geometry="direction?.geometry"
-          :preview-coordinates="previewCoordinates"
+          :segments="direction?.segments"
+          :road-anchors="direction?.roadAnchors"
           :selected-stop-id="selectedMapStopId"
           :selected-stop-ids="selectedStopIds"
           :route-color="selectedRoute?.color"
-          :segments="direction?.segments"
           @stop-click="selectMapStop"
         />
       </div>
 
-      <!-- Right panel: schedule for the selected stop -->
       <aside v-if="selectedRoute && direction && selectedMapStop" class="panel route-order-panel">
         <div class="route-order-heading">
           <div>
@@ -287,17 +258,15 @@ onMounted(load)
           </div>
         </div>
 
-        <div v-if="!schedule.length" class="empty-state">
-          Нет отметок для этой остановки
-        </div>
+        <div v-if="!schedule.length" class="empty-state">Нет отметок для этой остановки</div>
 
         <div v-else class="history-list">
           <div v-for="record in schedule" :key="record.id" class="history-row">
             <span class="history-date">{{ record.date }}</span>
             <span class="history-time">{{ record.time }}</span>
-            <span v-if="record.type === 'bus_missing'" class="history-missing-badge"
-              >нет автобуса</span
-            >
+            <span v-if="record.type === 'bus_missing'" class="history-missing-badge">
+              нет автобуса
+            </span>
             <button class="remove-btn" title="Удалить" @click="deleteEvent(record.id)">×</button>
           </div>
         </div>
@@ -307,88 +276,89 @@ onMounted(load)
 </template>
 
 <style scoped>
+.history-stops-heading {
+  margin-top: 12px;
+}
+.history-stop {
+  grid-template-columns: 25px minmax(0, 1fr);
+  cursor: pointer;
+}
 .history-add-form {
-  padding: 12px 16px;
-  background: var(--bg-subtle, #f6f8fa);
   border-bottom: 1px solid var(--border-color, #d8dde2);
+  background: var(--bg-subtle, #f6f8fa);
+  padding: 12px 16px;
 }
 .history-add-form label {
   display: block;
+  margin-bottom: 8px;
   font-size: 13px;
   font-weight: 500;
-  margin-bottom: 8px;
 }
 .history-add-row {
   display: flex;
-  gap: 6px;
   align-items: center;
+  gap: 6px;
 }
 .history-add-row input[type='time'] {
-  padding: 5px 8px;
+  width: 96px;
   border: 1px solid var(--border-color, #d8dde2);
   border-radius: 4px;
+  padding: 5px 8px;
   font-size: 14px;
-  width: 96px;
 }
 .history-add-row button {
-  padding: 5px 10px;
-  font-size: 13px;
-  border-radius: 4px;
-  cursor: pointer;
   border: 1px solid var(--border-color, #d8dde2);
+  border-radius: 4px;
   background: var(--accent, #0074dc);
+  padding: 5px 10px;
   color: #fff;
+  font-size: 13px;
+  cursor: pointer;
 }
 .history-add-row button.text-danger {
+  border-color: #fca5a5;
   background: #fff;
   color: #b42318;
-  border-color: #fca5a5;
 }
 .history-add-row button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .history-list {
-  padding: 8px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 8px 16px;
 }
 .history-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  border: 1px solid var(--border-subtle, #eef0f2);
   border-radius: 4px;
   background: var(--bg-card, #fff);
-  border: 1px solid var(--border-subtle, #eef0f2);
+  padding: 4px 8px;
   font-size: 14px;
 }
 .history-date {
-  font-size: 12px;
-  color: var(--text-secondary, #6e7781);
   min-width: 40px;
+  color: var(--text-secondary, #6e7781);
+  font-size: 12px;
 }
 .history-time {
+  min-width: 44px;
   font-family: monospace;
   font-weight: 500;
-  min-width: 44px;
 }
 .history-missing-badge {
-  font-size: 11px;
-  color: #b42318;
-  background: #fee2e2;
   padding: 1px 6px;
   border-radius: 10px;
+  background: #fee2e2;
+  color: #b42318;
+  font-size: 11px;
   white-space: nowrap;
 }
 .history-row .remove-btn {
   margin-left: auto;
-}
-
-.waypoint-card {
-  grid-template-columns: 25px minmax(0, 1fr) !important;
-  cursor: pointer;
 }
 </style>
