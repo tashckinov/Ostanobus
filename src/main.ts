@@ -5,6 +5,9 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
 import App from './App.vue'
+import { initRuntimeUiEnhancer } from './lib/runtime-ui-enhancer'
 import router from './router'
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+const pinia = createPinia()
+createApp(App).use(pinia).use(router).mount('#app')
+initRuntimeUiEnhancer(pinia)
