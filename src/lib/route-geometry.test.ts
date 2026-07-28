@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildRouteLines, decodePolyline } from './route-geometry'
+import { buildRouteLines, decodePolyline, sanitizeRouteCoordinates } from './route-geometry'
 import type { StopFeature, TransitRoute } from '@/types/transit'
 
 describe('decodePolyline', () => {
@@ -9,6 +9,31 @@ describe('decodePolyline', () => {
       [-120.2, 38.5],
       [-120.95, 40.7],
       [-126.453, 43.252],
+    ])
+  })
+})
+
+describe('sanitizeRouteCoordinates', () => {
+  it('удаляет резкий заезд к точке остановки и возврат на дорогу', () => {
+    const roadBefore = [42.2, 47.5]
+    const stop = [42.20025, 47.5001]
+    const roadAfter = [42.2, 47.5002]
+
+    expect(sanitizeRouteCoordinates([roadBefore, stop, roadAfter], [stop])).toEqual([
+      roadBefore,
+      roadAfter,
+    ])
+  })
+
+  it('оставляет остановку, которая действительно лежит на линии маршрута', () => {
+    const before = [42.2, 47.5]
+    const stop = [42.2, 47.5001]
+    const after = [42.2, 47.5002]
+
+    expect(sanitizeRouteCoordinates([before, stop, after], [stop])).toEqual([
+      before,
+      stop,
+      after,
     ])
   })
 })
