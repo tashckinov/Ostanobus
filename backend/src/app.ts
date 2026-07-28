@@ -161,7 +161,7 @@ const syncSchema = z.object({
     .array(
       z.object({
         id,
-        type: z.enum(['bus_arrival', 'stop_passage']),
+        type: z.enum(['bus_arrival', 'stop_passage', 'bus_missing']),
         routeId: id,
         directionId: nullableId,
         stopId: id,
