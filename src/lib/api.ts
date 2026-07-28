@@ -32,3 +32,33 @@ export async function checkApiHealth(timeoutMs = 5_000): Promise<{ online: boole
     globalThis.clearTimeout(timeout)
   }
 }
+
+export interface DelayReportPayload {
+  routeId: string
+  directionId: string
+  scheduledArrival: string
+  cardOpenedAt: string
+  deviceId: string
+}
+
+export async function sendDelayReport(
+  tripId: string,
+  stopId: string,
+  payload: DelayReportPayload,
+) {
+  if (!apiIsConfigured() || !navigator.onLine) {
+    throw new Error('Offline')
+  }
+
+  const response = await fetch(apiUrl(`/api/trips/${encodeURIComponent(tripId)}/stops/${encodeURIComponent(stopId)}/delay-reports`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to send delay report')
+  }
+
+  return response.json()
+}

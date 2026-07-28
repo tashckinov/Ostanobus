@@ -46,6 +46,7 @@ const selectedStopServices = computed(() =>
         transit.selectedStopId,
         transit.routeStops.routes,
         transit.selectedStopForecasts,
+        transit.forecasts.tripStates ?? [],
         scheduleClock.value,
       )
     : [],
@@ -111,6 +112,8 @@ function arrivalDetails(service: StopService) {
 function goBackFromStop() {
   if (selectedServiceKey.value) {
     selectedServiceKey.value = null
+    cardOpenedAt.value = null
+    delayReportStatus.value = null
     transit.selectRoute(null)
     return
   }
@@ -151,20 +154,31 @@ async function confirmArrival(service: StopService) {
   }
 }
 
-const missingServiceKey = ref<string | null>(null)
+const delayReportStatus = ref<string | null>(null)
+const cardOpenedAt = ref<Date | null>(null)
 
-async function missingBus(service: StopService) {
+async function reportDelay(service: StopService) {
   const stop = transit.selectedStop
-  if (!stop) return
+  if (!stop || !service.tripId || !service.nextArrival) return
 
   try {
-    await ride.recordMissing(service.route.routeId, stop.properties.id, service.direction.id)
-    missingServiceKey.value = serviceKey(service)
-    setTimeout(() => {
-      if (missingServiceKey.value === serviceKey(service)) {
-        missingServiceKey.value = null
-      }
-    }, 3000)
+    const arrDateTime = new Date(scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24*60*60*1000)
+    const [hh, mm] = service.nextArrival.time.split(':').map(Number)
+    arrDateTime.setHours(hh ?? 0, mm ?? 0, 0, 0)
+
+    const success = await transit.reportDelay(
+       service.route.routeId,
+       service.direction.id,
+       stop.properties.id,
+       service.tripId,
+       arrDateTime.toISOString(),
+       cardOpenedAt.value ?? new Date()
+    )
+    
+    if (success) {
+      delayReportStatus.value = 'Спасибо, сообщение учтено'
+      setTimeout(() => { delayReportStatus.value = null }, 3000)
+    }
   } catch (err) {
     console.error(err)
   }
@@ -228,7 +242,7 @@ onBeforeUnmount(() => {
           @focus="emit('openSearch')"
         />
         <span
-          v-if="!apiOnline && !searchQuery"
+          v-if="!transit.apiOnline && !searchQuery"
           class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-600"
         >
           Оффлайн
@@ -295,22 +309,45 @@ onBeforeUnmount(() => {
                 {{ selectedService.direction.name || `к ${selectedService.direction.terminal}` }}
               </p>
               <template v-if="selectedService.nextArrival">
-                <p class="mt-1 text-2xl font-semibold leading-none">
-                  {{ selectedService.nextArrival.relativeLabel }}
-                </p>
                 <p class="mt-1 text-base font-medium">
-                  Ближайший в {{ selectedService.nextArrival.timeLabel }}
-                  <span class="text-xs font-normal text-muted-foreground">· по расписанию</span>
+                  По расписанию: {{ selectedService.nextArrival.timeLabel }}
                 </p>
-              </template>
-              <template v-else-if="selectedService.forecast">
-                <p class="mt-1 text-2xl font-semibold leading-none">
-                  через {{ selectedService.forecast.minMinutes }}–{{
-                    selectedService.forecast.maxMinutes
-                  }}
-                  мин
-                </p>
-                <p class="text-xs text-muted-foreground">Вероятностный прогноз</p>
+                <template v-if="selectedService.tripState && selectedService.tripState.status !== 'scheduled'">
+                  <template v-if="selectedService.tripState.status === 'location_unknown'">
+                    <p class="mt-1 text-sm text-muted-foreground">Фактическое движение неизвестно</p>
+                  </template>
+                  <template v-else>
+                    <p class="mt-1 text-lg font-semibold leading-none">
+                      Предположительно прибудет: 
+                      {{ 
+                        (() => {
+                          const min = selectedService.tripState.minDelaySeconds ?? selectedService.tripState.delaySeconds;
+                          const max = selectedService.tripState.maxDelaySeconds ?? selectedService.tripState.delaySeconds;
+                          const [hh, mm] = selectedService.nextArrival.time.split(':').map(Number);
+                          const arrBase = new Date(scheduleClock.getTime());
+                          arrBase.setHours(hh ?? 0, mm ?? 0, 0, 0);
+                          const arrMin = new Date(arrBase.getTime() + min * 1000);
+                          const arrMax = new Date(arrBase.getTime() + max * 1000);
+                          const formatTime = (d: Date) => d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                          return min === max ? formatTime(arrMin) : `${formatTime(arrMin)}–${formatTime(arrMax)}`;
+                        })()
+                      }}
+                    </p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                      Вероятная задержка: 
+                      {{ 
+                        (() => {
+                          const min = Math.round((selectedService.tripState.minDelaySeconds ?? selectedService.tripState.delaySeconds) / 60);
+                          const max = Math.round((selectedService.tripState.maxDelaySeconds ?? selectedService.tripState.delaySeconds) / 60);
+                          return min === max ? `${min} минут` : `${min}–${max} минут`;
+                        })()
+                      }}
+                    </p>
+                  </template>
+                </template>
+                <template v-else>
+                  <p class="mt-1 text-sm text-muted-foreground">Фактическое движение неизвестно</p>
+                </template>
               </template>
               <p v-else class="mt-0.5 text-sm text-muted-foreground">Ближайшее время неизвестно</p>
             </div>
@@ -353,22 +390,17 @@ onBeforeUnmount(() => {
               <BusFront class="mr-2 size-4" />
               Подтвердить прибытие
             </Button>
+            <div v-if="delayReportStatus" class="mt-2 text-center text-sm font-medium text-green-600">
+              <Check class="mr-1 inline size-4 align-text-bottom" />
+              {{ delayReportStatus }}
+            </div>
             <Button 
-              v-if="
-                (selectedService.forecast && selectedService.forecast.minMinutes >= -2 && selectedService.forecast.minMinutes <= 2) || 
-                (selectedService.nextArrival && selectedService.nextArrival.minutesUntil >= -2 && selectedService.nextArrival.minutesUntil <= 2)
-              "
+              v-else-if="selectedService.nextArrival"
               variant="outline" 
               class="w-full mt-2" 
-              @click="missingBus(selectedService)"
+              @click="reportDelay(selectedService)"
             >
-              <template v-if="missingServiceKey === serviceKey(selectedService)">
-                <Check class="mr-2 size-4 text-green-600" />
-                Отметка отправлена
-              </template>
-              <template v-else>
-                Автобуса нету
-              </template>
+              Автобус опаздывает
             </Button>
             <Button class="w-full" :disabled="startingRide" @click="startRide(selectedService)">
               <BusFront class="mr-2 size-4" />
@@ -383,7 +415,7 @@ onBeforeUnmount(() => {
           v-for="service in selectedStopServices"
           :key="serviceKey(service)"
           class="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 py-2 text-left hover:bg-muted"
-          @click="selectedServiceKey = serviceKey(service); transit.selectRoute(routeKey(service))"
+          @click="selectedServiceKey = serviceKey(service); cardOpenedAt = new Date(); transit.selectRoute(routeKey(service))"
         >
           <span
             class="inline-flex min-w-12 shrink-0 items-center justify-center rounded px-2 py-1 text-sm font-bold text-white"

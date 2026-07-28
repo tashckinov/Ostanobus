@@ -4,6 +4,7 @@ import type {
   RouteSchedule,
   StopForecast,
   TransitRoute,
+  TripState,
 } from '@/types/transit'
 
 const DAY_MINUTES = 24 * 60
@@ -26,6 +27,8 @@ export interface StopService {
   scheduleLabels: string[]
   nextArrival: ScheduledArrival | null
   forecast?: StopForecast
+  tripState?: TripState
+  tripId?: string
 }
 
 function parseTime(value: string | null) {
@@ -159,6 +162,7 @@ export function servicesForStop(
   stopId: string,
   routes: TransitRoute[],
   forecasts: Forecast[],
+  tripStates: TripState[] = [],
   now = new Date(),
 ): StopService[] {
   const services = routes.flatMap((route) =>
@@ -174,12 +178,25 @@ export function servicesForStop(
             item.routeId === route.routeId &&
             (!item.directionId || item.directionId === direction.id),
         )
+        const nextArrival = nextScheduledArrival(schedules, now)
+        let tripId: string | undefined
+        let tripState: TripState | undefined
+
+        if (nextArrival) {
+          const serviceDate = new Date(now.getTime() + nextArrival.dayOffset * DAY_MILLISECONDS)
+          const serviceDateStr = serviceDate.toISOString().split('T')[0]!
+          tripId = `${serviceDateStr}::${route.routeId}::${direction.id}::${nextArrival.time}`
+          tripState = tripStates.find(ts => ts.tripId === tripId)
+        }
+
         return {
           route,
           direction,
           schedules,
           scheduleLabels: scheduleLabelsForToday(schedules, now),
-          nextArrival: nextScheduledArrival(schedules, now),
+          nextArrival,
+          tripId,
+          tripState,
           ...(forecast ? { forecast: { ...forecast, route } } : {}),
         }
       }),

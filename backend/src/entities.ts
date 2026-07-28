@@ -12,6 +12,15 @@ export type EventType = 'bus_arrival' | 'stop_passage' | 'bus_missing'
 export type ScheduleType = 'exact' | 'interval'
 export type Confidence = 'high' | 'medium' | 'low'
 export type TicketStatus = 'new' | 'in_progress' | 'resolved' | 'rejected'
+export type TripStateStatus =
+  | 'scheduled'
+  | 'location_unknown'
+  | 'possibly_delayed'
+  | 'likely_delayed'
+  | 'delayed'
+  | 'possibly_passed_early'
+  | 'likely_not_running'
+  | 'vehicle_detected'
 
 export interface GeoJsonLineString {
   type: 'LineString'
@@ -332,6 +341,74 @@ export class Admin {
   createdAt!: Date
 }
 
+@Entity('delay_reports')
+@Index(['tripId', 'stopId'])
+@Index(['deviceId', 'tripId', 'stopId'], { unique: true })
+export class DelayReport {
+  @PrimaryColumn('varchar')
+  id!: string
+
+  @Column('varchar')
+  tripId!: string
+
+  @Column('varchar')
+  routeId!: string
+
+  @Column('varchar')
+  directionId!: string
+
+  @Column('varchar')
+  stopId!: string
+
+  @Column({ type: 'datetime' })
+  scheduledArrival!: Date
+
+  @Column({ type: 'datetime' })
+  cardOpenedAt!: Date
+
+  @Column('varchar')
+  deviceId!: string
+
+  @CreateDateColumn({ type: 'datetime' })
+  createdAt!: Date
+}
+
+@Entity('trip_states')
+export class TripState {
+  @PrimaryColumn('varchar')
+  tripId!: string
+
+  @Column('varchar')
+  routeId!: string
+
+  @Column('varchar')
+  directionId!: string
+
+  @Column({ type: 'date' })
+  serviceDate!: string
+
+  @Column({ type: 'datetime' })
+  scheduledTripStart!: Date
+
+  @Column('integer')
+  delaySeconds!: number
+
+  @Column('varchar')
+  confidence!: Confidence
+
+  @Column({ type: 'integer', nullable: true })
+  minDelaySeconds!: number | null
+
+  @Column({ type: 'integer', nullable: true })
+  maxDelaySeconds!: number | null
+
+  @Column('varchar')
+  status!: TripStateStatus
+
+  @Column({ type: 'datetime' })
+  lastCalculatedAt!: Date
+}
+
 export const entities = [
   City,
   Stop,
@@ -343,4 +420,6 @@ export const entities = [
   TransitEvent,
   SupportTicket,
   Admin,
+  DelayReport,
+  TripState,
 ]

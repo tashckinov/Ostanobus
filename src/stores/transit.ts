@@ -102,9 +102,42 @@ export const useTransitStore = defineStore('transit', () => {
     return apiOnline.value
   }
 
+  async function reportDelay(
+    routeId: string,
+    directionId: string,
+    stopId: string,
+    tripId: string,
+    scheduledArrivalStr: string,
+    cardOpenedAt: Date
+  ) {
+    if (!apiOnline.value) return false
+    try {
+      const { getClientId } = await import('@/lib/db')
+      const { sendDelayReport } = await import('@/lib/api')
+      const deviceId = await getClientId()
+      const payload = {
+        routeId,
+        directionId,
+        scheduledArrival: scheduledArrivalStr,
+        cardOpenedAt: cardOpenedAt.toISOString(),
+        deviceId
+      }
+      const result = await sendDelayReport(tripId, stopId, payload)
+      if (result.accepted) {
+        await refreshForecasts(stopId)
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error(err)
+      return false
+    }
+  }
+
   return {
     stops,
     routeStops,
+    forecasts,
     selectedStopId,
     selectedStop,
     selectedStopForecasts,
@@ -119,5 +152,6 @@ export const useTransitStore = defineStore('transit', () => {
     refreshApiHealth,
     selectStop,
     selectRoute,
+    reportDelay,
   }
 })

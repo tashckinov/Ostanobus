@@ -64,7 +64,7 @@ describe('stop services', () => {
       },
     ]
 
-    const services = servicesForStop('lazorevyi', routes, [], new Date('2026-07-27T03:21:00Z'))
+    const services = servicesForStop('lazorevyi', routes, [], [], new Date('2026-07-27T03:21:00Z'))
 
     expect(services).toHaveLength(1)
     expect(services[0]).toMatchObject({
