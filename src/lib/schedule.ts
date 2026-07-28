@@ -6,6 +6,7 @@ import type {
   TransitRoute,
   VehicleInstance,
 } from '@/types/transit'
+import { buildTrips, parseTime } from './trips'
 
 const DAY_MINUTES = 24 * 60
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1_000
@@ -31,19 +32,6 @@ export interface StopService {
   tripId?: string
 }
 
-function parseTime(value: string | null) {
-  if (!value) return null
-  const [hours, minutes] = value.split(':').map(Number)
-  if (
-    hours === undefined ||
-    minutes === undefined ||
-    !Number.isInteger(hours) ||
-    !Number.isInteger(minutes)
-  ) {
-    return null
-  }
-  return hours * 60 + minutes
-}
 
 function zonedDateParts(date: Date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -185,7 +173,26 @@ export function servicesForStop(
         if (nextArrival) {
           const serviceDate = new Date(now.getTime() + nextArrival.dayOffset * DAY_MILLISECONDS)
           const serviceDateStr = serviceDate.toISOString().split('T')[0]!
-          tripId = `${serviceDateStr}::${route.routeId}::${direction.id}::${nextArrival.time}`
+          const weekday = serviceDate.getUTCDay() || 7
+          const allTrips = buildTrips(route.routeId, direction, weekday)
+          
+          let tripStartTime = nextArrival.time
+          const [hh, mm] = nextArrival.time.split(':').map(Number)
+          const nextArrivalMinutes = (hh || 0) * 60 + (mm || 0)
+          
+          const stopIndex = direction.stopIds.indexOf(stopId)
+          if (stopIndex !== -1) {
+            // Find a trip that arrives at this stop at the scheduled time
+            const matchingTrip = allTrips.find(t => t.times[stopIndex] === nextArrivalMinutes)
+            if (matchingTrip && matchingTrip.times[0] !== null) {
+              const startTotal = matchingTrip.times[0]
+              const startH = Math.floor(startTotal / 60)
+              const startM = startTotal % 60
+              tripStartTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`
+            }
+          }
+          
+          tripId = `${serviceDateStr}::${route.routeId}::${direction.id}::${tripStartTime}`
           vehicle = vehicles.find(v => v.id === tripId)
           
           if (vehicle && vehicle.delaySeconds) {
