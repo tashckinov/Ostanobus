@@ -4,6 +4,7 @@ import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { buildRouteLines, decodePolyline } from '@/lib/route-geometry'
+import { markerScaleForZoom } from '@/lib/map-scale'
 import { useSettingsStore } from '@/stores/settings'
 import { useTransitStore } from '@/stores/transit'
 import type { RouteDirection } from '@/types/transit'
@@ -16,6 +17,7 @@ let map: MapLibreMap | null = null
 interface BusAnimation {
   marker: maplibregl.Marker
   el: HTMLElement
+  scaleElement: HTMLElement
 }
 const busAnimations = new Map<string, BusAnimation>()
 let globalAnimationFrame: number | null = null
@@ -72,6 +74,7 @@ onMounted(() => {
   })
 
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right')
+  map.on('zoomend', applyMapMarkerScale)
 
   map.on('load', () => {
     if (!map) return
@@ -118,11 +121,11 @@ onMounted(() => {
       type: 'circle',
       source: 'stops',
       paint: {
-        'circle-radius': 10,
+        'circle-radius': ['step', ['zoom'], 4, 12.5, 6, 14, 8, 15.5, 10],
         'circle-color': '#ffffff',
         'circle-opacity': 0.96,
         'circle-stroke-color': '#d5d9de',
-        'circle-stroke-width': 1,
+        'circle-stroke-width': ['step', ['zoom'], 0.5, 14, 1],
       },
     })
     map.addLayer({
@@ -130,7 +133,7 @@ onMounted(() => {
       type: 'circle',
       source: 'stops',
       paint: {
-        'circle-radius': 5,
+        'circle-radius': ['step', ['zoom'], 2, 12.5, 3, 14, 4, 15.5, 5],
         'circle-color': '#1f2933',
       },
     })
@@ -140,10 +143,10 @@ onMounted(() => {
       source: 'stops',
       filter: ['in', ['get', 'id'], ['literal', routeStopIds]],
       paint: {
-        'circle-radius': 6,
+        'circle-radius': ['step', ['zoom'], 3, 12.5, 4, 14, 5, 15.5, 6],
         'circle-color': '#0074dc',
         'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
+        'circle-stroke-width': ['step', ['zoom'], 1, 14, 1.5, 15.5, 2],
       },
     })
     map.addLayer({
@@ -152,11 +155,11 @@ onMounted(() => {
       source: 'stops',
       filter: ['==', ['get', 'id'], ''],
       paint: {
-        'circle-radius': 15,
+        'circle-radius': ['step', ['zoom'], 8, 12.5, 10, 14, 12, 15.5, 15],
         'circle-color': '#0074dc',
         'circle-opacity': 0.2,
         'circle-stroke-color': '#0074dc',
-        'circle-stroke-width': 2,
+        'circle-stroke-width': ['step', ['zoom'], 1, 14, 1.5, 15.5, 2],
       },
     })
 
@@ -172,6 +175,7 @@ onMounted(() => {
     })
 
     initBusAnimations()
+    applyMapMarkerScale()
   })
 })
 
@@ -227,6 +231,14 @@ watch(
 
 // ─── Анимированный badge ──────────────────────────────────────────────────────
 
+function applyMapMarkerScale() {
+  if (!map) return
+  const scale = markerScaleForZoom(map.getZoom()).toString()
+  for (const animation of busAnimations.values()) {
+    animation.scaleElement.style.setProperty('--map-marker-scale', scale)
+  }
+}
+
 function getRouteCoordinates(direction: RouteDirection): number[][] {
   if (direction.geometry) return direction.geometry.coordinates
   if (direction.path) return decodePolyline(direction.path.value, direction.path.precision)
@@ -239,8 +251,8 @@ function getRouteCoordinates(direction: RouteDirection): number[][] {
 function buildSegmentLengths(coords: number[][]): number[] {
   const lengths: number[] = []
   for (let i = 0; i < coords.length - 1; i++) {
-    const dx = (coords[i + 1]![0]! - coords[i]![0]!)
-    const dy = (coords[i + 1]![1]! - coords[i]![1]!)
+    const dx = coords[i + 1]![0]! - coords[i]![0]!
+    const dy = coords[i + 1]![1]! - coords[i]![1]!
     lengths.push(Math.sqrt(dx * dx + dy * dy))
   }
   return lengths
@@ -342,8 +354,6 @@ function mapStopsToPath(coords: number[][], stopCoords: number[][]): number[] | 
   return mapped
 }
 
-
-
 function initBusAnimations() {
   const { weekday } = getCurrentDayAndMinutes()
 
@@ -357,12 +367,14 @@ function initBusAnimations() {
         .filter((c): c is number[] => Boolean(c))
 
       if (stopCoords.length !== direction.stopIds.length) return
-      
+
       const segLengths = buildSegmentLengths(coords)
       const stopRatios = mapStopsToPath(coords, stopCoords)
       if (!stopRatios) {
         if (settings.debugMode) {
-          console.warn(`[Debug] Skipped route ${route.routeId} direction ${direction.id}: Invalid geometry matching (stops out of order on path).`)
+          console.warn(
+            `[Debug] Skipped route ${route.routeId} direction ${direction.id}: Invalid geometry matching (stops out of order on path).`,
+          )
         }
         return
       }
@@ -401,10 +413,12 @@ function tickGlobal() {
   const shouldPrintDebug = settings.debugMode && Date.now() - lastDebugPrint > 2000
   if (shouldPrintDebug) {
     lastDebugPrint = Date.now()
-    console.log(`[Debug] tickGlobal | nowMinutes: ${nowMinutes.toFixed(2)} | selectedDirId: ${selectedDirId}`)
+    console.log(
+      `[Debug] tickGlobal | nowMinutes: ${nowMinutes.toFixed(2)} | selectedDirId: ${selectedDirId}`,
+    )
   }
 
-  const vehicleMap = new Map<string, typeof transit.vehicles[0]>()
+  const vehicleMap = new Map<string, (typeof transit.vehicles)[0]>()
   for (const v of transit.vehicles) {
     vehicleMap.set(v.id, v)
   }
@@ -416,9 +430,14 @@ function tickGlobal() {
     const activeTrips = dir.trips.filter((t) => {
       if (t.times.length <= 1) return false
       // Fast filter: only check trips within +/- 120 mins of now (to account for extreme delays)
-      if (nowMinutes < t.times[0]! - 120 || nowMinutes > t.times[t.times.length - 1]! + 120) return false
+      if (nowMinutes < t.times[0]! - 120 || nowMinutes > t.times[t.times.length - 1]! + 120)
+        return false
 
-      const scheduledTimeStr = `${Math.floor(t.times[0]!/60).toString().padStart(2,'0')}:${Math.floor(t.times[0]!%60).toString().padStart(2,'0')}`
+      const scheduledTimeStr = `${Math.floor(t.times[0]! / 60)
+        .toString()
+        .padStart(2, '0')}:${Math.floor(t.times[0]! % 60)
+        .toString()
+        .padStart(2, '0')}`
       const routeId = t.id.split('::')[0]!
       const actualVehicleId = `${serviceDateStr}::${routeId}::${dir.directionId}::${scheduledTimeStr}`
       const realVehicle = vehicleMap.get(actualVehicleId)
@@ -432,7 +451,9 @@ function tickGlobal() {
     })
 
     if (shouldPrintDebug && isVisible && activeTrips.length > 0) {
-      console.log(`[Debug]   Dir: ${dir.routeNumber} (${dir.directionId}) | Active Trips: ${activeTrips.length}`)
+      console.log(
+        `[Debug]   Dir: ${dir.routeNumber} (${dir.directionId}) | Active Trips: ${activeTrips.length}`,
+      )
     }
 
     for (const tripObj of activeTrips) {
@@ -446,21 +467,30 @@ function tickGlobal() {
       const trip = tripObj.times
 
       if (shouldPrintDebug && isVisible) {
-        console.log(`[Debug]     Trip ${tripObj.id} is active (Time range: ${tripObj.times[0]} - ${tripObj.times[tripObj.times.length - 1]})`)
+        console.log(
+          `[Debug]     Trip ${tripObj.id} is active (Time range: ${tripObj.times[0]} - ${tripObj.times[tripObj.times.length - 1]})`,
+        )
       }
 
       let markerObj = busAnimations.get(tripObj.id)
       if (!markerObj) {
         const container = document.createElement('div')
         container.className = 'bus-badge-container'
+        const scaleElement = document.createElement('div')
+        scaleElement.className = 'bus-badge-scale'
+        scaleElement.style.setProperty(
+          '--map-marker-scale',
+          markerScaleForZoom(map.getZoom()).toString(),
+        )
         const el = document.createElement('div')
         el.className = 'bus-badge'
         el.style.backgroundColor = dir.routeColor
-        container.appendChild(el)
+        scaleElement.appendChild(el)
+        container.appendChild(scaleElement)
         const marker = new maplibregl.Marker({ element: container, anchor: 'center' })
           .setLngLat(dir.coords[0] as [number, number])
           .addTo(map)
-        markerObj = { el, marker }
+        markerObj = { el, marker, scaleElement }
         busAnimations.set(tripObj.id, markerObj)
       }
 
@@ -474,7 +504,11 @@ function tickGlobal() {
       markerObj.el.style.display = isVisible ? '' : 'none'
       if (!isVisible) continue
 
-      const scheduledTimeStr = `${Math.floor(trip[0]!/60).toString().padStart(2,'0')}:${Math.floor(trip[0]!%60).toString().padStart(2,'0')}`
+      const scheduledTimeStr = `${Math.floor(trip[0]! / 60)
+        .toString()
+        .padStart(2, '0')}:${Math.floor(trip[0]! % 60)
+        .toString()
+        .padStart(2, '0')}`
       const routeId = tripObj.id.split('::')[0]!
       const actualVehicleId = `${serviceDateStr}::${routeId}::${dir.directionId}::${scheduledTimeStr}`
       const realVehicle = vehicleMap.get(actualVehicleId)
@@ -504,7 +538,7 @@ function tickGlobal() {
       let fraction = 0
       if (t2 > t1) fraction = (effectiveNow - t1) / (t2 - t1)
       fraction = Math.max(0, Math.min(1, fraction))
-      
+
       const targetRatio = r1 + fraction * (r2 - r1)
       const interpolated = interpolateAlong(dir.coords, dir.segLengths, targetRatio)
       const lng = interpolated[0]
@@ -512,7 +546,7 @@ function tickGlobal() {
 
       markerObj.marker.setLngLat([lng, lat])
       markerObj.el.style.opacity = opacity.toString()
-      
+
       if (count > 0) {
         markerObj.el.textContent = `${dir.routeNumber} · ${count}✓`
         markerObj.el.style.fontWeight = 'bold'

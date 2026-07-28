@@ -131,7 +131,7 @@ function goBackFromStop() {
   emit('closeStop')
 }
 
-async function startRide(service: StopService) {
+async function confirmBus(service: StopService) {
   const stop = transit.selectedStop
   if (!stop) return
 
@@ -150,42 +150,6 @@ async function startRide(service: StopService) {
     emit('rideStarted')
   } finally {
     startingRide.value = false
-  }
-}
-
-const confirmingRide = ref(false)
-const confirmedServiceKey = ref<string | null>(null)
-
-async function confirmArrival(service: StopService) {
-  const stop = transit.selectedStop
-  if (!stop || !service.tripId || !service.nextArrival) return
-
-  confirmingRide.value = true
-  try {
-    const arrDateTime = new Date(
-      scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24 * 60 * 60 * 1000,
-    )
-    const [hh, mm] = service.nextArrival.time.split(':').map(Number)
-    arrDateTime.setHours(hh ?? 0, mm ?? 0, 0, 0)
-
-    const success = await transit.confirmArrival(
-      service.route.routeId,
-      service.direction.id,
-      stop.properties.id,
-      service.tripId,
-      arrDateTime.toISOString(),
-      cardOpenedAt.value ?? new Date(),
-    )
-    if (success) {
-      confirmedServiceKey.value = serviceKey(service)
-      setTimeout(() => {
-        if (confirmedServiceKey.value === serviceKey(service)) {
-          confirmedServiceKey.value = null
-        }
-      }, 3000)
-    }
-  } finally {
-    confirmingRide.value = false
   }
 }
 
@@ -425,44 +389,22 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="mt-3 flex flex-col gap-2">
-            <Button
-              v-if="confirmedServiceKey === serviceKey(selectedService)"
-              variant="outline"
-              class="w-full"
-              :disabled="true"
-            >
-              <Check class="mr-2 size-4 text-green-600" />
-              Прибытие подтверждено
-            </Button>
-            <Button
-              v-else
-              variant="outline"
-              class="w-full"
-              :disabled="confirmingRide"
-              @click="confirmArrival(selectedService)"
-            >
+            <Button class="w-full" :disabled="startingRide" @click="confirmBus(selectedService)">
               <BusFront class="mr-2 size-4" />
-              Подтвердить прибытие
+              Подтвердить автобус
             </Button>
-            <div
-              v-if="delayReportStatus"
-              class="mt-2 text-center text-sm font-medium text-green-600"
-            >
-              <Check class="mr-1 inline size-4 align-text-bottom" />
+            <div v-if="delayReportStatus" class="pt-1 text-center text-xs text-green-600">
+              <Check class="mr-1 inline size-3.5 align-text-bottom" />
               {{ delayReportStatus }}
             </div>
-            <Button
+            <button
               v-else-if="selectedService.nextArrival"
-              variant="outline"
-              class="w-full mt-2"
+              type="button"
+              class="self-center px-2 py-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               @click="reportDelay(selectedService)"
             >
-              Автобус опаздывает
-            </Button>
-            <Button class="w-full" :disabled="startingRide" @click="startRide(selectedService)">
-              <BusFront class="mr-2 size-4" />
-              Я сел в этот автобус
-            </Button>
+              Автобус опаздывает?
+            </button>
           </div>
         </article>
       </div>

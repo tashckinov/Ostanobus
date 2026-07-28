@@ -80,6 +80,15 @@ a {
   pointer-events: none;
 }
 
+.bus-badge-scale {
+  --map-marker-scale: 1;
+
+  display: flex;
+  transform: scale(var(--map-marker-scale));
+  transform-origin: center;
+  transition: transform 160ms ease-out;
+}
+
 .bus-badge {
   display: inline-flex;
   align-items: center;
