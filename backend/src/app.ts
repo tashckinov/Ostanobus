@@ -10,6 +10,7 @@ import { z } from 'zod'
 import {
   Admin,
   City,
+  DelayReport,
   Direction,
   DirectionStop,
   Forecast,
@@ -18,6 +19,7 @@ import {
   Stop,
   SupportTicket,
   TransitEvent,
+  TripState,
 } from './entities.js'
 import { readRoutes } from './route-service.js'
 import { createPublicToken, hashPublicToken, verifyPassword } from './security.js'
