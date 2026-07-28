@@ -4,8 +4,9 @@ import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { markerScaleForZoom } from '@/lib/map-scale'
-import { buildRouteLines, decodePolyline } from '@/lib/route-geometry'
+import { buildRouteLines, directionRouteCoordinates } from '@/lib/route-geometry'
 import { buildTrips, type ActiveTrip } from '@/lib/trips'
+import { vehicleMotionAt } from '@/lib/vehicle-motion'
 import { useRideStore } from '@/stores/ride'
 import { useSettingsStore } from '@/stores/settings'
 import { useTransitStore } from '@/stores/transit'
@@ -26,6 +27,7 @@ let lastCameraUpdate = 0
 
 interface BusMarker {
   marker: maplibregl.Marker
+  container: HTMLButtonElement
   element: HTMLElement
   scaleElement: HTMLElement
   vehicleId: string
@@ -164,9 +166,10 @@ onMounted(() => {
     })
 
     map.on('click', 'stop-halo', (event) => {
-      if (ride.isActive) return
       const stopId = event.features?.[0]?.properties?.id as string | undefined
-      if (stopId) transit.selectStop(stopId)
+      if (!stopId) return
+      if (ride.isActive) followActiveVehicle = false
+      transit.selectStop(stopId)
     })
 
     initialiseAnimations()
@@ -180,13 +183,15 @@ watch(
   (stopId) => {
     if (!map?.getLayer('selected-stop')) return
     map.setFilter('selected-stop', ['==', ['get', 'id'], stopId ?? ''])
-    if (ride.isActive) return
 
     const stop = stopId ? transit.stopsById.get(stopId) : null
     if (!stop) return
+    if (ride.isActive) followActiveVehicle = false
     map.easeTo({
       center: stop.geometry.coordinates as [number, number],
       zoom: Math.max(map.getZoom(), 14.2),
+      bearing: 0,
+      pitch: 0,
       duration: 500,
       padding: { top: 80, right: 30, bottom: 280, left: 30 },
     })
@@ -196,7 +201,9 @@ watch(
 watch(
   [() => transit.selectedRouteKey, () => ride.activeRide],
   () => {
-    if (ride.isActive) followActiveVehicle = true
+    if (ride.isActive && !transit.selectedRouteKey && !transit.selectedStopId) {
+      followActiveVehicle = true
+    }
     updateRouteVisibility()
   },
   { deep: true },
@@ -204,7 +211,8 @@ watch(
 
 function updateRouteVisibility() {
   if (!map?.getLayer('route-lines')) return
-  const directionId = ride.activeRide?.directionId ?? transit.selectedRouteKey?.split('::')[1] ?? ''
+  const selectedDirectionId = transit.selectedRouteKey?.split('::')[1]
+  const directionId = selectedDirectionId ?? ride.activeRide?.directionId ?? ''
   map.setFilter('route-line-outline', ['==', ['get', 'directionId'], directionId])
   map.setFilter('route-lines', ['==', ['get', 'directionId'], directionId])
 }
@@ -218,11 +226,7 @@ function applyMarkerScale() {
 }
 
 function routeCoordinates(direction: RouteDirection): number[][] {
-  if (direction.geometry) return direction.geometry.coordinates
-  if (direction.path) return decodePolyline(direction.path.value, direction.path.precision)
-  return direction.stopIds
-    .map((stopId) => transit.stopsById.get(stopId)?.geometry.coordinates)
-    .filter((coordinates): coordinates is number[] => Boolean(coordinates))
+  return directionRouteCoordinates(direction, transit.stopsById)
 }
 
 function segmentLengths(coordinates: number[][]) {
@@ -288,7 +292,13 @@ function mapStopsToPath(coordinates: number[][], stopCoordinates: number[][]): n
       const dy = to[1]! - from[1]!
       const lengthSquared = dx * dx + dy * dy
       const progress = lengthSquared
-        ? Math.max(0, Math.min(1, ((stop[0]! - from[0]!) * dx + (stop[1]! - from[1]!) * dy) / lengthSquared))
+        ? Math.max(
+            0,
+            Math.min(
+              1,
+              ((stop[0]! - from[0]!) * dx + (stop[1]! - from[1]!) * dy) / lengthSquared,
+            ),
+          )
         : 0
       const projectedX = from[0]! + progress * dx
       const projectedY = from[1]! + progress * dy
@@ -373,9 +383,14 @@ function createMarker(tripId: string, vehicleId: string, direction: AnimatedDire
   const marker = new maplibregl.Marker({ element: container, anchor: 'center' })
     .setLngLat(direction.coordinates[0] as [number, number])
     .addTo(map)
-  const result = { marker, element, scaleElement, vehicleId }
+  const result = { marker, container, element, scaleElement, vehicleId }
   busMarkers.set(tripId, result)
   return result
+}
+
+function tripStartLabel(startMinutes: number) {
+  const normalized = ((Math.round(startMinutes) % 1440) + 1440) % 1440
+  return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
 }
 
 function tick() {
@@ -384,17 +399,16 @@ function tick() {
   const activeRide = ride.activeRide
   const visibleTripIds = new Set<string>()
   const vehicleById = new Map(transit.vehicles.map((vehicle) => [vehicle.id, vehicle]))
+  const selectedDirectionId = transit.selectedRouteKey?.split('::')[1] ?? null
 
   for (const direction of animatedDirections) {
     for (const trip of direction.trips) {
       if (trip.times.length < 2) continue
-      const start = trip.times[0]!
-      const end = trip.times.at(-1)!
-      const startLabel = `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(Math.floor(start % 60)).padStart(2, '0')}`
-      const vehicleId = `${serviceDate}::${direction.routeId}::${direction.directionId}::${startLabel}`
+      const vehicleId = `${serviceDate}::${direction.routeId}::${direction.directionId}::${tripStartLabel(trip.times[0]!)}`
       const vehicle = vehicleById.get(vehicleId)
       const effectiveNow = nowMinutes - (vehicle?.delaySeconds ?? 0) / 60
-      if (effectiveNow < start || effectiveNow > end) continue
+      const motion = vehicleMotionAt(trip.times, direction.stopRatios, effectiveNow)
+      if (!motion) continue
 
       const isActiveVehicle = Boolean(
         activeRide &&
@@ -403,29 +417,48 @@ function tick() {
           activeRide.vehicleInstanceId === vehicleId,
       )
       const isVisible = activeRide
-        ? isActiveVehicle
-        : !transit.selectedRouteKey || transit.selectedRouteKey.endsWith(`::${direction.directionId}`)
+        ? selectedDirectionId
+          ? direction.directionId === selectedDirectionId
+          : isActiveVehicle
+        : !selectedDirectionId || direction.directionId === selectedDirectionId
       if (!isVisible) continue
 
       visibleTripIds.add(trip.id)
       const marker = busMarkers.get(trip.id) ?? createMarker(trip.id, vehicleId, direction)
       marker.vehicleId = vehicleId
-      marker.element.style.opacity = vehicle?.state === 'observed' ? '1' : vehicle?.state === 'stale' ? '0.7' : '0.5'
-      marker.element.textContent = vehicle?.confirmationCount
-        ? `${direction.routeNumber} · ${vehicle.confirmationCount}✓`
-        : direction.routeNumber
+      marker.container.dataset.motionState = motion.status
+      marker.container.setAttribute(
+        'aria-label',
+        motion.status === 'boarding'
+          ? `Автобус ${direction.routeNumber}: на остановке, идёт посадка`
+          : `Автобус ${direction.routeNumber}: в пути`,
+      )
+      marker.container.title =
+        motion.status === 'boarding' ? 'На остановке · посадка' : 'Автобус в пути'
+      marker.element.style.opacity =
+        vehicle?.state === 'observed' ? '1' : vehicle?.state === 'stale' ? '0.7' : '0.5'
 
-      let stopIndex = 0
-      while (stopIndex < trip.times.length - 2 && effectiveNow > trip.times[stopIndex + 1]!) stopIndex++
-      const fromTime = trip.times[stopIndex]!
-      const toTime = trip.times[stopIndex + 1]!
-      const progress = toTime > fromTime ? Math.max(0, Math.min(1, (effectiveNow - fromTime) / (toTime - fromTime))) : 0
-      const ratio = direction.stopRatios[stopIndex]! + progress * (direction.stopRatios[stopIndex + 1]! - direction.stopRatios[stopIndex]!)
-      const position = interpolate(direction.coordinates, direction.segmentLengths, ratio)
-      const ahead = interpolate(direction.coordinates, direction.segmentLengths, Math.min(1, ratio + 0.002))
+      const confirmation = vehicle?.confirmationCount ? ` · ${vehicle.confirmationCount}✓` : ''
+      marker.element.textContent =
+        motion.status === 'boarding'
+          ? `${direction.routeNumber}${confirmation} · посадка`
+          : `${direction.routeNumber}${confirmation}`
+
+      const position = interpolate(direction.coordinates, direction.segmentLengths, motion.ratio)
+      const ahead = interpolate(
+        direction.coordinates,
+        direction.segmentLengths,
+        Math.min(1, motion.ratio + 0.002),
+      )
       marker.marker.setLngLat(position)
 
-      if (isActiveVehicle && followActiveVehicle && Date.now() - lastCameraUpdate > 250) {
+      if (
+        isActiveVehicle &&
+        followActiveVehicle &&
+        !transit.selectedStopId &&
+        !transit.selectedRouteKey &&
+        Date.now() - lastCameraUpdate > 250
+      ) {
         lastCameraUpdate = Date.now()
         map.easeTo({
           center: position,
