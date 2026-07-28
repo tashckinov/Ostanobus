@@ -182,8 +182,8 @@ export function servicesForStop(
           
           const stopIndex = direction.stopIds.indexOf(stopId)
           if (stopIndex !== -1) {
-            // Find a trip that arrives at this stop at the scheduled time
-            const matchingTrip = allTrips.find(t => t.times[stopIndex] === nextArrivalMinutes)
+            // Find a trip that arrives at this stop at the scheduled time (allow small difference due to interpolation)
+            const matchingTrip = allTrips.find(t => t.times[stopIndex] !== null && Math.abs(t.times[stopIndex]! - nextArrivalMinutes) < 3)
             if (matchingTrip && matchingTrip.times[0] !== null) {
               const startTotal = matchingTrip.times[0]
               const startH = Math.floor(startTotal / 60)
