@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
                   </template>
                   <template v-else>
                     <p class="mt-1 text-lg font-semibold leading-none text-green-600">
-                      {{ selectedService.vehicle.state === 'observed' ? 'Подтверждён' : 'Прогнозный' }}
+                      {{ (selectedService.vehicle.state === 'observed' || selectedService.vehicle.state === 'stale') ? 'Подтверждён' : 'Прогнозный' }}
                       <span v-if="selectedService.vehicle.confirmationCount > 0" class="ml-2 inline-flex items-center justify-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                         {{ selectedService.vehicle.confirmationCount }}
                       </span>
@@ -429,7 +429,14 @@ onBeforeUnmount(() => {
             </span>
           </span>
           <span class="shrink-0 text-right">
-            <span class="block text-sm font-semibold">{{ arrivalLabel(service) }}</span>
+            <span class="block text-sm font-semibold flex items-center justify-end gap-1">
+              <template v-if="service.vehicle && (service.vehicle.state === 'observed' || service.vehicle.state === 'stale')">
+                <span class="flex size-4 items-center justify-center rounded-full bg-green-100">
+                  <Check class="size-3 text-green-700" />
+                </span>
+              </template>
+              {{ arrivalLabel(service) }}
+            </span>
             <span class="mt-0.5 block text-xs text-muted-foreground">
               {{ arrivalDetails(service) }}
             </span>
