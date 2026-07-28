@@ -24,17 +24,30 @@ export class VehicleService {
     const observationRepo = this.dataSource.getRepository(UserObservation)
     const vehicleRepo = this.dataSource.getRepository(VehicleInstance)
 
-    // Save observation (TypeORM save will update if id exists)
-    await observationRepo.save({
-      id: `${vehicleInstanceId}-${stopId}-${deviceId}`,
-      observationType,
-      vehicleInstanceId,
-      routeId,
-      directionId,
-      stopId,
-      deviceId,
-      createdAt: now,
+    // Find existing or create new observation
+    let observation = await observationRepo.findOne({
+      where: {
+        vehicleInstanceId,
+        stopId,
+        deviceId
+      }
     })
+
+    if (!observation) {
+      observation = observationRepo.create({
+        id: `${vehicleInstanceId}-${stopId}-${deviceId}`,
+        vehicleInstanceId,
+        stopId,
+        deviceId,
+        routeId,
+        directionId
+      })
+    }
+    
+    observation.observationType = observationType
+    observation.createdAt = now
+    
+    await observationRepo.save(observation)
 
     // Get or create vehicle instance
     let vehicle = await vehicleRepo.findOne({ where: { id: vehicleInstanceId } })
@@ -75,11 +88,12 @@ export class VehicleService {
         vehicle.confidence = 'medium'
       }
 
-      if (scheduledArrival) {
-        const scheduledTime = new Date(scheduledArrival).getTime()
-        if (!isNaN(scheduledTime)) {
-          vehicle.delaySeconds = Math.round((now.getTime() - scheduledTime) / 1000)
-        }
+    }
+
+    if (scheduledArrival) {
+      const scheduledTime = new Date(scheduledArrival).getTime()
+      if (!isNaN(scheduledTime)) {
+        vehicle.delaySeconds = Math.round((now.getTime() - scheduledTime) / 1000)
       }
     }
 
