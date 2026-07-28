@@ -39,7 +39,6 @@ const transit = useTransitStore()
 const ride = useRideStore()
 const sheet = ref<HTMLElement | null>(null)
 const startingRide = ref(false)
-const markingStop = ref(false)
 const scheduleClock = ref(new Date())
 const selectedServiceKey = ref<string | null>(null)
 let scheduleClockTimer: ReturnType<typeof setInterval> | null = null
@@ -79,11 +78,6 @@ const nextStop = computed(() => {
   const stopId = activeDirection.value.stopIds[ride.activeRide.nextStopIndex]
   return stopId ? transit.stopsById.get(stopId) : undefined
 })
-const rideComplete = computed(
-  () =>
-    Boolean(ride.activeRide && activeDirection.value) &&
-    ride.activeRide!.nextStopIndex >= activeDirection.value!.stopIds.length,
-)
 
 watch(
   () => transit.selectedStopId,
@@ -184,16 +178,6 @@ async function reportDelay(service: StopService) {
     }
   } catch (err) {
     console.error(err)
-  }
-}
-
-async function markNextStop() {
-  if (!activeDirection.value) return
-  markingStop.value = true
-  try {
-    await ride.markNextStop(activeDirection.value)
-  } finally {
-    markingStop.value = false
   }
 }
 
@@ -479,20 +463,7 @@ onBeforeUnmount(() => {
       </p>
 
       <div class="px-4 pt-3">
-        <p v-if="!rideComplete" class="mb-2 text-xs text-muted-foreground">
-          Не удалось точно определить остановку? Нажмите «Мы проехали остановку».
-        </p>
-        <Button
-          v-if="!rideComplete"
-          variant="outline"
-          class="w-full"
-          :disabled="markingStop"
-          @click="markNextStop"
-        >
-          <MapPin class="size-4" />
-          Мы проехали остановку
-        </Button>
-        <Button class="mt-2 w-full" @click="ride.finishRide()"> Я вышел </Button>
+        <Button class="w-full" @click="ride.finishRide()">Я вышел</Button>
       </div>
     </div>
   </section>
