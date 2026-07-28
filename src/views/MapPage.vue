@@ -69,6 +69,7 @@ const delayButtonStyle = computed(() => ({
 
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
+  transit.setInteractionLocked(ride.isActive)
   if (transit.apiOnline) transit.startVehiclePolling()
   if (ride.isActive) startRideTracking()
   window.addEventListener('online', handleOnline)
@@ -90,6 +91,7 @@ onBeforeUnmount(() => {
 watch(
   () => ride.isActive,
   (isActive) => {
+    transit.setInteractionLocked(isActive)
     if (isActive) startRideTracking()
     else stopRideTracking()
   },
@@ -147,7 +149,7 @@ function closeStop() {
 function onRideStarted() {
   searchQuery.value = ''
   searchOpen.value = false
-  transit.selectStop(null)
+  transit.setInteractionLocked(true)
   startRideTracking()
 }
 
