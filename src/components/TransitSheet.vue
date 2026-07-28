@@ -309,8 +309,9 @@ onBeforeUnmount(() => {
                 {{ selectedService.direction.name || `к ${selectedService.direction.terminal}` }}
               </p>
               <template v-if="selectedService.nextArrival">
-                <p class="mt-1 text-base font-medium">
-                  По расписанию: {{ selectedService.nextArrival.timeLabel }}
+                <p class="mt-1 flex items-baseline justify-between text-base font-medium">
+                  <span>По расписанию: {{ selectedService.nextArrival.timeLabel }}</span>
+                  <span class="text-sm font-normal text-muted-foreground">{{ selectedService.nextArrival.relativeLabel }}</span>
                 </p>
                 <template v-if="selectedService.tripState && selectedService.tripState.status !== 'scheduled'">
                   <template v-if="selectedService.tripState.status === 'location_unknown'">
