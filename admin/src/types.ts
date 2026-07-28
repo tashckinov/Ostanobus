@@ -10,21 +10,18 @@ export interface Stop {
   active: boolean
 }
 
-export type RoutingPoint =
-  | {
-      type: 'stop'
-      stopId: string
-      longitude?: number | undefined
-      latitude?: number | undefined
-    }
-  | { type: 'anchor'; longitude: number; latitude: number }
-
-export type SegmentStatus = 'auto' | 'manual' | 'verified' | 'error'
+export interface RoadAnchor {
+  stopId: string
+  longitude: number
+  latitude: number
+}
 
 export interface RouteSegment {
+  id: string
   fromStopId: string
   toStopId: string
-  status: SegmentStatus
+  mode: 'automatic' | 'manual'
+  status: 'draft' | 'fixed' | 'error'
   viaPoints: Array<{ longitude: number; latitude: number }>
   geometry: GeoJSON.LineString | null
   distanceMeters: number | null
@@ -34,12 +31,10 @@ export interface Direction {
   id: string
   name: string
   terminal: string
-  routeType: 'linear' | 'circular'
   stopIds: string[]
-  routingPoints: RoutingPoint[]
+  roadAnchors: RoadAnchor[]
+  routeType: 'linear' | 'circular'
   segments: RouteSegment[]
-  geometry: GeoJSON.LineString | null
-  distanceMeters: number | null
   active: boolean
 }
 

@@ -269,27 +269,15 @@ button.tab.active {
   overflow: auto;
   list-style: none;
 }
-.waypoint-card {
+.waypoints li {
   display: grid;
-  grid-template-columns: 22px 25px minmax(0, 1fr) 26px;
+  grid-template-columns: 16px 25px minmax(0, 1fr) 24px 24px 24px;
   align-items: center;
   gap: 5px;
   border-bottom: 1px solid #e5e7eb;
-  padding: 7px 2px;
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-  border-radius: 4px;
-  transition: background 0.1s, opacity 0.15s;
+  padding: 7px 0;
 }
-.waypoint-card:hover {
-  background: #f5f7fb;
-}
-.waypoint-card.dragging {
-  opacity: 0.38;
-  background: #eaf3fb;
-}
-.waypoint-card > span {
+.waypoints li > span {
   display: grid;
   place-items: center;
   width: 21px;
@@ -299,41 +287,20 @@ button.tab.active {
   color: #fff;
   font-size: 10px;
 }
-.waypoint-card > span.via {
+.waypoints li > span.via {
   background: #f59e0b;
 }
-.waypoint-card strong {
+.waypoints li strong {
   overflow: hidden;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.waypoint-card .remove-btn {
+.waypoints li button {
   border: 0;
   background: transparent;
-  color: #9aa3ad;
+  color: #4b5563;
   padding: 2px;
-  font-size: 15px;
-  line-height: 1;
-  min-height: 0;
-}
-.waypoint-card .remove-btn:hover {
-  color: #b42318;
-}
-.drop-zone {
-  list-style: none;
-  height: 4px;
-  margin: 0;
-  padding: 0;
-  border-radius: 2px;
-  background: transparent;
-  transition: height 0.12s, background 0.12s;
-  pointer-events: none;
-}
-.drop-zone.active {
-  height: 8px;
-  background: #006fca;
-  box-shadow: 0 0 0 2px rgb(0 111 202 / 25%);
 }
 .waypoints .drag-handle {
   width: auto;
@@ -341,9 +308,8 @@ button.tab.active {
   cursor: grab;
   background: transparent;
   color: #9aa3ad;
-  font-size: 14px;
-  line-height: 1;
-  user-select: none;
+  font-size: 13px;
+  letter-spacing: -3px;
 }
 .notice,
 .success {
@@ -826,9 +792,11 @@ dd {
   width: 18px;
   height: 18px;
   border: 3px solid #fff;
-  border-radius: 50%;
+  border-radius: 2px;
+  background: #0f766e;
   box-shadow: 0 1px 5px rgb(0 0 0 / 45%);
   cursor: grab;
+  transform: rotate(45deg);
 }
 .route-anchor-marker:active {
   cursor: grabbing;
@@ -864,18 +832,14 @@ dd {
   width: 16px;
   height: 16px;
 }
+.route-main-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 62px;
+  gap: 10px;
+}
 .color-field input {
   height: 40px;
   padding: 4px;
-}
-.color-picker-wrapper {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-.color-picker-wrapper button {
-  min-height: 40px;
-  padding: 0 10px;
 }
 .direction-header,
 .waypoints-heading {
@@ -983,6 +947,120 @@ dd {
   min-height: 28px;
   font-size: 11px;
 }
+.segment-editor-panel {
+  grid-template-rows: auto minmax(120px, 0.8fr) auto minmax(150px, 1fr) auto auto;
+}
+.segment-list {
+  display: grid;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #d8dde2;
+}
+.segment-list > button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 2px 8px;
+  border: 0;
+  border-bottom: 1px solid #e2e6ea;
+  border-radius: 0;
+  background: #fff;
+  color: #18212b;
+  padding: 8px;
+  text-align: left;
+}
+.segment-list > button:last-child {
+  border-bottom: 0;
+}
+.segment-list > button:hover {
+  background: #f5f7f9;
+}
+.segment-list > button.active {
+  background: #e8f2ff;
+  box-shadow: inset 3px 0 #1473e6;
+}
+.segment-list > button > span {
+  grid-row: 1 / 3;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5e9ed;
+  font-size: 10px;
+}
+.segment-list > button strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.segment-list > button small {
+  font-size: 10px;
+}
+.segment-fixed {
+  color: #15803d;
+}
+.segment-draft {
+  color: #b45309;
+}
+.segment-error {
+  color: #b42318;
+}
+.segment-tools {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #cbd5df;
+  background: #f8fafc;
+  padding: 10px;
+}
+.segment-tools > strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.segment-tools > span {
+  color: #68727d;
+  font-size: 10px;
+}
+.segment-tools button {
+  min-height: 32px;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.manual-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.segment-via-list {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid #d8dde2;
+  padding-top: 7px;
+}
+.segment-via-list > strong {
+  font-size: 10px;
+}
+.segment-via-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+}
+.segment-via-list > div button {
+  min-height: 24px;
+  border: 0;
+  background: transparent;
+  color: #b42318;
+  padding: 0 5px;
+}
+.stops-order-heading {
+  margin-top: 3px;
+}
+.single-action {
+  grid-template-columns: 1fr;
+}
 
 @media (max-width: 1180px) {
   .shell {
@@ -1047,26 +1125,3 @@ dd {
     grid-template-columns: 1fr;
   }
 }
-
-.segment-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  margin-left: 1.5rem;
-  border-left: 2px solid transparent;
-  cursor: pointer;
-  border-radius: 4px;
-  background-color: #f9fafb;
-}
-.segment-row:hover { background-color: #f3f4f6; }
-.segment-row.selected { background-color: #eff6ff; border-left-color: #3b82f6; }
-.segment-status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #6b7280; flex-shrink: 0; }
-.segment-row.auto .segment-status-dot { background-color: #f59e0b; }
-.segment-row.manual .segment-status-dot { background-color: #8b5cf6; }
-.segment-row.verified .segment-status-dot { background-color: #10b981; }
-.segment-row.error .segment-status-dot { background-color: #ef4444; }
-.segment-info { flex: 1; display: flex; flex-direction: column; font-size: 0.8rem; }
-.segment-info small { color: #6b7280; font-size: 0.7rem; }
-.segment-actions { display: flex; gap: 0.25rem; }
-

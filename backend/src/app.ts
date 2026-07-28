@@ -46,19 +46,11 @@ const stopSchema = z.object({
   active: z.boolean().default(true),
 })
 
-const routingPointSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('stop'),
-    stopId: id,
-    longitude: coordinate.min(-180).max(180).optional(),
-    latitude: coordinate.min(-90).max(90).optional(),
-  }),
-  z.object({
-    type: z.literal('anchor'),
-    longitude: coordinate.min(-180).max(180),
-    latitude: coordinate.min(-90).max(90),
-  }),
-])
+const roadAnchorSchema = z.object({
+  stopId: id,
+  longitude: coordinate.min(-180).max(180),
+  latitude: coordinate.min(-90).max(90),
+})
 
 const lineStringSchema = z
   .object({
@@ -69,9 +61,11 @@ const lineStringSchema = z
   .optional()
 
 const segmentSchema = z.object({
+  id,
   fromStopId: id,
   toStopId: id,
-  status: z.enum(['auto', 'manual', 'verified', 'error']),
+  mode: z.enum(['automatic', 'manual']),
+  status: z.enum(['draft', 'fixed', 'error']),
   viaPoints: z.array(
     z.object({
       longitude: coordinate.min(-180).max(180),
@@ -89,22 +83,67 @@ const directionSchema = z
     terminal: z.string().trim().min(1).max(200),
     routeType: z.enum(['linear', 'circular']).default('linear'),
     stopIds: z.array(id).min(2),
-    routingPoints: z.array(routingPointSchema).min(2),
+    roadAnchors: z.array(roadAnchorSchema).default([]),
     segments: z.array(segmentSchema).default([]),
-    geometry: lineStringSchema,
-    distanceMeters: z.number().int().nonnegative().nullable().optional(),
     active: z.boolean().default(true),
   })
   .superRefine((value, context) => {
-    value.routingPoints.forEach((point, index) => {
-      if (
-        point.type === 'stop' &&
-        (point.longitude === undefined) !== (point.latitude === undefined)
-      ) {
+    const stopIds = new Set(value.stopIds)
+    const anchorStopIds = new Set<string>()
+    value.roadAnchors.forEach((anchor, index) => {
+      if (!stopIds.has(anchor.stopId)) {
         context.addIssue({
           code: 'custom',
-          path: ['routingPoints', index],
-          message: 'longitude and latitude must be provided together',
+          path: ['roadAnchors', index, 'stopId'],
+          message: 'road anchor must belong to the direction',
+        })
+      }
+      if (anchorStopIds.has(anchor.stopId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['roadAnchors', index, 'stopId'],
+          message: 'road anchor stopId must be unique',
+        })
+      }
+      anchorStopIds.add(anchor.stopId)
+    })
+
+    const expectedPairs = value.stopIds
+      .slice(0, -1)
+      .map((fromStopId, index) => [fromStopId, value.stopIds[index + 1]!] as const)
+    if (value.routeType === 'circular') {
+      expectedPairs.push([value.stopIds.at(-1)!, value.stopIds[0]!] as const)
+    }
+    if (
+      value.segments.length !== expectedPairs.length ||
+      value.segments.some(
+        (segment, index) =>
+          segment.fromStopId !== expectedPairs[index]?.[0] ||
+          segment.toStopId !== expectedPairs[index]?.[1],
+      )
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['segments'],
+        message: 'segments must exactly match the ordered stop pairs',
+      })
+    }
+
+    const segmentIds = new Set<string>()
+    value.segments.forEach((segment, index) => {
+      if (segmentIds.has(segment.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['segments', index, 'id'],
+          message: 'segment id must be unique',
+        })
+      }
+      segmentIds.add(segment.id)
+      if (segment.status === 'fixed' && !segment.geometry) {
+        context.addIssue({
+          code: 'custom',
+          path: ['segments', index, 'geometry'],
+          message: 'fixed segment must have geometry',
         })
       }
     })
@@ -706,17 +745,19 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
           name: direction.name,
           terminal: direction.terminal,
           routeType: direction.routeType,
-          geometry: direction.geometry ?? null,
-          routingPoints: direction.routingPoints,
+          geometry: null,
+          roadAnchors: direction.roadAnchors,
           segments: direction.segments.map((seg) => ({
+            id: seg.id,
             fromStopId: seg.fromStopId,
             toStopId: seg.toStopId,
+            mode: seg.mode,
             status: seg.status,
             viaPoints: seg.viaPoints,
             geometry: seg.geometry ?? null,
             distanceMeters: seg.distanceMeters ?? null,
           })),
-          distanceMeters: direction.distanceMeters ?? null,
+          distanceMeters: null,
           active: direction.active,
         })
         await manager.getRepository(DirectionStop).delete({ directionId: direction.id })

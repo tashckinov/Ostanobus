@@ -54,6 +54,19 @@ describe('pilot backend', () => {
     expect(routes.json().routes[0]).toMatchObject({ routeId: '3k', number: '3К' })
     expect(routes.json().routes[0].directions[0].geometry.coordinates.length).toBeGreaterThan(20)
 
+    const adminRoutes = await app.inject({
+      method: 'GET',
+      url: '/api/admin/routes?cityId=volgodonsk',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    const editorDirection = adminRoutes.json().routes[0].directions[0]
+    expect(editorDirection.segments).toHaveLength(editorDirection.stopIds.length - 1)
+    expect(editorDirection.segments[0]).toMatchObject({
+      mode: 'automatic',
+      status: 'draft',
+    })
+    expect(editorDirection).not.toHaveProperty('routingPoints')
+
     const forecasts = await app.inject({
       method: 'GET',
       url: '/api/v1/stops/osm-node-9054348906/forecasts',
@@ -272,12 +285,12 @@ describe('pilot backend', () => {
       headers: { authorization: `Bearer ${adminToken}` },
     })
     const route = routesResponse.json().routes[0]
-    const firstPoint = route.directions[0].routingPoints[0]
-    route.directions[0].routingPoints[0] = {
-      ...firstPoint,
+    const firstStopId = route.directions[0].stopIds[0]
+    route.directions[0].roadAnchors.push({
+      stopId: firstStopId,
       longitude: 42.2101,
       latitude: 47.5301,
-    }
+    })
 
     const saved = await app.inject({
       method: 'POST',
@@ -292,11 +305,18 @@ describe('pilot backend', () => {
       url: '/api/admin/routes?cityId=volgodonsk',
       headers: { authorization: `Bearer ${adminToken}` },
     })
-    expect(updatedRoutes.json().routes[0].directions[0].routingPoints[0]).toMatchObject({
-      type: 'stop',
-      stopId: firstPoint.stopId,
+    const updatedDirection = updatedRoutes.json().routes[0].directions[0]
+    expect(updatedDirection.roadAnchors[0]).toMatchObject({
+      stopId: firstStopId,
       longitude: 42.2101,
       latitude: 47.5301,
+    })
+    expect(updatedDirection).not.toHaveProperty('routingPoints')
+    expect(
+      await dataSource.getRepository(Direction).findOneByOrFail({ id: updatedDirection.id }),
+    ).toMatchObject({
+      geometry: null,
+      distanceMeters: null,
     })
   })
 

@@ -17,7 +17,13 @@ export interface GeoJsonLineString {
   coordinates: number[][]
 }
 
-export type RoutingPoint =
+export interface RoadAnchor {
+  stopId: string
+  longitude: number
+  latitude: number
+}
+
+export type LegacyRoutingPoint =
   | {
       type: 'stop'
       stopId: string
@@ -26,12 +32,26 @@ export type RoutingPoint =
     }
   | { type: 'anchor'; longitude: number; latitude: number }
 
-export type SegmentStatus = 'auto' | 'manual' | 'verified' | 'error'
+export type SegmentMode = 'automatic' | 'manual'
+export type SegmentStatus = 'draft' | 'fixed' | 'error'
 
 export interface RouteSegment {
+  id: string
   fromStopId: string
   toStopId: string
+  mode: SegmentMode
   status: SegmentStatus
+  viaPoints: Array<{ longitude: number; latitude: number }>
+  geometry: GeoJsonLineString | null
+  distanceMeters: number | null
+}
+
+export interface LegacyRouteSegment {
+  id?: string
+  fromStopId: string
+  toStopId: string
+  mode?: SegmentMode
+  status: 'auto' | 'manual' | 'verified' | 'error' | SegmentStatus
   viaPoints: Array<{ longitude: number; latitude: number }>
   geometry: GeoJsonLineString | null
   distanceMeters: number | null
@@ -143,11 +163,11 @@ export class Direction {
   @Column({ type: 'simple-json', nullable: true })
   geometry!: GeoJsonLineString | null
 
-  @Column({ type: 'simple-json', default: '[]' })
-  routingPoints!: RoutingPoint[]
+  @Column({ name: 'routingPoints', type: 'simple-json', default: '[]' })
+  roadAnchors!: Array<RoadAnchor | LegacyRoutingPoint>
 
   @Column({ type: 'simple-json', default: '[]' })
-  segments!: RouteSegment[]
+  segments!: Array<RouteSegment | LegacyRouteSegment>
 
   @Column({ type: 'integer', nullable: true })
   distanceMeters!: number | null
