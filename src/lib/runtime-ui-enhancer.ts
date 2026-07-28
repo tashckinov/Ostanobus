@@ -13,8 +13,6 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
   const favorites = useFavoritesStore(pinia)
   const disposeStopActions = initStopActionsEnhancer(transit, favorites)
 
-  let selectedRouteId: string | null = null
-
   function closeVehicleMenu() {
     document.querySelector('[data-vehicle-menu-overlay]')?.remove()
   }
@@ -23,7 +21,6 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
     closeVehicleMenu()
     const route = transit.routeStops.routes.find((item) => item.number === routeNumber)
     if (!route) return
-    selectedRouteId = route.routeId
 
     const overlay = document.createElement('div')
     overlay.dataset.vehicleMenuOverlay = 'true'
@@ -52,7 +49,7 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
       button.innerHTML = iconStar(favorites.routeSet.has(route.routeId))
     }
     panel.querySelector<HTMLButtonElement>('[data-show-route]')!.onclick = () => {
-      const direction = route.directions.find((item) => item.active !== false) ?? route.directions[0]
+      const direction = route.directions[0]
       if (direction) {
         transit.selectStop(null)
         transit.selectRoute(`${route.routeId}::${direction.id}`)
@@ -133,6 +130,5 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
     disposeStopActions()
     drawerObserver.disconnect()
     closeVehicleMenu()
-    selectedRouteId = null
   }
 }
