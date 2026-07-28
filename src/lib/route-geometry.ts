@@ -66,17 +66,30 @@ function pointToSegmentDistanceMeters(point: number[], start: number[], end: num
   return distanceMeters(point, projected)
 }
 
+function spikeCosine(previous: number[], point: number[], next: number[]) {
+  const latitude = ((point[1] ?? 0) * Math.PI) / 180
+  const scaleX = Math.cos(latitude)
+  const leftX = ((previous[0] ?? 0) - (point[0] ?? 0)) * scaleX
+  const leftY = (previous[1] ?? 0) - (point[1] ?? 0)
+  const rightX = ((next[0] ?? 0) - (point[0] ?? 0)) * scaleX
+  const rightY = (next[1] ?? 0) - (point[1] ?? 0)
+  const leftLength = Math.hypot(leftX, leftY)
+  const rightLength = Math.hypot(rightX, rightY)
+  if (!leftLength || !rightLength) return -1
+  return (leftX * rightX + leftY * rightY) / (leftLength * rightLength)
+}
+
 /**
- * Удаляет короткие ответвления, которые возникают, когда геометрия дороги
- * искусственно заводится к географической точке остановки и сразу возвращается
- * обратно. Остановка при этом остаётся на карте, а транспорт останавливается в
- * ближайшей точке основной линии маршрута.
+ * Удаляет короткие возвратные ответвления геометрии. Они появляются, когда
+ * роутер заводит линию к точке остановки вне дороги и затем возвращает её
+ * обратно. Остановка остаётся отдельным маркером, а транспорт движется и
+ * останавливается на ближайшей точке основной линии.
  */
 export function sanitizeRouteCoordinates(
   coordinates: number[][],
   stopCoordinates: number[][],
 ): number[][] {
-  if (coordinates.length < 3 || !stopCoordinates.length) return coordinates.map((point) => [...point])
+  if (coordinates.length < 3) return coordinates.map((point) => [...point])
 
   const result = coordinates.map((point) => [...point])
   let changed = true
@@ -87,14 +100,17 @@ export function sanitizeRouteCoordinates(
       const previous = result[index - 1]!
       const point = result[index]!
       const next = result[index + 1]!
-      const belongsToStop = stopCoordinates.some((stop) => distanceMeters(point, stop) <= 12)
-      if (!belongsToStop) continue
-
       const directDistance = distanceMeters(previous, next)
       const viaDistance = distanceMeters(previous, point) + distanceMeters(point, next)
+      const detour = viaDistance - directDistance
       const offsetFromRoad = pointToSegmentDistanceMeters(point, previous, next)
+      const backtrack = spikeCosine(previous, point, next)
+      const belongsToStop = stopCoordinates.some((stop) => distanceMeters(point, stop) <= 35)
 
-      if (viaDistance - directDistance >= 8 && offsetFromRoad >= 5) {
+      const isStopConnector = belongsToStop && detour >= 2 && offsetFromRoad >= 2
+      const isReturnSpike = backtrack >= 0.35 && detour >= 3 && offsetFromRoad >= 2
+
+      if (isStopConnector || isReturnSpike) {
         result.splice(index, 1)
         changed = true
         break
