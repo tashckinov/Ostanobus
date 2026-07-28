@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, LocateFixed, LoaderCircle, Menu } from '@lucide/vue'
+import { AlertTriangle, LocateFixed, LoaderCircle, Menu, Navigation, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import AppDrawer from '@/components/AppDrawer.vue'
@@ -10,11 +10,12 @@ import Button from '@/components/ui/button/Button.vue'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 
-type SheetMode = 'idle' | 'stop' | 'ride'
-
 interface MapCanvasExposed {
   showUserLocation(longitude: number, latitude: number): void
+  resumeRideFollowing(): void
 }
+
+type SheetMode = 'idle' | 'stop' | 'ride'
 
 const transit = useTransitStore()
 const ride = useRideStore()
@@ -26,10 +27,10 @@ const searchOpen = ref(false)
 const locating = ref(false)
 const locationMessage = ref('')
 const sheetHeight = ref(72)
+const selectedVehicleId = ref<string | null>(null)
 const reportingDelay = ref(false)
 const delayMessage = ref('')
 let healthTimer: number | undefined
-let rideLocationWatch: number | null = null
 
 const sheetMode = computed<SheetMode>(() => {
   if (ride.isActive) return 'ride'
@@ -38,40 +39,39 @@ const sheetMode = computed<SheetMode>(() => {
 })
 
 const searchResults = computed(() => {
-  const normalizedQuery = searchQuery.value.trim().toLocaleLowerCase('ru')
+  const query = searchQuery.value.trim().toLocaleLowerCase('ru')
   const stops = transit.stops.features
-  if (!normalizedQuery) return stops.slice(0, 6)
-
-  const matchingRouteStopIds = new Set(
+  if (!query) return stops.slice(0, 6)
+  const routeStopIds = new Set(
     transit.routeStops.routes
-      .filter((route) => route.number.toLocaleLowerCase('ru').includes(normalizedQuery))
+      .filter((route) => route.number.toLocaleLowerCase('ru').includes(query))
       .flatMap((route) => route.directions.flatMap((direction) => direction.stopIds)),
   )
-
   return stops
     .filter(
       (stop) =>
-        matchingRouteStopIds.has(stop.properties.id) ||
+        routeStopIds.has(stop.properties.id) ||
         `${stop.properties.name} ${stop.properties.shortName}`
           .toLocaleLowerCase('ru')
-          .includes(normalizedQuery),
+          .includes(query),
     )
     .slice(0, 6)
 })
 
-const locationButtonStyle = computed(() => ({
+const floatingButtonStyle = computed(() => ({
   bottom: `calc(${sheetHeight.value}px + 12px)`,
 }))
 
-const delayButtonStyle = computed(() => ({
-  bottom: `calc(${sheetHeight.value}px + 12px)`,
-}))
+const activeVehicleSelected = computed(
+  () =>
+    Boolean(ride.activeRide?.vehicleInstanceId) &&
+    selectedVehicleId.value === ride.activeRide?.vehicleInstanceId,
+)
 
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
   transit.setInteractionLocked(ride.isActive)
   if (transit.apiOnline) transit.startVehiclePolling()
-  if (ride.isActive) startRideTracking()
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
   healthTimer = window.setInterval(async () => {
@@ -84,16 +84,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('online', handleOnline)
   window.removeEventListener('offline', handleOffline)
   transit.stopVehiclePolling()
-  stopRideTracking()
   if (healthTimer !== undefined) window.clearInterval(healthTimer)
 })
 
 watch(
   () => ride.isActive,
-  (isActive) => {
-    transit.setInteractionLocked(isActive)
-    if (isActive) startRideTracking()
-    else stopRideTracking()
+  (active) => {
+    transit.setInteractionLocked(active)
+    if (!active) selectedVehicleId.value = null
   },
 )
 
@@ -107,14 +105,6 @@ watch(
   },
 )
 
-function selectSearchResult(stopId: string) {
-  if (ride.isActive) return
-  const stop = transit.stopsById.get(stopId)
-  if (stop) searchQuery.value = stop.properties.name
-  transit.selectStop(stopId)
-  searchOpen.value = false
-}
-
 async function handleOnline() {
   if (await transit.refreshApiHealth()) {
     transit.startVehiclePolling()
@@ -125,6 +115,14 @@ async function handleOnline() {
 function handleOffline() {
   transit.stopVehiclePolling()
   void transit.refreshApiHealth()
+}
+
+function selectSearchResult(stopId: string) {
+  if (ride.isActive) return
+  const stop = transit.stopsById.get(stopId)
+  if (stop) searchQuery.value = stop.properties.name
+  transit.selectStop(stopId)
+  searchOpen.value = false
 }
 
 function updateSearch(value: string) {
@@ -150,84 +148,51 @@ function onRideStarted() {
   searchQuery.value = ''
   searchOpen.value = false
   transit.setInteractionLocked(true)
-  startRideTracking()
-}
-
-function openDrawer() {
-  searchOpen.value = false
-  drawerOpen.value = true
-}
-
-function openSupport() {
-  drawerOpen.value = false
-  supportOpen.value = true
-}
-
-function showPosition(position: GeolocationPosition) {
-  locating.value = false
-  locationMessage.value = ''
-  const { longitude, latitude, heading } = position.coords
-  mapCanvas.value?.showUserLocation(longitude, latitude)
-  if (ride.isActive) void ride.updateLocation(longitude, latitude, heading)
+  selectedVehicleId.value = null
+  mapCanvas.value?.resumeRideFollowing()
 }
 
 function locateUser() {
+  if (ride.isActive) {
+    mapCanvas.value?.resumeRideFollowing()
+    return
+  }
   locationMessage.value = ''
   if (!navigator.geolocation) {
     locationMessage.value = 'Геолокация недоступна в этом браузере.'
     return
   }
-
   locating.value = true
   navigator.geolocation.getCurrentPosition(
-    showPosition,
+    (position) => {
+      locating.value = false
+      mapCanvas.value?.showUserLocation(position.coords.longitude, position.coords.latitude)
+    },
     () => {
       locating.value = false
       locationMessage.value = 'Не удалось определить местоположение.'
     },
-    {
-      enableHighAccuracy: true,
-      timeout: 10_000,
-      maximumAge: 15_000,
-    },
+    { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
   )
 }
 
-function startRideTracking() {
-  if (rideLocationWatch !== null || !navigator.geolocation || !ride.isActive) return
-  rideLocationWatch = navigator.geolocation.watchPosition(
-    showPosition,
-    () => {
-      locationMessage.value = 'Сигнал GPS временно потерян. Поездка остаётся активной.'
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 20_000,
-      maximumAge: 5_000,
-    },
-  )
+function selectVehicle(vehicleId: string) {
+  if (!ride.isActive || vehicleId !== ride.activeRide?.vehicleInstanceId) return
+  selectedVehicleId.value = vehicleId
+  delayMessage.value = ''
 }
 
-function stopRideTracking() {
-  if (rideLocationWatch === null || !navigator.geolocation) return
-  navigator.geolocation.clearWatch(rideLocationWatch)
-  rideLocationWatch = null
-}
-
-async function reportActiveRideDelay() {
+async function reportDelay() {
   const activeRide = ride.activeRide
   if (
-    !activeRide ||
-    !activeRide.vehicleInstanceId ||
+    !activeRide?.vehicleInstanceId ||
     !activeRide.boardingStopId ||
     !activeRide.scheduledArrival
   ) {
-    delayMessage.value = 'Для этого автобуса недостаточно данных о рейсе.'
+    delayMessage.value = 'Для этого рейса недостаточно данных.'
     return
   }
-
   reportingDelay.value = true
-  delayMessage.value = ''
   try {
     const accepted = await transit.reportDelay(
       activeRide.routeId,
@@ -241,7 +206,7 @@ async function reportActiveRideDelay() {
       ? 'Спасибо, задержка учтена.'
       : transit.apiOnline
         ? 'Сообщение уже было отправлено или не принято.'
-        : 'Для сообщения о задержке требуется интернет.'
+        : 'Для отправки требуется интернет.'
   } finally {
     reportingDelay.value = false
   }
@@ -250,7 +215,11 @@ async function reportActiveRideDelay() {
 
 <template>
   <main class="relative h-full w-full bg-muted">
-    <MapCanvas v-if="transit.stops.features.length" ref="mapCanvas" />
+    <MapCanvas
+      v-if="transit.stops.features.length"
+      ref="mapCanvas"
+      @vehicle-click="selectVehicle"
+    />
 
     <div class="safe-top fixed left-2 top-0 z-20">
       <Button
@@ -258,7 +227,7 @@ async function reportActiveRideDelay() {
         size="icon"
         class="bg-background shadow-sm"
         aria-label="Открыть меню"
-        @click="openDrawer"
+        @click="drawerOpen = true"
       >
         <Menu class="size-5" />
       </Button>
@@ -268,26 +237,36 @@ async function reportActiveRideDelay() {
       variant="outline"
       size="icon"
       class="fixed right-3 z-20 bg-background shadow-sm transition-[bottom]"
-      :style="locationButtonStyle"
+      :style="floatingButtonStyle"
       :disabled="locating"
-      aria-label="Моё местоположение"
+      :aria-label="ride.isActive ? 'Вернуться к автобусу' : 'Моё местоположение'"
       @click="locateUser"
     >
       <LoaderCircle v-if="locating" class="size-5 animate-spin" />
+      <Navigation v-else-if="ride.isActive" class="size-5" />
       <LocateFixed v-else class="size-5" />
     </Button>
 
     <div
-      v-if="ride.isActive"
-      class="fixed left-3 z-20 max-w-[calc(100%-4.5rem)] transition-[bottom]"
-      :style="delayButtonStyle"
+      v-if="activeVehicleSelected"
+      class="fixed left-3 right-16 z-30 rounded-md border border-border bg-background p-3 shadow-lg transition-[bottom]"
+      :style="floatingButtonStyle"
     >
-      <Button :disabled="reportingDelay" class="shadow-md" @click="reportActiveRideDelay">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="font-semibold">Ваш автобус</p>
+          <p class="text-xs text-muted-foreground">Нажат выбранный автобус на карте</p>
+        </div>
+        <button class="p-1 text-muted-foreground" aria-label="Закрыть" @click="selectedVehicleId = null">
+          <X class="size-4" />
+        </button>
+      </div>
+      <Button class="mt-3 w-full" :disabled="reportingDelay" @click="reportDelay">
         <LoaderCircle v-if="reportingDelay" class="mr-2 size-4 animate-spin" />
         <AlertTriangle v-else class="mr-2 size-4" />
         Автобус опаздывает
       </Button>
-      <p v-if="delayMessage" class="mt-1 rounded bg-background px-2 py-1 text-xs shadow">
+      <p v-if="delayMessage" class="mt-2 text-center text-xs text-muted-foreground">
         {{ delayMessage }}
       </p>
     </div>
@@ -308,7 +287,7 @@ async function reportActiveRideDelay() {
       @height-change="sheetHeight = $event"
     />
 
-    <AppDrawer v-model:open="drawerOpen" @open-support="openSupport" />
+    <AppDrawer v-model:open="drawerOpen" @open-support="supportOpen = true" />
     <SupportSheet v-model:open="supportOpen" />
   </main>
 </template>
