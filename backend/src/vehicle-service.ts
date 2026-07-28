@@ -24,9 +24,9 @@ export class VehicleService {
     const observationRepo = this.dataSource.getRepository(UserObservation)
     const vehicleRepo = this.dataSource.getRepository(VehicleInstance)
 
-    // Save observation
+    // Save observation (TypeORM save will update if id exists)
     await observationRepo.save({
-      id: `${vehicleInstanceId}-${stopId}-${deviceId}-${now.getTime()}`,
+      id: `${vehicleInstanceId}-${stopId}-${deviceId}`,
       observationType,
       vehicleInstanceId,
       routeId,

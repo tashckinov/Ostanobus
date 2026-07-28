@@ -1,19 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { DataSource } from 'typeorm'
 import { VehicleService } from './vehicle-service.js'
-import { entities } from './entities.js'
+
+import { createDataSource } from './data-source.js'
 
 describe('VehicleService', () => {
   let dataSource: DataSource
   let service: VehicleService
 
   beforeEach(async () => {
-    dataSource = new DataSource({
-      type: 'sqlite',
-      database: ':memory:',
-      entities,
+    dataSource = createDataSource({
+      sqlitePath: ':memory:',
       synchronize: true,
-      logging: false,
+      dropSchema: true,
     })
     await dataSource.initialize()
     service = new VehicleService(dataSource)
