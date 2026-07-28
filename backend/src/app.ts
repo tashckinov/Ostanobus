@@ -257,7 +257,7 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
     // Try to read backend/package.json (../package.json from dist/app.js or src/app.ts)
     const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf-8'))
     if (pkg.version) APP_VERSION = pkg.version
-  } catch (e) {
+  } catch {
     // ignore
   }
 
