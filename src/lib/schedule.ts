@@ -7,11 +7,15 @@ import type {
   VehicleInstance,
 } from '@/types/transit'
 import { buildTrips, parseTime } from './trips'
+import { DEFAULT_STOP_DWELL_SECONDS } from './vehicle-motion'
 
 const DAY_MINUTES = 24 * 60
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1_000
+const STOP_DWELL_MINUTES = DEFAULT_STOP_DWELL_SECONDS / 60
 export const CITY_TIME_ZONE = 'Europe/Moscow'
 const shortDayNames = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
+
+export type ArrivalStatus = 'scheduled' | 'approaching' | 'boarding'
 
 export interface ScheduledArrival {
   time: string
@@ -19,6 +23,7 @@ export interface ScheduledArrival {
   dayOffset: number
   timeLabel: string
   relativeLabel: string
+  status: ArrivalStatus
 }
 
 export interface StopService {
@@ -40,6 +45,7 @@ function zonedDateParts(date: Date) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
     hourCycle: 'h23',
   }).formatToParts(date)
   const value = (type: Intl.DateTimeFormatPartTypes) =>
@@ -49,6 +55,7 @@ function zonedDateParts(date: Date) {
   const day = value('day')
   const hours = value('hour')
   const minutes = value('minute')
+  const seconds = value('second')
   const jsWeekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
 
   return {
@@ -57,7 +64,7 @@ function zonedDateParts(date: Date) {
     day,
     weekday: jsWeekday === 0 ? 7 : jsWeekday,
     jsWeekday,
-    minutes: hours * 60 + minutes,
+    minutes: hours * 60 + minutes + seconds / 60 + date.getMilliseconds() / 60000,
   }
 }
 
@@ -68,8 +75,9 @@ export function serviceDateString(date: Date) {
 
 export function observedVehicleInstanceId(routeId: string, directionId: string, now = new Date()) {
   const parts = zonedDateParts(now)
-  const hours = String(Math.floor(parts.minutes / 60)).padStart(2, '0')
-  const minutes = String(parts.minutes % 60).padStart(2, '0')
+  const wholeMinutes = Math.floor(parts.minutes)
+  const hours = String(Math.floor(wholeMinutes / 60)).padStart(2, '0')
+  const minutes = String(wholeMinutes % 60).padStart(2, '0')
   return `${serviceDateString(now)}::${routeId}::${directionId}::observed-${hours}:${minutes}`
 }
 
@@ -86,7 +94,12 @@ export function scheduledArrivalIso(arrival: ScheduledArrival, now = new Date())
 function candidateForSchedule(schedule: RouteSchedule, currentMinutes: number, dayOffset: number) {
   if (schedule.type === 'exact') {
     const departure = parseTime(schedule.departureTime)
-    if (departure === null || (dayOffset === 0 && departure < currentMinutes)) return null
+    if (
+      departure === null ||
+      (dayOffset === 0 && departure < currentMinutes - STOP_DWELL_MINUTES)
+    ) {
+      return null
+    }
     return departure
   }
 
@@ -94,18 +107,40 @@ function candidateForSchedule(schedule: RouteSchedule, currentMinutes: number, d
   const end = parseTime(schedule.endTime)
   const headway = schedule.headwayMinutes
   if (start === null || end === null || !headway || headway < 1) return null
-  if (dayOffset > 0 || currentMinutes <= start) return start
+  if (dayOffset > 0 || currentMinutes <= start + STOP_DWELL_MINUTES) return start
 
-  const candidate = start + Math.ceil((currentMinutes - start) / headway) * headway
+  const elapsedAfterBoardingWindow = currentMinutes - start - STOP_DWELL_MINUTES
+  const tripIndex = Math.max(0, Math.ceil(elapsedAfterBoardingWindow / headway))
+  const candidate = start + tripIndex * headway
   return candidate <= end ? candidate : null
 }
 
-function relativeTimeLabel(minutes: number) {
-  if (minutes < 1) return 'сейчас'
-  if (minutes < 60) return `через ${minutes} мин`
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-  return remainingMinutes ? `через ${hours} ч ${remainingMinutes} мин` : `через ${hours} ч`
+function arrivalPresentation(minutesUntil: number): {
+  status: ArrivalStatus
+  relativeLabel: string
+} {
+  if (minutesUntil <= 0 && minutesUntil >= -STOP_DWELL_MINUTES) {
+    return { status: 'boarding', relativeLabel: 'на остановке · посадка' }
+  }
+  if (minutesUntil > 0 && minutesUntil < 0.5) {
+    return { status: 'approaching', relativeLabel: 'подъезжает' }
+  }
+
+  const roundedMinutes = Math.max(1, Math.ceil(minutesUntil))
+  if (roundedMinutes < 60) {
+    return {
+      status: roundedMinutes <= 1 ? 'approaching' : 'scheduled',
+      relativeLabel: `через ${roundedMinutes} мин`,
+    }
+  }
+  const hours = Math.floor(roundedMinutes / 60)
+  const remainingMinutes = roundedMinutes % 60
+  return {
+    status: 'scheduled',
+    relativeLabel: remainingMinutes
+      ? `через ${hours} ч ${remainingMinutes} мин`
+      : `через ${hours} ч`,
+  }
 }
 
 export function nextScheduledArrival(
@@ -129,7 +164,12 @@ export function nextScheduledArrival(
       const candidate = candidateForSchedule(schedule, current.minutes, dayOffset)
       if (candidate === null) continue
       const minutesUntil = dayOffset * DAY_MINUTES + candidate - current.minutes
-      if (minutesUntil < 0 || (nearest && nearest.minutesUntil <= minutesUntil)) continue
+      if (
+        minutesUntil < -STOP_DWELL_MINUTES ||
+        (nearest && nearest.minutesUntil <= minutesUntil)
+      ) {
+        continue
+      }
       const hours = Math.floor(candidate / 60)
       const minutes = candidate % 60
       nearest = {
@@ -149,12 +189,14 @@ export function nextScheduledArrival(
       : nearest.dayOffset === 1
         ? 'завтра, '
         : `${shortDayNames[nearest.jsWeekday]}, `
+  const presentation = arrivalPresentation(nearest.minutesUntil)
   return {
     time: nearest.time,
     minutesUntil: nearest.minutesUntil,
     dayOffset: nearest.dayOffset,
     timeLabel: `${dayPrefix}${nearest.time}`,
-    relativeLabel: relativeTimeLabel(nearest.minutesUntil),
+    relativeLabel: presentation.relativeLabel,
+    status: presentation.status,
   }
 }
 
@@ -168,6 +210,11 @@ export function scheduleLabelsForToday(schedules: RouteSchedule[], now = new Dat
     return `${schedule.startTime}–${schedule.endTime} · каждые ${schedule.headwayMinutes} мин`
   })
   return [...new Set(labels.filter(Boolean))]
+}
+
+function normalizedTimeLabel(totalMinutes: number) {
+  const normalized = ((Math.round(totalMinutes) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES
+  return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
 }
 
 export function servicesForStop(
@@ -206,41 +253,32 @@ export function servicesForStop(
 
           const stopIndex = direction.stopIds.indexOf(stopId)
           if (stopIndex !== -1) {
-            // Find a trip that arrives at this stop at the scheduled time (allow small difference due to interpolation)
             const matchingTrip = allTrips.find(
-              (t) =>
-                t.times[stopIndex] !== null &&
-                Math.abs(t.times[stopIndex]! - nextArrivalMinutes) < 3,
+              (trip) => Math.abs(trip.times[stopIndex]! - nextArrivalMinutes) < 3,
             )
-            if (matchingTrip && matchingTrip.times[0] !== null) {
-              const startTotal = matchingTrip.times[0]
-              const startH = Math.floor(startTotal / 60)
-              const startM = startTotal % 60
-              tripStartTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`
+            if (matchingTrip) {
+              tripStartTime = normalizedTimeLabel(matchingTrip.times[0]!)
             }
           }
 
           tripId = `${serviceDateStr}::${route.routeId}::${direction.id}::${tripStartTime}`
-          vehicle = vehicles.find((v) => v.id === tripId)
+          vehicle = vehicles.find((candidate) => candidate.id === tripId)
 
-          if (vehicle && vehicle.delaySeconds) {
-            const delayMinutes = Math.round(vehicle.delaySeconds / 60)
+          if (vehicle?.delaySeconds) {
+            const delayMinutes = vehicle.delaySeconds / 60
             nextArrival.minutesUntil += delayMinutes
-            nextArrival.relativeLabel = relativeTimeLabel(nextArrival.minutesUntil)
-            // recalculate time string
-            const arrTimeParts = nextArrival.time.split(':').map(Number)
-            const baseMinutes = (arrTimeParts[0] || 0) * 60 + (arrTimeParts[1] || 0) + delayMinutes
-            const totalMinutes = ((baseMinutes % (24 * 60)) + 24 * 60) % (24 * 60)
-            const finalHours = Math.floor(totalMinutes / 60)
-            const finalMins = totalMinutes % 60
-            const newTimeStr = `${String(finalHours).padStart(2, '0')}:${String(finalMins).padStart(2, '0')}`
+            const presentation = arrivalPresentation(nextArrival.minutesUntil)
+            nextArrival.relativeLabel = presentation.relativeLabel
+            nextArrival.status = presentation.status
+
+            const arrivalMinutes = nextArrivalMinutes + delayMinutes
             const dayPrefix =
               nextArrival.dayOffset === 0
                 ? ''
                 : nextArrival.dayOffset === 1
                   ? 'завтра, '
                   : 'в другой день, '
-            nextArrival.timeLabel = `~${dayPrefix}${newTimeStr}`
+            nextArrival.timeLabel = `~${dayPrefix}${normalizedTimeLabel(arrivalMinutes)}`
           }
         }
 

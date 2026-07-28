@@ -110,7 +110,17 @@ export const useRideStore = defineStore('ride', () => {
     vehicleInstanceId: string | null = null,
     scheduledArrival: string | null = null,
   ) {
-    if (activeRide.value) return null
+    if (activeRide.value) {
+      const sameVehicle =
+        Boolean(vehicleInstanceId) && activeRide.value.vehicleInstanceId === vehicleInstanceId
+      if (sameVehicle) return null
+
+      const shouldSwitch = window.confirm(
+        'Вы уже едете в другом автобусе. Чтобы выбрать этот рейс, нужно завершить текущую поездку.\n\nЗавершить текущую поездку и пересесть?',
+      )
+      if (!shouldSwitch) return null
+      await finishRide()
+    }
 
     const arrival = await saveEvent({
       type: 'bus_arrival',
