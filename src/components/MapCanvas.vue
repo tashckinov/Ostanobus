@@ -404,12 +404,32 @@ function tickGlobal() {
     console.log(`[Debug] tickGlobal | nowMinutes: ${nowMinutes.toFixed(2)} | selectedDirId: ${selectedDirId}`)
   }
 
+  const vehicleMap = new Map<string, typeof transit.vehicles[0]>()
+  for (const v of transit.vehicles) {
+    vehicleMap.set(v.id, v)
+  }
+  const serviceDateStr = new Date().toISOString().split('T')[0]!
+
   for (const dir of activeDirections) {
     const isVisible = !selectedDirId || dir.directionId === selectedDirId
 
-    const activeTrips = dir.trips.filter(
-      (t) => t.times.length > 1 && nowMinutes >= t.times[0]! && nowMinutes <= t.times[t.times.length - 1]!,
-    )
+    const activeTrips = dir.trips.filter((t) => {
+      if (t.times.length <= 1) return false
+      // Fast filter: only check trips within +/- 120 mins of now (to account for extreme delays)
+      if (nowMinutes < t.times[0]! - 120 || nowMinutes > t.times[t.times.length - 1]! + 120) return false
+
+      const scheduledTimeStr = `${Math.floor(t.times[0]!/60).toString().padStart(2,'0')}:${Math.floor(t.times[0]!%60).toString().padStart(2,'0')}`
+      const routeId = t.id.split('::')[0]!
+      const actualVehicleId = `${serviceDateStr}::${routeId}::${dir.directionId}::${scheduledTimeStr}`
+      const realVehicle = vehicleMap.get(actualVehicleId)
+
+      let effectiveNow = nowMinutes
+      if (realVehicle && realVehicle.delaySeconds) {
+        effectiveNow -= realVehicle.delaySeconds / 60
+      }
+
+      return effectiveNow >= t.times[0]! && effectiveNow <= t.times[t.times.length - 1]!
+    })
 
     if (shouldPrintDebug && isVisible && activeTrips.length > 0) {
       console.log(`[Debug]   Dir: ${dir.routeNumber} (${dir.directionId}) | Active Trips: ${activeTrips.length}`)
@@ -454,12 +474,10 @@ function tickGlobal() {
       markerObj.el.style.display = isVisible ? '' : 'none'
       if (!isVisible) continue
 
-      // Check real vehicle instance first
-      const serviceDateStr = new Date().toISOString().split('T')[0]!
       const scheduledTimeStr = `${Math.floor(trip[0]!/60).toString().padStart(2,'0')}:${Math.floor(trip[0]!%60).toString().padStart(2,'0')}`
       const routeId = tripObj.id.split('::')[0]!
       const actualVehicleId = `${serviceDateStr}::${routeId}::${dir.directionId}::${scheduledTimeStr}`
-      const realVehicle = transit.vehicles.find(v => v.id === actualVehicleId)
+      const realVehicle = vehicleMap.get(actualVehicleId)
 
       let effectiveNow = nowMinutes
       let opacity = 0.5
