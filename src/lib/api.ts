@@ -54,6 +54,7 @@ export async function sendDelayReport(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+
   })
 
   if (!response.ok) {
@@ -61,4 +62,42 @@ export async function sendDelayReport(
   }
 
   return response.json()
+}
+
+export async function sendArrivalConfirmation(
+  tripId: string,
+  stopId: string,
+  payload: DelayReportPayload,
+) {
+  if (!apiIsConfigured() || !navigator.onLine) {
+    throw new Error('Offline')
+  }
+
+  const response = await fetch(apiUrl(`/api/trips/${encodeURIComponent(tripId)}/stops/${encodeURIComponent(stopId)}/arrival-confirmations`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to send arrival confirmation')
+  }
+
+  return response.json()
+}
+
+import type { VehicleInstance } from '@/types/transit'
+
+export async function fetchVehicles(): Promise<VehicleInstance[]> {
+  if (!apiIsConfigured() || !navigator.onLine) {
+    return []
+  }
+
+  const response = await fetch(apiUrl('/api/v1/vehicles'))
+  if (!response.ok) {
+    throw new Error('Failed to fetch vehicles')
+  }
+
+  const data = await response.json()
+  return data.vehicles
 }

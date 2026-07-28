@@ -7,10 +7,11 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
 import { In, Like, type DataSource } from 'typeorm'
 import { z } from 'zod'
 
+import { VehicleService } from './vehicle-service.js'
 import {
   Admin,
   City,
-  DelayReport,
+  UserObservation,
   Direction,
   DirectionStop,
   Forecast,
@@ -19,7 +20,7 @@ import {
   Stop,
   SupportTicket,
   TransitEvent,
-  TripState,
+  VehicleInstance,
 } from './entities.js'
 import { readRoutes } from './route-service.js'
 import { createPublicToken, hashPublicToken, verifyPassword } from './security.js'
@@ -219,7 +220,6 @@ function toGeoJson(stops: Stop[]) {
   }
 }
 
-import { TripStateService } from './trip-state-service.js'
 
 export interface CreateAppOptions {
   dataSource: DataSource
@@ -302,26 +302,13 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       order: { minMinutes: 'ASC' },
     })
 
-    // Also get trip states for these forecasts to adjust delays if needed
-    const tripStateRepository = dataSource.getRepository(TripState)
+    // Also get active vehicle instances for these forecasts
+    const vehicleStateRepository = dataSource.getRepository(VehicleInstance)
     const today = new Date().toISOString().split('T')[0]!
-    const tripStates = await tripStateRepository.find({
+    const activeVehicles = await vehicleStateRepository.find({
       where: { serviceDate: today }
     })
     
-    // In a real app we'd map tripStates to specific scheduled trips. 
-    // Since forecasts are already pre-calculated in the mock/old system, we'll return tripStates as well.
-    const activeTripStates = tripStates.map(ts => ({
-      tripId: ts.tripId,
-      routeId: ts.routeId,
-      directionId: ts.directionId,
-      delaySeconds: ts.delaySeconds,
-      minDelaySeconds: ts.minDelaySeconds,
-      maxDelaySeconds: ts.maxDelaySeconds,
-      confidence: ts.confidence,
-      status: ts.status
-    }))
-
     return {
       generatedAt: forecasts[0]?.calculatedAt.toISOString() ?? null,
       forecasts: forecasts.map((forecast) => ({
@@ -333,8 +320,14 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
         confidence: forecast.confidence,
         sampleSize: forecast.sampleSize,
       })),
-      tripStates: activeTripStates,
+      vehicles: activeVehicles,
     }
+  })
+
+  app.get('/api/v1/vehicles', async () => {
+    const vehicleService = new VehicleService(dataSource)
+    const vehicles = await vehicleService.getActiveVehicles()
+    return { vehicles }
   })
 
   app.post(
@@ -347,11 +340,10 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       const input = delayReportSchema.safeParse(request.body)
       if (!input.success) return validationError(reply, input.error)
 
-      const reportRepository = dataSource.getRepository(DelayReport)
       const routeRepository = dataSource.getRepository(Route)
       const directionStopRepository = dataSource.getRepository(DirectionStop)
+      const observationRepo = dataSource.getRepository(UserObservation)
 
-      // Validation
       if (!(await routeRepository.exist({ where: { id: input.data.routeId } }))) {
         return reply.code(400).send({ error: 'unknown_route' })
       }
@@ -363,57 +355,100 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
         return reply.code(400).send({ error: 'stop_not_on_direction' })
       }
 
-      // Check idempotent duplicate from same device for same trip and stop
-      if (
-        await reportRepository.exist({
-          where: {
-            deviceId: input.data.deviceId,
-            tripId: params.data.tripId,
-            stopId: params.data.stopId,
-          },
-        })
-      ) {
-        // Return 200 for idempotency
-        const tripStateService = new TripStateService(dataSource)
-        const tripState = await tripStateService.recalculate(params.data.tripId, new Date())
-        return {
-          accepted: true,
-          tripStatus: tripState?.status ?? 'location_unknown',
-          estimatedDelay: tripState ? {
-            minMinutes: tripState.minDelaySeconds !== null ? Math.round(tripState.minDelaySeconds / 60) : null,
-            maxMinutes: tripState.maxDelaySeconds !== null ? Math.round(tripState.maxDelaySeconds / 60) : null,
-            confidence: tripState.confidence,
-          } : null,
-          message: 'Спасибо, сообщение учтено (уже было отправлено ранее)'
-        }
+      const existing = await observationRepo.findOne({
+        where: {
+          deviceId: input.data.deviceId,
+          vehicleInstanceId: params.data.tripId,
+          stopId: params.data.stopId,
+          observationType: 'delay_report'
+        },
+      })
+      
+      const vehicleService = new VehicleService(dataSource)
+      let vehicle: VehicleInstance | null = null
+
+      if (existing) {
+        vehicle = await vehicleService.recalculate(params.data.tripId)
+      } else {
+        vehicle = await vehicleService.processObservation(
+          params.data.tripId,
+          input.data.routeId,
+          input.data.directionId,
+          params.data.stopId,
+          input.data.deviceId,
+          'delay_report',
+          input.data.scheduledArrival
+        )
       }
-
-      const report = new DelayReport()
-      report.id = randomUUID()
-      report.tripId = params.data.tripId
-      report.routeId = input.data.routeId
-      report.directionId = input.data.directionId
-      report.stopId = params.data.stopId
-      report.scheduledArrival = new Date(input.data.scheduledArrival)
-      report.cardOpenedAt = new Date(input.data.cardOpenedAt)
-      report.deviceId = input.data.deviceId
-      await reportRepository.save(report)
-
-      const tripStateService = new TripStateService(dataSource)
-      const tripState = await tripStateService.recalculate(params.data.tripId, new Date())
 
       return {
         accepted: true,
-        reportId: report.id,
-        tripStatus: tripState?.status ?? 'location_unknown',
-        estimatedDelay: tripState ? {
-          minMinutes: tripState.minDelaySeconds !== null ? Math.round(tripState.minDelaySeconds / 60) : null,
-          maxMinutes: tripState.maxDelaySeconds !== null ? Math.round(tripState.maxDelaySeconds / 60) : null,
-          confidence: tripState.confidence,
-        } : null,
-        message: 'Спасибо, сообщение учтено'
+        vehicle,
+        message: existing ? 'Спасибо, сообщение учтено (уже было отправлено ранее)' : 'Спасибо, сообщение учтено'
       }
-    }
+    },
+  )
+
+  app.post(
+    '/api/trips/:tripId/stops/:stopId/arrival-confirmations',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const params = z.object({ tripId: id, stopId: id }).safeParse(request.params)
+      if (!params.success) return validationError(reply, params.error)
+
+      const input = delayReportSchema.safeParse(request.body)
+      if (!input.success) return validationError(reply, input.error)
+
+      const routeRepository = dataSource.getRepository(Route)
+      const directionStopRepository = dataSource.getRepository(DirectionStop)
+      const observationRepo = dataSource.getRepository(UserObservation)
+
+      if (!(await routeRepository.exist({ where: { id: input.data.routeId } }))) {
+        return reply.code(400).send({ error: 'unknown_route' })
+      }
+      if (
+        !(await directionStopRepository.exist({
+          where: { directionId: input.data.directionId, stopId: params.data.stopId },
+        }))
+      ) {
+        return reply.code(400).send({ error: 'stop_not_on_direction' })
+      }
+
+      const existing = await observationRepo.findOne({
+        where: {
+          deviceId: input.data.deviceId,
+          vehicleInstanceId: params.data.tripId,
+          stopId: params.data.stopId,
+          observationType: 'arrival_confirmation'
+        },
+      })
+      
+      const vehicleService = new VehicleService(dataSource)
+      let vehicle: VehicleInstance | null = null
+
+      if (existing) {
+        vehicle = await vehicleService.recalculate(params.data.tripId)
+      } else {
+        vehicle = await vehicleService.processObservation(
+          params.data.tripId,
+          input.data.routeId,
+          input.data.directionId,
+          params.data.stopId,
+          input.data.deviceId,
+          'arrival_confirmation',
+          input.data.scheduledArrival
+        )
+      }
+
+      return {
+        accepted: true,
+        vehicleId: vehicle?.id,
+        state: vehicle?.state,
+        confirmedStopId: vehicle?.lastConfirmedStopId,
+        confirmationCount: vehicle?.confirmationCount,
+        message: 'Автобус отмечен на остановке'
+      }
+    },
   )
 
   app.post(

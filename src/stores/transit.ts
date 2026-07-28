@@ -102,6 +102,35 @@ export const useTransitStore = defineStore('transit', () => {
     return apiOnline.value
   }
 
+  const vehicles = ref<import('@/types/transit').VehicleInstance[]>([])
+  
+  let pollingInterval: number | null = null
+
+  async function loadVehicles() {
+    if (!apiOnline.value) return
+    try {
+      const { fetchVehicles } = await import('@/lib/api')
+      vehicles.value = await fetchVehicles()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  function startVehiclePolling() {
+    if (pollingInterval) return
+    void loadVehicles()
+    pollingInterval = window.setInterval(() => {
+      void loadVehicles()
+    }, 15000)
+  }
+
+  function stopVehiclePolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+  }
+
   async function reportDelay(
     routeId: string,
     directionId: string,
@@ -124,6 +153,44 @@ export const useTransitStore = defineStore('transit', () => {
       }
       const result = await sendDelayReport(tripId, stopId, payload)
       if (result.accepted) {
+        if (result.vehicle) {
+          const idx = vehicles.value.findIndex(v => v.id === result.vehicle.id)
+          if (idx !== -1) vehicles.value[idx] = result.vehicle
+          else vehicles.value.push(result.vehicle)
+        }
+        await refreshForecasts(stopId)
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error(err)
+      return false
+    }
+  }
+
+  async function confirmArrival(
+    routeId: string,
+    directionId: string,
+    stopId: string,
+    tripId: string,
+    scheduledArrivalStr: string,
+    cardOpenedAt: Date
+  ) {
+    if (!apiOnline.value) return false
+    try {
+      const { getClientId } = await import('@/lib/db')
+      const { sendArrivalConfirmation } = await import('@/lib/api')
+      const deviceId = await getClientId()
+      const payload = {
+        routeId,
+        directionId,
+        scheduledArrival: scheduledArrivalStr,
+        cardOpenedAt: cardOpenedAt.toISOString(),
+        deviceId
+      }
+      const result = await sendArrivalConfirmation(tripId, stopId, payload)
+      if (result.accepted) {
+        await loadVehicles()
         await refreshForecasts(stopId)
         return true
       }
@@ -138,6 +205,7 @@ export const useTransitStore = defineStore('transit', () => {
     stops,
     routeStops,
     forecasts,
+    vehicles,
     selectedStopId,
     selectedStop,
     selectedStopForecasts,
@@ -153,5 +221,8 @@ export const useTransitStore = defineStore('transit', () => {
     selectStop,
     selectRoute,
     reportDelay,
+    confirmArrival,
+    startVehiclePolling,
+    stopVehiclePolling,
   }
 })

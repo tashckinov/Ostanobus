@@ -67,32 +67,29 @@ export interface Forecast {
   sampleSize: number
 }
 
-export type TripStateStatus =
-  | 'scheduled'
-  | 'location_unknown'
-  | 'possibly_delayed'
-  | 'likely_delayed'
-  | 'delayed'
-  | 'possibly_passed_early'
-  | 'likely_not_running'
-  | 'vehicle_detected'
+export type VehicleState = 'predicted' | 'unconfirmed' | 'observed' | 'stale' | 'finished' | 'cancelled'
 
-export interface TripState {
-  tripId: string
+export interface VehicleInstance {
+  id: string
   routeId: string
   directionId: string
-  delaySeconds: number
-  minDelaySeconds: number | null
-  maxDelaySeconds: number | null
+  serviceDate: string
+  state: VehicleState
+  currentSegmentId: string | null
+  lastConfirmedStopId: string | null
+  lastConfirmedAt: string | null
+  positionLongitude: number | null
+  positionLatitude: number | null
   confidence: ForecastConfidence
-  status: TripStateStatus
+  confirmationCount: number
+  delaySeconds?: number
 }
 
 export interface ForecastsData {
   generatedAt: string | null
   isMock: boolean
   forecasts: Forecast[]
-  tripStates?: TripState[]
+  vehicles?: VehicleInstance[]
 }
 
 export interface SupportTicketReference {

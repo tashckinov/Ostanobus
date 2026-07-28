@@ -4,7 +4,7 @@ import type {
   RouteSchedule,
   StopForecast,
   TransitRoute,
-  TripState,
+  VehicleInstance,
 } from '@/types/transit'
 
 const DAY_MINUTES = 24 * 60
@@ -27,7 +27,7 @@ export interface StopService {
   scheduleLabels: string[]
   nextArrival: ScheduledArrival | null
   forecast?: StopForecast
-  tripState?: TripState
+  vehicle?: VehicleInstance
   tripId?: string
 }
 
@@ -162,7 +162,7 @@ export function servicesForStop(
   stopId: string,
   routes: TransitRoute[],
   forecasts: Forecast[],
-  tripStates: TripState[] = [],
+  vehicles: VehicleInstance[] = [],
   now = new Date(),
 ): StopService[] {
   const services = routes.flatMap((route) =>
@@ -180,13 +180,28 @@ export function servicesForStop(
         )
         const nextArrival = nextScheduledArrival(schedules, now)
         let tripId: string | undefined
-        let tripState: TripState | undefined
+        let vehicle: VehicleInstance | undefined
 
         if (nextArrival) {
           const serviceDate = new Date(now.getTime() + nextArrival.dayOffset * DAY_MILLISECONDS)
           const serviceDateStr = serviceDate.toISOString().split('T')[0]!
           tripId = `${serviceDateStr}::${route.routeId}::${direction.id}::${nextArrival.time}`
-          tripState = tripStates.find(ts => ts.tripId === tripId)
+          vehicle = vehicles.find(v => v.id === tripId)
+          
+          if (vehicle && vehicle.delaySeconds) {
+            const delayMinutes = Math.round(vehicle.delaySeconds / 60)
+            nextArrival.minutesUntil += delayMinutes
+            nextArrival.relativeLabel = relativeTimeLabel(nextArrival.minutesUntil)
+            // recalculate time string
+            const arrTimeParts = nextArrival.time.split(':').map(Number)
+            const baseMinutes = (arrTimeParts[0] || 0) * 60 + (arrTimeParts[1] || 0) + delayMinutes
+            const totalMinutes = (baseMinutes % (24 * 60) + (24 * 60)) % (24 * 60)
+            const finalHours = Math.floor(totalMinutes / 60)
+            const finalMins = totalMinutes % 60
+            const newTimeStr = `${String(finalHours).padStart(2, '0')}:${String(finalMins).padStart(2, '0')}`
+            const dayPrefix = nextArrival.dayOffset === 0 ? '' : nextArrival.dayOffset === 1 ? 'завтра, ' : 'в другой день, '
+            nextArrival.timeLabel = `~${dayPrefix}${newTimeStr}`
+          }
         }
 
         return {
@@ -196,7 +211,7 @@ export function servicesForStop(
           scheduleLabels: scheduleLabelsForToday(schedules, now),
           nextArrival,
           tripId,
-          tripState,
+          vehicle,
           ...(forecast ? { forecast: { ...forecast, route } } : {}),
         }
       }),

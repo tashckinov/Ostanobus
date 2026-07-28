@@ -46,7 +46,7 @@ const selectedStopServices = computed(() =>
         transit.selectedStopId,
         transit.routeStops.routes,
         transit.selectedStopForecasts,
-        transit.forecasts.tripStates ?? [],
+        transit.vehicles,
         scheduleClock.value,
       )
     : [],
@@ -138,17 +138,30 @@ const confirmedServiceKey = ref<string | null>(null)
 
 async function confirmArrival(service: StopService) {
   const stop = transit.selectedStop
-  if (!stop) return
+  if (!stop || !service.tripId || !service.nextArrival) return
 
   confirmingRide.value = true
   try {
-    await ride.recordArrival(service.route.routeId, stop.properties.id, service.direction.id)
-    confirmedServiceKey.value = serviceKey(service)
-    setTimeout(() => {
-      if (confirmedServiceKey.value === serviceKey(service)) {
-        confirmedServiceKey.value = null
-      }
-    }, 3000)
+    const arrDateTime = new Date(scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24*60*60*1000)
+    const [hh, mm] = service.nextArrival.time.split(':').map(Number)
+    arrDateTime.setHours(hh ?? 0, mm ?? 0, 0, 0)
+
+    const success = await transit.confirmArrival(
+      service.route.routeId,
+      service.direction.id,
+      stop.properties.id,
+      service.tripId,
+      arrDateTime.toISOString(),
+      cardOpenedAt.value ?? new Date()
+    )
+    if (success) {
+      confirmedServiceKey.value = serviceKey(service)
+      setTimeout(() => {
+        if (confirmedServiceKey.value === serviceKey(service)) {
+          confirmedServiceKey.value = null
+        }
+      }, 3000)
+    }
   } finally {
     confirmingRide.value = false
   }
@@ -313,41 +326,24 @@ onBeforeUnmount(() => {
                   <span>По расписанию: {{ selectedService.nextArrival.timeLabel }}</span>
                   <span class="text-sm font-normal text-muted-foreground">{{ selectedService.nextArrival.relativeLabel }}</span>
                 </p>
-                <template v-if="selectedService.tripState && selectedService.tripState.status !== 'scheduled'">
-                  <template v-if="selectedService.tripState.status === 'location_unknown'">
+                <template v-if="selectedService.vehicle && selectedService.vehicle.state !== 'finished' && selectedService.vehicle.state !== 'cancelled'">
+                  <template v-if="selectedService.vehicle.state === 'unconfirmed'">
                     <p class="mt-1 text-sm text-muted-foreground">Фактическое движение неизвестно</p>
                   </template>
                   <template v-else>
-                    <p class="mt-1 text-lg font-semibold leading-none">
-                      Предположительно прибудет: 
-                      {{ 
-                        (() => {
-                          const min = selectedService.tripState.minDelaySeconds ?? selectedService.tripState.delaySeconds;
-                          const max = selectedService.tripState.maxDelaySeconds ?? selectedService.tripState.delaySeconds;
-                          const [hh, mm] = selectedService.nextArrival.time.split(':').map(Number);
-                          const arrBase = new Date(scheduleClock.getTime());
-                          arrBase.setHours(hh ?? 0, mm ?? 0, 0, 0);
-                          const arrMin = new Date(arrBase.getTime() + min * 1000);
-                          const arrMax = new Date(arrBase.getTime() + max * 1000);
-                          const formatTime = (d: Date) => d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                          return min === max ? formatTime(arrMin) : `${formatTime(arrMin)}–${formatTime(arrMax)}`;
-                        })()
-                      }}
+                    <p class="mt-1 text-lg font-semibold leading-none text-green-600">
+                      {{ selectedService.vehicle.state === 'observed' ? 'Подтверждён' : 'Прогнозный' }}
+                      <span v-if="selectedService.vehicle.confirmationCount > 0" class="ml-2 inline-flex items-center justify-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                        {{ selectedService.vehicle.confirmationCount }}
+                      </span>
                     </p>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                      Вероятная задержка: 
-                      {{ 
-                        (() => {
-                          const min = Math.round((selectedService.tripState.minDelaySeconds ?? selectedService.tripState.delaySeconds) / 60);
-                          const max = Math.round((selectedService.tripState.maxDelaySeconds ?? selectedService.tripState.delaySeconds) / 60);
-                          return min === max ? `${min} минут` : `${min}–${max} минут`;
-                        })()
-                      }}
+                    <p v-if="selectedService.vehicle.lastConfirmedAt" class="mt-1 text-sm text-muted-foreground">
+                      Последнее подтверждение {{ Math.round((scheduleClock.getTime() - new Date(selectedService.vehicle.lastConfirmedAt).getTime()) / 60000) }} минут назад
                     </p>
                   </template>
                 </template>
                 <template v-else>
-                  <p class="mt-1 text-sm text-muted-foreground">Фактическое движение неизвестно</p>
+                  <p class="mt-1 text-sm text-muted-foreground">Положение рассчитано по расписанию</p>
                 </template>
               </template>
               <p v-else class="mt-0.5 text-sm text-muted-foreground">Ближайшее время неизвестно</p>

@@ -12,16 +12,6 @@ export type EventType = 'bus_arrival' | 'stop_passage' | 'bus_missing'
 export type ScheduleType = 'exact' | 'interval'
 export type Confidence = 'high' | 'medium' | 'low'
 export type TicketStatus = 'new' | 'in_progress' | 'resolved' | 'rejected'
-export type TripStateStatus =
-  | 'scheduled'
-  | 'location_unknown'
-  | 'possibly_delayed'
-  | 'likely_delayed'
-  | 'delayed'
-  | 'possibly_passed_early'
-  | 'likely_not_running'
-  | 'vehicle_detected'
-
 export interface GeoJsonLineString {
   type: 'LineString'
   coordinates: number[][]
@@ -341,15 +331,21 @@ export class Admin {
   createdAt!: Date
 }
 
-@Entity('delay_reports')
-@Index(['tripId', 'stopId'])
-@Index(['deviceId', 'tripId', 'stopId'], { unique: true })
-export class DelayReport {
+export type ObservationType = 'delay_report' | 'arrival_confirmation' | 'system_prediction'
+export type VehicleState = 'predicted' | 'unconfirmed' | 'observed' | 'stale' | 'finished' | 'cancelled'
+
+@Entity('user_observations')
+@Index(['vehicleInstanceId', 'stopId'])
+@Index(['deviceId', 'vehicleInstanceId', 'stopId'], { unique: true })
+export class UserObservation {
   @PrimaryColumn('varchar')
   id!: string
 
   @Column('varchar')
-  tripId!: string
+  observationType!: ObservationType
+
+  @Column('varchar')
+  vehicleInstanceId!: string
 
   @Column('varchar')
   routeId!: string
@@ -360,23 +356,23 @@ export class DelayReport {
   @Column('varchar')
   stopId!: string
 
-  @Column({ type: 'datetime' })
-  scheduledArrival!: Date
-
-  @Column({ type: 'datetime' })
-  cardOpenedAt!: Date
+  @Column({ type: 'datetime', nullable: true })
+  scheduledArrival!: Date | null
 
   @Column('varchar')
   deviceId!: string
+
+  @Column({ type: 'datetime', nullable: true })
+  expiresAt!: Date | null
 
   @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date
 }
 
-@Entity('trip_states')
-export class TripState {
+@Entity('vehicle_instances')
+export class VehicleInstance {
   @PrimaryColumn('varchar')
-  tripId!: string
+  id!: string
 
   @Column('varchar')
   routeId!: string
@@ -387,26 +383,78 @@ export class TripState {
   @Column({ type: 'date' })
   serviceDate!: string
 
-  @Column({ type: 'datetime' })
-  scheduledTripStart!: Date
+  @Column('varchar')
+  state!: VehicleState
 
-  @Column('integer')
-  delaySeconds!: number
+  @Column({ type: 'varchar', nullable: true })
+  currentSegmentId!: string | null
+
+  @Column({ type: 'varchar', nullable: true })
+  lastConfirmedStopId!: string | null
+
+  @Column({ type: 'datetime', nullable: true })
+  lastConfirmedAt!: Date | null
+
+  @Column({ type: 'float', nullable: true })
+  positionLongitude!: number | null
+
+  @Column({ type: 'float', nullable: true })
+  positionLatitude!: number | null
 
   @Column('varchar')
   confidence!: Confidence
 
-  @Column({ type: 'integer', nullable: true })
-  minDelaySeconds!: number | null
+  @Column({ type: 'integer', default: 0 })
+  confirmationCount!: number
 
-  @Column({ type: 'integer', nullable: true })
-  maxDelaySeconds!: number | null
+  @Column({ type: 'integer', default: 0 })
+  delaySeconds!: number
+
+  @CreateDateColumn({ type: 'datetime' })
+  createdAt!: Date
+
+  @UpdateDateColumn({ type: 'datetime' })
+  updatedAt!: Date
+}
+
+@Entity('segment_stats')
+@Index(['routeId', 'directionId', 'fromStopId', 'toStopId', 'timeBucket'], { unique: true })
+export class SegmentStat {
+  @PrimaryGeneratedColumn('increment')
+  id!: number
 
   @Column('varchar')
-  status!: TripStateStatus
+  routeId!: string
 
-  @Column({ type: 'datetime' })
-  lastCalculatedAt!: Date
+  @Column('varchar')
+  directionId!: string
+
+  @Column('varchar')
+  fromStopId!: string
+
+  @Column('varchar')
+  toStopId!: string
+
+  @Column('varchar')
+  timeBucket!: string
+
+  @Column('integer')
+  medianSeconds!: number
+
+  @Column('integer')
+  p20Seconds!: number
+
+  @Column('integer')
+  p80Seconds!: number
+
+  @Column('integer')
+  sampleCount!: number
+
+  @Column('varchar')
+  confidence!: Confidence
+
+  @UpdateDateColumn({ type: 'datetime' })
+  updatedAt!: Date
 }
 
 export const entities = [
@@ -420,6 +468,7 @@ export const entities = [
   TransitEvent,
   SupportTicket,
   Admin,
-  DelayReport,
-  TripState,
+  UserObservation,
+  VehicleInstance,
+  SegmentStat,
 ]
