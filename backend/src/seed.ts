@@ -146,10 +146,8 @@ export async function seedDatabase(dataSource: DataSource, seedDirectory: string
           geometry: directionData.path
             ? decodePolyline(directionData.path.value, directionData.path.precision)
             : null,
-          routingPoints: directionData.stopIds.map((stopId) => ({
-            type: 'stop' as const,
-            stopId,
-          })),
+          roadAnchors: [],
+          segments: [],
           distanceMeters: directionData.distanceMeters ?? null,
           active: true,
         })

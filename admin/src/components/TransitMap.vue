@@ -1,123 +1,204 @@
 <script setup lang="ts">
-import type { FeatureCollection, LineString, Point, Feature } from 'geojson'
+import type { FeatureCollection, LineString, Point } from 'geojson'
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import type { Stop, RouteSegment } from '../types'
+import type { RouteSegment, Stop } from '../types'
 
 const props = defineProps<{
   stops: Stop[]
-  geometry?: LineString | null
+  segments?: RouteSegment[]
+  selectedSegmentId?: string | null
   selectedStopId?: string | null
   selectedStopIds?: string[]
-  routingPoints?: Array<{ longitude: number; latitude: number }>
-  activeRouteAnchor?: {
+  viaPoints?: Array<{
+    segmentId: string
+    longitude: number
+    latitude: number
+  }>
+  roadAnchors?: Array<{
+    stopId: string
+    longitude: number
+    latitude: number
+  }>
+  activeRoadAnchor?: {
     stopId: string
     longitude: number
     latitude: number
   } | null
-  previewCoordinates?: number[][]
+  manualDraftCoordinates?: number[][]
+  interactionMode?: 'select' | 'via' | 'manual'
   routeColor?: string
-  segments?: RouteSegment[]
-  selectedSegmentIndex?: number | null
 }>()
 
 const emit = defineEmits<{
   stopClick: [stop: Stop]
+  segmentClick: [segmentId: string]
   mapClick: [longitude: number, latitude: number]
-  routeAnchorMove: [stopId: string, longitude: number, latitude: number]
-  segmentClick: [index: number]
+  roadAnchorMove: [stopId: string, longitude: number, latitude: number]
 }>()
 
 const container = ref<HTMLElement | null>(null)
 let map: Map | null = null
-let routeAnchorMarker: maplibregl.Marker | null = null
+let roadAnchorMarker: maplibregl.Marker | null = null
+
+function stopCoordinate(stopId: string) {
+  const anchor = props.roadAnchors?.find((item) => item.stopId === stopId)
+  if (anchor) return [anchor.longitude, anchor.latitude]
+  const stop = props.stops.find((item) => item.id === stopId)
+  return stop ? [stop.longitude, stop.latitude] : null
+}
 
 function stopsGeoJson(): FeatureCollection<Point> {
+  const selectedStopIds = props.selectedStopIds ?? []
   const selectedStops = new globalThis.Map(
-    (props.selectedStopIds ?? []).map((id, index) => [id, index + 1]),
+    selectedStopIds.map((id, index) => {
+      const label =
+        index === 0 ? 'A' : index === selectedStopIds.length - 1 ? 'B' : String(index + 1)
+      return [id, { order: index + 1, label }]
+    }),
   )
   return {
     type: 'FeatureCollection',
-    features: props.stops.map((stop) => ({
-      type: 'Feature',
-      properties: { ...stop, selectedOrder: selectedStops.get(stop.id) ?? 0 },
-      geometry: { type: 'Point', coordinates: [stop.longitude, stop.latitude] },
-    })),
+    features: props.stops.map((stop) => {
+      const selected = selectedStops.get(stop.id)
+      return {
+        type: 'Feature',
+        properties: {
+          ...stop,
+          selectedOrder: selected?.order ?? 0,
+          selectedLabel: selected?.label ?? '',
+        },
+        geometry: { type: 'Point', coordinates: [stop.longitude, stop.latitude] },
+      }
+    }),
   }
 }
 
-function routeGeoJson(): FeatureCollection<LineString> {
-  const features: Feature<LineString>[] = []
-  const hasAllSegmentGeometries = props.segments && props.segments.length > 0 && props.segments.every((seg) => seg.geometry)
-
-  if (!hasAllSegmentGeometries) {
-    const previewCoordinates =
-      props.previewCoordinates ??
-      (props.selectedStopIds ?? [])
-        .map((stopId) => props.stops.find((stop) => stop.id === stopId))
-        .filter((stop): stop is Stop => Boolean(stop))
-        .map((stop) => [stop.longitude, stop.latitude])
-    const geometry =
-      props.geometry ??
-      (previewCoordinates.length >= 2
-        ? ({ type: 'LineString', coordinates: previewCoordinates } as LineString)
-        : null)
-        
-    if (geometry) {
-      features.push({
-        type: 'Feature',
-        properties: { color: props.segments?.length ? '#9ca3af' : (props.routeColor ?? '#006fca') },
-        geometry,
-      })
-    }
-  }
-
-  if (props.segments) {
-    props.segments.forEach((seg, index) => {
-      if (!seg.geometry) return
-      const isSelected = index === props.selectedSegmentIndex
-      let color = '#6b7280'
-      if (isSelected) color = '#3b82f6'
-      else if (seg.status === 'auto') color = '#f59e0b'
-      else if (seg.status === 'manual') color = '#8b5cf6'
-      else if (seg.status === 'verified') color = '#10b981'
-      else if (seg.status === 'error') color = '#ef4444'
-
-      features.push({
-        type: 'Feature',
-        properties: { index, color, isSelected },
-        geometry: seg.geometry,
-      })
-    })
-  }
-
-  return { type: 'FeatureCollection', features }
+function segmentColor(segment: RouteSegment) {
+  if (segment.id === props.selectedSegmentId) return '#1473e6'
+  if (props.selectedSegmentId) return '#7b8794'
+  if (!segment.geometry || segment.status === 'error') return '#dc2626'
+  if (segment.status === 'fixed') return '#15803d'
+  if (segment.mode === 'manual') return '#9333ea'
+  if (segment.mode === 'automatic') return '#ea7b18'
+  return '#7b8794'
 }
 
-function routingPointsGeoJson(): FeatureCollection<Point> {
+function segmentsGeoJson(): FeatureCollection<LineString> {
   return {
     type: 'FeatureCollection',
-    features: (props.routingPoints ?? []).map((point, index) => ({
+    features: (props.segments ?? []).flatMap((segment) => {
+      const fallbackStart = stopCoordinate(segment.fromStopId)
+      const fallbackEnd = stopCoordinate(segment.toStopId)
+      const geometry =
+        segment.geometry ??
+        (fallbackStart && fallbackEnd
+          ? ({ type: 'LineString', coordinates: [fallbackStart, fallbackEnd] } as LineString)
+          : null)
+      return geometry
+        ? [
+            {
+              type: 'Feature' as const,
+              properties: {
+                id: segment.id,
+                editorColor: segmentColor(segment),
+                selected: segment.id === props.selectedSegmentId ? 1 : 0,
+              },
+              geometry,
+            },
+          ]
+        : []
+    }),
+  }
+}
+
+function viaPointsGeoJson(): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: (props.viaPoints ?? []).map((point, index) => ({
       type: 'Feature',
-      properties: { index: index + 1 },
+      properties: { index: index + 1, segmentId: point.segmentId },
       geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
     })),
   }
 }
 
-function renderRouteAnchor() {
-  routeAnchorMarker?.remove()
-  routeAnchorMarker = null
-  if (!map || !props.activeRouteAnchor) return
+function roadAnchorsGeoJson(): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: (props.roadAnchors ?? []).map((anchor) => ({
+      type: 'Feature',
+      properties: { stopId: anchor.stopId },
+      geometry: { type: 'Point', coordinates: [anchor.longitude, anchor.latitude] },
+    })),
+  }
+}
 
-  const anchor = props.activeRouteAnchor
+function anchorConnectorsGeoJson(): FeatureCollection<LineString> {
+  return {
+    type: 'FeatureCollection',
+    features: (props.roadAnchors ?? []).flatMap((anchor) => {
+      const stop = props.stops.find((item) => item.id === anchor.stopId)
+      if (!stop) return []
+      return [
+        {
+          type: 'Feature' as const,
+          properties: { stopId: anchor.stopId },
+          geometry: {
+            type: 'LineString' as const,
+            coordinates: [
+              [stop.longitude, stop.latitude],
+              [anchor.longitude, anchor.latitude],
+            ],
+          },
+        },
+      ]
+    }),
+  }
+}
+
+function manualDraftGeoJson(): FeatureCollection<LineString> {
+  const coordinates = props.manualDraftCoordinates ?? []
+  return {
+    type: 'FeatureCollection',
+    features:
+      coordinates.length >= 2
+        ? [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'LineString', coordinates },
+            },
+          ]
+        : [],
+  }
+}
+
+function setSourceData(source: string, data: FeatureCollection) {
+  ;(map?.getSource(source) as GeoJSONSource | undefined)?.setData(data)
+}
+
+function refreshMapData() {
+  setSourceData('stops', stopsGeoJson())
+  setSourceData('segments', segmentsGeoJson())
+  setSourceData('via-points', viaPointsGeoJson())
+  setSourceData('road-anchors', roadAnchorsGeoJson())
+  setSourceData('anchor-connectors', anchorConnectorsGeoJson())
+  setSourceData('manual-draft', manualDraftGeoJson())
+}
+
+function renderRoadAnchor() {
+  roadAnchorMarker?.remove()
+  roadAnchorMarker = null
+  if (!map || !props.activeRoadAnchor) return
+
+  const anchor = props.activeRoadAnchor
   const element = document.createElement('div')
   element.className = 'route-anchor-marker'
-  element.style.backgroundColor = props.routeColor ?? '#006fca'
-  element.title = 'Перетащите дорожную точку остановки'
+  element.title = 'Перетащите дорожный якорь на нужную полосу'
 
-  routeAnchorMarker = new maplibregl.Marker({
+  roadAnchorMarker = new maplibregl.Marker({
     element,
     draggable: true,
     anchor: 'center',
@@ -125,9 +206,9 @@ function renderRouteAnchor() {
     .setLngLat([anchor.longitude, anchor.latitude])
     .addTo(map)
 
-  routeAnchorMarker.on('dragend', () => {
-    const position = routeAnchorMarker?.getLngLat()
-    if (position) emit('routeAnchorMove', anchor.stopId, position.lng, position.lat)
+  roadAnchorMarker.on('dragend', () => {
+    const position = roadAnchorMarker?.getLngLat()
+    if (position) emit('roadAnchorMove', anchor.stopId, position.lng, position.lat)
   })
 }
 
@@ -139,6 +220,7 @@ onMounted(() => {
     zoom: 13.5,
     style: {
       version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
         osm: {
           type: 'raster',
@@ -153,40 +235,61 @@ onMounted(() => {
   map.addControl(new maplibregl.NavigationControl(), 'top-right')
   map.on('load', () => {
     if (!map) return
-    map.addSource('route', { type: 'geojson', data: routeGeoJson() })
+    map.addSource('anchor-connectors', { type: 'geojson', data: anchorConnectorsGeoJson() })
     map.addLayer({
-      id: 'route-outline',
+      id: 'anchor-connectors',
       type: 'line',
-      source: 'route',
-      paint: { 'line-color': '#ffffff', 'line-width': 9 }, // Thicker outline
+      source: 'anchor-connectors',
+      paint: { 'line-color': '#64748b', 'line-width': 1.5, 'line-dasharray': [2, 2] },
+    })
+    map.addSource('segments', { type: 'geojson', data: segmentsGeoJson() })
+    map.addLayer({
+      id: 'segments-outline',
+      type: 'line',
+      source: 'segments',
+      paint: { 'line-color': '#ffffff', 'line-width': 8 },
     })
     map.addLayer({
-      id: 'route',
+      id: 'segments',
       type: 'line',
-      source: 'route',
+      source: 'segments',
       paint: {
-        'line-color': ['coalesce', ['get', 'color'], props.routeColor ?? '#006fca'],
-        'line-width': 5
+        'line-color': ['get', 'editorColor'],
+        'line-width': ['case', ['==', ['get', 'selected'], 1], 6, 4],
       },
     })
-    
+    map.addLayer({
+      id: 'segment-arrows',
+      type: 'symbol',
+      source: 'segments',
+      layout: {
+        'symbol-placement': 'line',
+        'symbol-spacing': 90,
+        'text-field': '▶',
+        'text-size': 11,
+        'text-keep-upright': false,
+        'text-rotation-alignment': 'map',
+      },
+      paint: {
+        'text-color': ['get', 'editorColor'],
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1,
+      },
+    })
+    map.addSource('manual-draft', { type: 'geojson', data: manualDraftGeoJson() })
+    map.addLayer({
+      id: 'manual-draft',
+      type: 'line',
+      source: 'manual-draft',
+      paint: { 'line-color': '#1473e6', 'line-width': 4, 'line-dasharray': [2, 2] },
+    })
     map.addSource('stops', { type: 'geojson', data: stopsGeoJson() })
-    
-    // Line joining stop to route anchor? Too complex for MapLibre without explicit data. 
-    // Just draw stops.
     map.addLayer({
       id: 'stops',
       type: 'circle',
       source: 'stops',
       paint: {
-        'circle-radius': [
-          'case',
-          ['>', ['get', 'selectedOrder'], 0],
-          12,
-          ['==', ['get', 'id'], props.selectedStopId ?? ''],
-          10,
-          6,
-        ],
+        'circle-radius': ['case', ['>', ['get', 'selectedOrder'], 0], 10, 6],
         'circle-color': [
           'case',
           ['>', ['get', 'selectedOrder'], 0],
@@ -199,143 +302,93 @@ onMounted(() => {
         'circle-stroke-width': 2,
       },
     })
-    // Add text labels to selected stops
     map.addLayer({
-      id: 'stops-label',
+      id: 'stop-order-labels',
       type: 'symbol',
       source: 'stops',
-      filter: ['>', ['get', 'selectedOrder'], 0],
+      filter: ['!=', ['get', 'selectedLabel'], ''],
       layout: {
-        'text-field': ['to-string', ['get', 'selectedOrder']],
-        'text-size': 12,
-        'text-allow-overlap': true,
+        'text-field': ['get', 'selectedLabel'],
+        'text-size': 10,
+        'text-font': ['Open Sans Bold'],
       },
-      paint: {
-        'text-color': '#ffffff',
-      }
+      paint: { 'text-color': '#ffffff' },
     })
-
-    map.addSource('routing-points', {
-      type: 'geojson',
-      data: routingPointsGeoJson(),
-    })
-    // Draw anchors as diamonds/squares by using a rotated image, or just use a circle for now
+    map.addSource('road-anchors', { type: 'geojson', data: roadAnchorsGeoJson() })
     map.addLayer({
-      id: 'routing-points',
-      type: 'circle',
-      source: 'routing-points',
+      id: 'road-anchors',
+      type: 'symbol',
+      source: 'road-anchors',
+      layout: { 'text-field': '◆', 'text-size': 16 },
       paint: {
-        'circle-radius': 7,
-        'circle-color': '#f59e0b',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
+        'text-color': '#0f766e',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1,
       },
     })
-    
+    map.addSource('via-points', { type: 'geojson', data: viaPointsGeoJson() })
+    map.addLayer({
+      id: 'via-points',
+      type: 'symbol',
+      source: 'via-points',
+      layout: { 'text-field': '◆', 'text-size': 15 },
+      paint: {
+        'text-color': '#ea7b18',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1,
+      },
+    })
+    renderRoadAnchor()
+
     map.on('click', 'stops', (event) => {
       const stopId = event.features?.[0]?.properties?.id as string | undefined
       const stop = props.stops.find((item) => item.id === stopId)
       if (stop) emit('stopClick', stop)
     })
-    map.on('mouseenter', 'stops', () => {
-      if (map) map.getCanvas().style.cursor = 'pointer'
-    })
-    map.on('mouseleave', 'stops', () => {
-      if (map) map.getCanvas().style.cursor = ''
-    })
-    
-    map.on('click', 'route', (event) => {
-      const index = event.features?.[0]?.properties?.index as number | undefined
-      if (index !== undefined) {
-        emit('segmentClick', index)
-      } else {
+    map.on('click', 'segments', (event) => {
+      if (props.interactionMode === 'via' || props.interactionMode === 'manual') {
         emit('mapClick', event.lngLat.lng, event.lngLat.lat)
+        return
       }
+      const segmentId = event.features?.[0]?.properties?.id as string | undefined
+      if (segmentId) emit('segmentClick', segmentId)
     })
-    map.on('mouseenter', 'route', () => {
-      if (props.segments) if (map) map.getCanvas().style.cursor = 'pointer'
-    })
-    map.on('mouseleave', 'route', () => {
-      if (props.segments) if (map) map.getCanvas().style.cursor = ''
-    })
-
+    for (const layer of ['stops', 'segments']) {
+      map.on('mouseenter', layer, () => {
+        if (map) map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mouseleave', layer, () => {
+        if (map) map.getCanvas().style.cursor = ''
+      })
+    }
     map.on('click', (event) => {
-      const stops = map?.queryRenderedFeatures(event.point, { layers: ['stops'] })
-      const routes = map?.queryRenderedFeatures(event.point, { layers: ['route'] })
-      if (!stops?.length && !routes?.length) {
-        emit('mapClick', event.lngLat.lng, event.lngLat.lat)
-      }
+      const features = map?.queryRenderedFeatures(event.point, {
+        layers: ['stops', 'segments'],
+      })
+      if (!features?.length) emit('mapClick', event.lngLat.lng, event.lngLat.lat)
     })
-    
-    renderRouteAnchor()
   })
 })
 
 watch(
-  () => props.stops,
-  () => (map?.getSource('stops') as GeoJSONSource | undefined)?.setData(stopsGeoJson()),
+  [
+    () => props.stops,
+    () => props.segments,
+    () => props.selectedSegmentId,
+    () => props.selectedStopIds,
+    () => props.viaPoints,
+    () => props.roadAnchors,
+    () => props.manualDraftCoordinates,
+    () => props.interactionMode,
+    () => props.routeColor,
+  ],
+  refreshMapData,
   { deep: true },
 )
-watch([() => props.activeRouteAnchor, () => props.routeColor], renderRouteAnchor, { deep: true })
-watch(
-  [() => props.geometry, () => props.segments, () => props.selectedSegmentIndex],
-  () => (map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson()),
-  { deep: true },
-)
-watch(
-  () => props.selectedStopIds,
-  () => {
-    ;(map?.getSource('stops') as GeoJSONSource | undefined)?.setData(stopsGeoJson())
-    ;(map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson())
-  },
-  { deep: true },
-)
-watch(
-  () => props.previewCoordinates,
-  () => (map?.getSource('route') as GeoJSONSource | undefined)?.setData(routeGeoJson()),
-  { deep: true },
-)
-watch(
-  () => props.routingPoints,
-  () =>
-    (map?.getSource('routing-points') as GeoJSONSource | undefined)?.setData(
-      routingPointsGeoJson(),
-    ),
-  { deep: true },
-)
-watch(
-  () => props.routeColor,
-  (color) => {
-    if (map?.getLayer('stops')) {
-      map.setPaintProperty('stops', 'circle-color', [
-        'case',
-        ['>', ['get', 'selectedOrder'], 0],
-        color ?? '#006fca',
-        ['get', 'active'],
-        '#17212b',
-        '#9ca3af',
-      ])
-    }
-  },
-)
-watch(
-  () => props.selectedStopId,
-  (id) => {
-    if (map?.getLayer('stops')) {
-      map.setPaintProperty('stops', 'circle-radius', [
-        'case',
-        ['>', ['get', 'selectedOrder'], 0],
-        12,
-        ['==', ['get', 'id'], id ?? ''],
-        10,
-        6,
-      ])
-    }
-  },
-)
+watch(() => props.activeRoadAnchor, renderRoadAnchor, { deep: true })
 
 onBeforeUnmount(() => {
-  routeAnchorMarker?.remove()
+  roadAnchorMarker?.remove()
   map?.remove()
 })
 </script>
