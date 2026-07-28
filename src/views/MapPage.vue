@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, LocateFixed, LoaderCircle, Menu, Navigation, X } from '@lucide/vue'
+import { AlertTriangle, LocateFixed, LoaderCircle, Menu, Navigation, Search, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import AppDrawer from '@/components/AppDrawer.vue'
@@ -7,6 +7,7 @@ import MapCanvas from '@/components/MapCanvas.vue'
 import SupportSheet from '@/components/SupportSheet.vue'
 import TransitSheet from '@/components/TransitSheet.vue'
 import Button from '@/components/ui/button/Button.vue'
+import Input from '@/components/ui/input/Input.vue'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 
@@ -33,8 +34,8 @@ const delayMessage = ref('')
 let healthTimer: number | undefined
 
 const sheetMode = computed<SheetMode>(() => {
-  if (ride.isActive) return 'ride'
   if (transit.selectedStop) return 'stop'
+  if (ride.isActive) return 'ride'
   return 'idle'
 })
 
@@ -70,7 +71,7 @@ const activeVehicleSelected = computed(
 
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
-  transit.setInteractionLocked(ride.isActive)
+  transit.setInteractionLocked(false)
   if (transit.apiOnline) transit.startVehiclePolling()
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
@@ -90,7 +91,7 @@ onBeforeUnmount(() => {
 watch(
   () => ride.isActive,
   (active) => {
-    transit.setInteractionLocked(active)
+    transit.setInteractionLocked(false)
     if (!active) selectedVehicleId.value = null
   },
 )
@@ -118,7 +119,6 @@ function handleOffline() {
 }
 
 function selectSearchResult(stopId: string) {
-  if (ride.isActive) return
   const stop = transit.stopsById.get(stopId)
   if (stop) searchQuery.value = stop.properties.name
   transit.selectStop(stopId)
@@ -126,34 +126,39 @@ function selectSearchResult(stopId: string) {
 }
 
 function updateSearch(value: string) {
-  if (ride.isActive) return
   searchQuery.value = value
   searchOpen.value = true
 }
 
 function clearSearch() {
-  if (ride.isActive) return
   searchQuery.value = ''
   transit.selectStop(null)
   searchOpen.value = true
 }
 
 function closeStop() {
-  if (ride.isActive) return
   searchQuery.value = ''
   transit.selectStop(null)
+  transit.selectRoute(null)
+  searchOpen.value = false
+  if (ride.isActive) mapCanvas.value?.resumeRideFollowing()
 }
 
 function onRideStarted() {
   searchQuery.value = ''
   searchOpen.value = false
-  transit.setInteractionLocked(true)
+  transit.selectStop(null)
+  transit.selectRoute(null)
   selectedVehicleId.value = null
   mapCanvas.value?.resumeRideFollowing()
 }
 
 function locateUser() {
   if (ride.isActive) {
+    transit.selectStop(null)
+    transit.selectRoute(null)
+    searchQuery.value = ''
+    searchOpen.value = false
     mapCanvas.value?.resumeRideFollowing()
     return
   }
@@ -233,6 +238,46 @@ async function reportDelay() {
       </Button>
     </div>
 
+    <div v-if="ride.isActive" class="safe-top fixed left-14 right-3 top-0 z-20">
+      <div class="relative">
+        <Search
+          class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          :model-value="searchQuery"
+          class="h-10 bg-background pl-9 pr-10 shadow-sm"
+          placeholder="Посмотреть остановку или маршрут"
+          autocomplete="off"
+          @update:model-value="updateSearch"
+          @focus="searchOpen = true"
+        />
+        <button
+          v-if="searchQuery"
+          class="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+          aria-label="Очистить поиск"
+          @click="clearSearch"
+        >
+          <X class="size-4" />
+        </button>
+      </div>
+      <div
+        v-if="searchOpen"
+        class="mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-background shadow-lg"
+      >
+        <button
+          v-for="stop in searchResults"
+          :key="stop.properties.id"
+          class="flex min-h-11 w-full items-center border-b border-border px-3 text-left text-sm last:border-b-0 hover:bg-muted"
+          @click="selectSearchResult(stop.properties.id)"
+        >
+          {{ stop.properties.name }}
+        </button>
+        <p v-if="!searchResults.length" class="px-3 py-3 text-sm text-muted-foreground">
+          Остановки не найдены
+        </p>
+      </div>
+    </div>
+
     <Button
       variant="outline"
       size="icon"
@@ -279,7 +324,7 @@ async function reportDelay() {
       :api-online="transit.apiOnline"
       :location-message="locationMessage"
       @update-search="updateSearch"
-      @open-search="!ride.isActive && (searchOpen = true)"
+      @open-search="searchOpen = true"
       @clear-search="clearSearch"
       @select-stop="selectSearchResult"
       @close-stop="closeStop"
