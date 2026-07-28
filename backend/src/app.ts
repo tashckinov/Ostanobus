@@ -251,12 +251,15 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
     if (!reply.sent) return reply.code(500).send({ error: 'internal_error' })
   })
 
-  const pkg = JSON.parse(
-    await import('node:fs/promises').then((m) =>
-      m.readFile(new URL('../../package.json', import.meta.url), 'utf-8'),
-    ),
-  )
-  const APP_VERSION = pkg.version
+  let APP_VERSION = '0.1.0'
+  try {
+    const fs = await import('node:fs/promises')
+    // Try to read backend/package.json (../package.json from dist/app.js or src/app.ts)
+    const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf-8'))
+    if (pkg.version) APP_VERSION = pkg.version
+  } catch (e) {
+    // ignore
+  }
 
   app.get('/api/v1/health', async () => ({
     status: 'ok',
