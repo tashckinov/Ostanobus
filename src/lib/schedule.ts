@@ -10,7 +10,7 @@ import { buildTrips, parseTime } from './trips'
 
 const DAY_MINUTES = 24 * 60
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1_000
-const CITY_TIME_ZONE = 'Europe/Moscow'
+export const CITY_TIME_ZONE = 'Europe/Moscow'
 const shortDayNames = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
 
 export interface ScheduledArrival {
@@ -32,7 +32,6 @@ export interface StopService {
   tripId?: string
 }
 
-
 function zonedDateParts(date: Date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: CITY_TIME_ZONE,
@@ -53,10 +52,35 @@ function zonedDateParts(date: Date) {
   const jsWeekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
 
   return {
+    year,
+    month,
+    day,
     weekday: jsWeekday === 0 ? 7 : jsWeekday,
     jsWeekday,
     minutes: hours * 60 + minutes,
   }
+}
+
+export function serviceDateString(date: Date) {
+  const parts = zonedDateParts(date)
+  return `${String(parts.year).padStart(4, '0')}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
+}
+
+export function observedVehicleInstanceId(routeId: string, directionId: string, now = new Date()) {
+  const parts = zonedDateParts(now)
+  const hours = String(Math.floor(parts.minutes / 60)).padStart(2, '0')
+  const minutes = String(parts.minutes % 60).padStart(2, '0')
+  return `${serviceDateString(now)}::${routeId}::${directionId}::observed-${hours}:${minutes}`
+}
+
+export function scheduledArrivalIso(arrival: ScheduledArrival, now = new Date()) {
+  const serviceDay = new Date(now.getTime() + arrival.dayOffset * DAY_MILLISECONDS)
+  const parts = zonedDateParts(serviceDay)
+  const [hours = 0, minutes = 0] = arrival.time.split(':').map(Number)
+  // Europe/Moscow has been fixed at UTC+3 since 2014.
+  return new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day, hours - 3, minutes),
+  ).toISOString()
 }
 
 function candidateForSchedule(schedule: RouteSchedule, currentMinutes: number, dayOffset: number) {
@@ -172,18 +196,22 @@ export function servicesForStop(
 
         if (nextArrival) {
           const serviceDate = new Date(now.getTime() + nextArrival.dayOffset * DAY_MILLISECONDS)
-          const serviceDateStr = serviceDate.toISOString().split('T')[0]!
-          const weekday = serviceDate.getUTCDay() || 7
+          const serviceDateStr = serviceDateString(serviceDate)
+          const weekday = zonedDateParts(serviceDate).weekday
           const allTrips = buildTrips(route.routeId, direction, weekday)
-          
+
           let tripStartTime = nextArrival.time
           const [hh, mm] = nextArrival.time.split(':').map(Number)
           const nextArrivalMinutes = (hh || 0) * 60 + (mm || 0)
-          
+
           const stopIndex = direction.stopIds.indexOf(stopId)
           if (stopIndex !== -1) {
             // Find a trip that arrives at this stop at the scheduled time (allow small difference due to interpolation)
-            const matchingTrip = allTrips.find(t => t.times[stopIndex] !== null && Math.abs(t.times[stopIndex]! - nextArrivalMinutes) < 3)
+            const matchingTrip = allTrips.find(
+              (t) =>
+                t.times[stopIndex] !== null &&
+                Math.abs(t.times[stopIndex]! - nextArrivalMinutes) < 3,
+            )
             if (matchingTrip && matchingTrip.times[0] !== null) {
               const startTotal = matchingTrip.times[0]
               const startH = Math.floor(startTotal / 60)
@@ -191,10 +219,10 @@ export function servicesForStop(
               tripStartTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`
             }
           }
-          
+
           tripId = `${serviceDateStr}::${route.routeId}::${direction.id}::${tripStartTime}`
-          vehicle = vehicles.find(v => v.id === tripId)
-          
+          vehicle = vehicles.find((v) => v.id === tripId)
+
           if (vehicle && vehicle.delaySeconds) {
             const delayMinutes = Math.round(vehicle.delaySeconds / 60)
             nextArrival.minutesUntil += delayMinutes
@@ -202,11 +230,16 @@ export function servicesForStop(
             // recalculate time string
             const arrTimeParts = nextArrival.time.split(':').map(Number)
             const baseMinutes = (arrTimeParts[0] || 0) * 60 + (arrTimeParts[1] || 0) + delayMinutes
-            const totalMinutes = (baseMinutes % (24 * 60) + (24 * 60)) % (24 * 60)
+            const totalMinutes = ((baseMinutes % (24 * 60)) + 24 * 60) % (24 * 60)
             const finalHours = Math.floor(totalMinutes / 60)
             const finalMins = totalMinutes % 60
             const newTimeStr = `${String(finalHours).padStart(2, '0')}:${String(finalMins).padStart(2, '0')}`
-            const dayPrefix = nextArrival.dayOffset === 0 ? '' : nextArrival.dayOffset === 1 ? 'завтра, ' : 'в другой день, '
+            const dayPrefix =
+              nextArrival.dayOffset === 0
+                ? ''
+                : nextArrival.dayOffset === 1
+                  ? 'завтра, '
+                  : 'в другой день, '
             nextArrival.timeLabel = `~${dayPrefix}${newTimeStr}`
           }
         }

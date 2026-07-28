@@ -67,7 +67,8 @@ export interface Forecast {
   sampleSize: number
 }
 
-export type VehicleState = 'predicted' | 'unconfirmed' | 'observed' | 'stale' | 'finished' | 'cancelled'
+export type VehicleState =
+  'predicted' | 'unconfirmed' | 'observed' | 'stale' | 'finished' | 'cancelled'
 
 export interface VehicleInstance {
   id: string
@@ -109,6 +110,7 @@ export interface ActiveRide {
   id: 'current'
   routeId: string
   directionId: string
+  vehicleInstanceId?: string | null
   nextStopIndex: number
   startedAt: string
 }

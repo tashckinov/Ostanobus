@@ -24,6 +24,8 @@ export async function syncPendingEvents(fetcher: typeof fetch = fetch) {
         type: event.type,
         routeId: event.routeId,
         directionId: event.directionId,
+        vehicleInstanceId: event.vehicleInstanceId,
+        scheduledArrival: event.scheduledArrival,
         stopId: event.stopId,
         occurredAt: event.createdAt,
       })),

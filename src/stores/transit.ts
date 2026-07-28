@@ -83,6 +83,7 @@ export const useTransitStore = defineStore('transit', () => {
   async function refreshForecasts(stopId: string) {
     const loaded = await loadForecastsForStop(stopId)
     if (!loaded) return
+    if (loaded.vehicles) vehicles.value = loaded.vehicles
     forecasts.value = {
       generatedAt: loaded.generatedAt,
       isMock: false,
@@ -103,7 +104,7 @@ export const useTransitStore = defineStore('transit', () => {
   }
 
   const vehicles = ref<import('@/types/transit').VehicleInstance[]>([])
-  
+
   let pollingInterval: number | null = null
 
   async function loadVehicles() {
@@ -137,7 +138,7 @@ export const useTransitStore = defineStore('transit', () => {
     stopId: string,
     tripId: string,
     scheduledArrivalStr: string,
-    cardOpenedAt: Date
+    cardOpenedAt: Date,
   ) {
     if (!apiOnline.value) return false
     try {
@@ -149,12 +150,12 @@ export const useTransitStore = defineStore('transit', () => {
         directionId,
         scheduledArrival: scheduledArrivalStr,
         cardOpenedAt: cardOpenedAt.toISOString(),
-        deviceId
+        deviceId,
       }
       const result = await sendDelayReport(tripId, stopId, payload)
       if (result.accepted) {
         if (result.vehicle) {
-          const idx = vehicles.value.findIndex(v => v.id === result.vehicle.id)
+          const idx = vehicles.value.findIndex((v) => v.id === result.vehicle.id)
           if (idx !== -1) vehicles.value[idx] = result.vehicle
           else vehicles.value.push(result.vehicle)
         }
@@ -174,7 +175,7 @@ export const useTransitStore = defineStore('transit', () => {
     stopId: string,
     tripId: string,
     scheduledArrivalStr: string,
-    cardOpenedAt: Date
+    cardOpenedAt: Date,
   ) {
     if (!apiOnline.value) return false
     try {
@@ -186,7 +187,7 @@ export const useTransitStore = defineStore('transit', () => {
         directionId,
         scheduledArrival: scheduledArrivalStr,
         cardOpenedAt: cardOpenedAt.toISOString(),
-        deviceId
+        deviceId,
       }
       const result = await sendArrivalConfirmation(tripId, stopId, payload)
       if (result.accepted) {

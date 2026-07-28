@@ -72,12 +72,18 @@ export const useRideStore = defineStore('ride', () => {
     return saved
   }
 
-  async function startRide(route: TransitRoute, direction: RouteDirection, startStopId: string) {
+  async function startRide(
+    route: TransitRoute,
+    direction: RouteDirection,
+    startStopId: string,
+    vehicleInstanceId: string | null = null,
+  ) {
     const startIndex = direction.stopIds.indexOf(startStopId)
     const ride: ActiveRide = {
       id: 'current',
       routeId: route.routeId,
       directionId: direction.id,
+      vehicleInstanceId,
       nextStopIndex: startIndex >= 0 ? startIndex + 1 : 0,
       startedAt: new Date().toISOString(),
     }
@@ -87,15 +93,23 @@ export const useRideStore = defineStore('ride', () => {
     justSavedStopId.value = null
   }
 
-  async function boardBus(route: TransitRoute, direction: RouteDirection, startStopId: string) {
+  async function boardBus(
+    route: TransitRoute,
+    direction: RouteDirection,
+    startStopId: string,
+    vehicleInstanceId: string | null = null,
+    scheduledArrival: string | null = null,
+  ) {
     const arrival = await saveEvent({
       type: 'bus_arrival',
       routeId: route.routeId,
       directionId: direction.id,
+      vehicleInstanceId,
+      scheduledArrival,
       stopId: startStopId,
     })
     events.value = [arrival, ...events.value].slice(0, 50)
-    await startRide(route, direction, startStopId)
+    await startRide(route, direction, startStopId, vehicleInstanceId)
     void trySync()
     return arrival
   }
@@ -110,6 +124,8 @@ export const useRideStore = defineStore('ride', () => {
       type: 'stop_passage',
       routeId: activeRide.value.routeId,
       directionId: activeRide.value.directionId,
+      vehicleInstanceId: activeRide.value.vehicleInstanceId ?? null,
+      scheduledArrival: null,
       stopId,
     })
 

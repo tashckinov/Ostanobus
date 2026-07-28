@@ -76,7 +76,7 @@ const segmentSchema = z.object({
     z.object({
       longitude: coordinate.min(-180).max(180),
       latitude: coordinate.min(-90).max(90),
-    })
+    }),
   ),
   geometry: lineStringSchema,
   distanceMeters: z.number().int().nonnegative().nullable().optional(),
@@ -167,6 +167,8 @@ const syncSchema = z.object({
         type: z.enum(['bus_arrival', 'stop_passage', 'bus_missing']),
         routeId: id,
         directionId: nullableId,
+        vehicleInstanceId: nullableId,
+        scheduledArrival: z.iso.datetime().nullable().optional(),
         stopId: id,
         occurredAt: z.iso.datetime(),
       }),
@@ -219,7 +221,6 @@ function toGeoJson(stops: Stop[]) {
     })),
   }
 }
-
 
 export interface CreateAppOptions {
   dataSource: DataSource
@@ -302,13 +303,8 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       order: { minMinutes: 'ASC' },
     })
 
-    // Also get active vehicle instances for these forecasts
-    const vehicleStateRepository = dataSource.getRepository(VehicleInstance)
-    const today = new Date().toISOString().split('T')[0]!
-    const activeVehicles = await vehicleStateRepository.find({
-      where: { serviceDate: today }
-    })
-    
+    const activeVehicles = await new VehicleService(dataSource).getActiveVehicles()
+
     return {
       generatedAt: forecasts[0]?.calculatedAt.toISOString() ?? null,
       forecasts: forecasts.map((forecast) => ({
@@ -360,10 +356,10 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
           deviceId: input.data.deviceId,
           vehicleInstanceId: params.data.tripId,
           stopId: params.data.stopId,
-          observationType: 'delay_report'
+          observationType: 'delay_report',
         },
       })
-      
+
       const vehicleService = new VehicleService(dataSource)
       let vehicle: VehicleInstance | null = null
 
@@ -377,14 +373,16 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
           params.data.stopId,
           input.data.deviceId,
           'delay_report',
-          input.data.scheduledArrival
+          input.data.scheduledArrival,
         )
       }
 
       return {
         accepted: true,
         vehicle,
-        message: existing ? 'Спасибо, сообщение учтено (уже было отправлено ранее)' : 'Спасибо, сообщение учтено'
+        message: existing
+          ? 'Спасибо, сообщение учтено (уже было отправлено ранее)'
+          : 'Спасибо, сообщение учтено',
       }
     },
   )
@@ -419,10 +417,10 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
           deviceId: input.data.deviceId,
           vehicleInstanceId: params.data.tripId,
           stopId: params.data.stopId,
-          observationType: 'arrival_confirmation'
+          observationType: 'arrival_confirmation',
         },
       })
-      
+
       const vehicleService = new VehicleService(dataSource)
       let vehicle: VehicleInstance | null = null
 
@@ -436,7 +434,7 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
           params.data.stopId,
           input.data.deviceId,
           'arrival_confirmation',
-          input.data.scheduledArrival
+          input.data.scheduledArrival,
         )
       }
 
@@ -446,7 +444,7 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
         state: vehicle?.state,
         confirmedStopId: vehicle?.lastConfirmedStopId,
         confirmationCount: vehicle?.confirmationCount,
-        message: 'Автобус отмечен на остановке'
+        message: 'Автобус отмечен на остановке',
       }
     },
   )
@@ -467,40 +465,67 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       const routeRepository = dataSource.getRepository(Route)
       const stopRepository = dataSource.getRepository(Stop)
       const directionStopRepository = dataSource.getRepository(DirectionStop)
+      const vehicleService = new VehicleService(dataSource)
 
-      await dataSource.transaction(async (manager) => {
-        for (const event of input.data.events) {
-          if (await eventRepository.exist({ where: { id: event.id } })) {
-            result.duplicates.push(event.id)
-            continue
-          }
-          if (!(await routeRepository.exist({ where: { id: event.routeId, active: true } }))) {
-            result.rejected.push({ id: event.id, reason: 'unknown_route' })
-            continue
-          }
-          if (!(await stopRepository.exist({ where: { id: event.stopId, active: true } }))) {
-            result.rejected.push({ id: event.id, reason: 'unknown_stop' })
-            continue
-          }
-          if (
-            event.directionId &&
-            !(await directionStopRepository.exist({
-              where: { directionId: event.directionId, stopId: event.stopId },
-            }))
-          ) {
-            result.rejected.push({ id: event.id, reason: 'stop_not_on_direction' })
-            continue
-          }
-
-          await manager.getRepository(TransitEvent).save({
-            ...event,
-            directionId: event.directionId ?? null,
-            clientId: input.data.clientId,
-            occurredAt: new Date(event.occurredAt),
-          })
-          result.accepted.push(event.id)
+      for (const event of input.data.events) {
+        if (await eventRepository.exist({ where: { id: event.id } })) {
+          result.duplicates.push(event.id)
+          continue
         }
-      })
+        if (!(await routeRepository.exist({ where: { id: event.routeId, active: true } }))) {
+          result.rejected.push({ id: event.id, reason: 'unknown_route' })
+          continue
+        }
+        if (!(await stopRepository.exist({ where: { id: event.stopId, active: true } }))) {
+          result.rejected.push({ id: event.id, reason: 'unknown_stop' })
+          continue
+        }
+        if (
+          event.directionId &&
+          !(await directionStopRepository.exist({
+            where: { directionId: event.directionId, stopId: event.stopId },
+          }))
+        ) {
+          result.rejected.push({ id: event.id, reason: 'stop_not_on_direction' })
+          continue
+        }
+        if (
+          event.vehicleInstanceId &&
+          (event.type === 'bus_arrival' || event.type === 'stop_passage') &&
+          !event.directionId
+        ) {
+          result.rejected.push({ id: event.id, reason: 'direction_required_for_vehicle' })
+          continue
+        }
+
+        const occurredAt = new Date(event.occurredAt)
+        if (
+          event.vehicleInstanceId &&
+          event.directionId &&
+          (event.type === 'bus_arrival' || event.type === 'stop_passage')
+        ) {
+          await vehicleService.processObservation(
+            event.vehicleInstanceId,
+            event.routeId,
+            event.directionId,
+            event.stopId,
+            input.data.clientId,
+            event.type === 'bus_arrival' ? 'arrival_confirmation' : 'stop_passage',
+            event.scheduledArrival ?? null,
+            occurredAt,
+          )
+        }
+
+        await eventRepository.save({
+          ...event,
+          directionId: event.directionId ?? null,
+          vehicleInstanceId: event.vehicleInstanceId ?? null,
+          scheduledArrival: event.scheduledArrival ? new Date(event.scheduledArrival) : null,
+          clientId: input.data.clientId,
+          occurredAt,
+        })
+        result.accepted.push(event.id)
+      }
       return result
     },
   )
@@ -757,7 +782,10 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       .object({
         from: z.tuple([coordinate, coordinate]),
         to: z.tuple([coordinate, coordinate]),
-        via: z.array(z.tuple([coordinate, coordinate])).max(50).default([]),
+        via: z
+          .array(z.tuple([coordinate, coordinate]))
+          .max(50)
+          .default([]),
       })
       .safeParse(request.body)
     if (!input.success) return validationError(reply, input.error)
@@ -868,45 +896,39 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
       .find({ order: { receivedAt: 'DESC' }, take: 500 }),
   }))
 
-  app.delete(
-    '/api/admin/events/:eventId',
-    { preHandler: requireAdmin },
-    async (request, reply) => {
-      const params = z.object({ eventId: id }).safeParse(request.params)
-      if (!params.success) return validationError(reply, params.error)
-      await dataSource.getRepository(TransitEvent).delete(params.data.eventId)
-      return reply.code(204).send()
-    },
-  )
+  app.delete('/api/admin/events/:eventId', { preHandler: requireAdmin }, async (request, reply) => {
+    const params = z.object({ eventId: id }).safeParse(request.params)
+    if (!params.success) return validationError(reply, params.error)
+    await dataSource.getRepository(TransitEvent).delete(params.data.eventId)
+    return reply.code(204).send()
+  })
 
-  app.post(
-    '/api/admin/events',
-    { preHandler: requireAdmin },
-    async (request, reply) => {
-      const input = z
-        .object({
-          type: z.enum(['bus_arrival', 'stop_passage', 'bus_missing']),
-          routeId: id,
-          stopId: id,
-          time: z.string().datetime(),
-        })
-        .safeParse(request.body)
-      if (!input.success) return validationError(reply, input.error)
+  app.post('/api/admin/events', { preHandler: requireAdmin }, async (request, reply) => {
+    const input = z
+      .object({
+        type: z.enum(['bus_arrival', 'stop_passage', 'bus_missing']),
+        routeId: id,
+        stopId: id,
+        time: z.string().datetime(),
+      })
+      .safeParse(request.body)
+    if (!input.success) return validationError(reply, input.error)
 
-      const event = new TransitEvent()
-      event.id = crypto.randomUUID()
-      event.clientId = 'admin'
-      event.type = input.data.type
-      event.routeId = input.data.routeId
-      event.stopId = input.data.stopId
-      event.directionId = null
-      event.occurredAt = new Date(input.data.time)
-      event.receivedAt = event.occurredAt
+    const event = new TransitEvent()
+    event.id = crypto.randomUUID()
+    event.clientId = 'admin'
+    event.type = input.data.type
+    event.routeId = input.data.routeId
+    event.stopId = input.data.stopId
+    event.directionId = null
+    event.vehicleInstanceId = null
+    event.scheduledArrival = null
+    event.occurredAt = new Date(input.data.time)
+    event.receivedAt = event.occurredAt
 
-      await dataSource.getRepository(TransitEvent).save(event)
-      return event
-    },
-  )
+    await dataSource.getRepository(TransitEvent).save(event)
+    return event
+  })
 
   app.get('/api/admin/support/tickets', { preHandler: requireAdmin }, async () => ({
     tickets: await dataSource

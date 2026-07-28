@@ -1,6 +1,21 @@
 import { In, type DataSource } from 'typeorm'
 
-import { Direction, DirectionStop, Route, Schedule } from './entities.js'
+import {
+  Direction,
+  DirectionStop,
+  Route,
+  Schedule,
+  type GeoJsonLineString,
+  type RouteSegment,
+} from './entities.js'
+
+function composeSegmentGeometry(segments: RouteSegment[]): GeoJsonLineString | null {
+  if (!segments.length || segments.some((segment) => !segment.geometry)) return null
+  const coordinates = segments.flatMap((segment, index) =>
+    index === 0 ? segment.geometry!.coordinates : segment.geometry!.coordinates.slice(1),
+  )
+  return coordinates.length >= 2 ? { type: 'LineString', coordinates } : null
+}
 
 export async function readRoutes(
   dataSource: DataSource,
@@ -58,40 +73,36 @@ export async function readRoutes(
     directions: directions
       .filter((direction) => direction.routeId === route.id)
       .map((direction) => {
-        // Assemble geometry from segments if segments exist and geometry is missing
-        let geometry = direction.geometry
-        let distanceMeters = direction.distanceMeters
-        if (
-          !geometry &&
-          direction.segments &&
-          direction.segments.length > 0
-        ) {
-          const allCoords: number[][] = []
-          let totalDistance = 0
-          for (const seg of direction.segments) {
-            if (seg.geometry) {
-              const coords = seg.geometry.coordinates
-              // Skip first point of subsequent segments to avoid duplicates
-              const start = allCoords.length > 0 ? 1 : 0
-              for (let i = start; i < coords.length; i++) {
-                allCoords.push(coords[i]!)
-              }
-              totalDistance += seg.distanceMeters ?? 0
-            }
-          }
-          if (allCoords.length >= 2) {
-            geometry = { type: 'LineString', coordinates: allCoords }
-            distanceMeters = totalDistance
-          }
-        }
+        const stopIds = directionStops
+          .filter((item) => item.directionId === direction.id)
+          .map((item) => item.stopId)
+        const segments = direction.segments ?? []
+        const expectedSegmentCount =
+          direction.routeType === 'circular' ? stopIds.length : Math.max(0, stopIds.length - 1)
+        const segmentsMatchStops =
+          segments.length === expectedSegmentCount &&
+          segments.every(
+            (segment, index) =>
+              segment.fromStopId === stopIds[index] &&
+              segment.toStopId === stopIds[(index + 1) % stopIds.length],
+          )
+        const geometry = segments.length
+          ? segmentsMatchStops
+            ? composeSegmentGeometry(segments)
+            : null
+          : direction.geometry
+        const distanceMeters = segments.length
+          ? segments.every((segment) => segment.geometry && segment.distanceMeters !== null) &&
+            segmentsMatchStops
+            ? segments.reduce((total, segment) => total + (segment.distanceMeters ?? 0), 0)
+            : null
+          : direction.distanceMeters
 
         return {
           id: direction.id,
           name: direction.name,
           terminal: direction.terminal,
-          stopIds: directionStops
-            .filter((item) => item.directionId === direction.id)
-            .map((item) => item.stopId),
+          stopIds,
           geometry,
           distanceMeters,
           active: direction.active,
@@ -99,7 +110,7 @@ export async function readRoutes(
             ? {
                 routeType: direction.routeType ?? 'linear',
                 routingPoints: direction.routingPoints,
-                segments: direction.segments ?? [],
+                segments,
               }
             : {}),
           schedules: schedules

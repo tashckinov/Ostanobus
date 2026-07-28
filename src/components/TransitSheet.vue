@@ -4,7 +4,12 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
-import { servicesForStop, type StopService } from '@/lib/schedule'
+import {
+  observedVehicleInstanceId,
+  scheduledArrivalIso,
+  servicesForStop,
+  type StopService,
+} from '@/lib/schedule'
 import { useRideStore } from '@/stores/ride'
 import { useTransitStore } from '@/stores/transit'
 import type { StopFeature } from '@/types/transit'
@@ -95,6 +100,12 @@ function routeKey(service: StopService) {
   return `${service.route.routeId}::${service.direction.id}`
 }
 
+function selectService(service: StopService) {
+  selectedServiceKey.value = serviceKey(service)
+  cardOpenedAt.value = new Date()
+  transit.selectRoute(routeKey(service))
+}
+
 function arrivalLabel(service: StopService) {
   if (service.nextArrival) return service.nextArrival.relativeLabel
   if (service.forecast) {
@@ -126,7 +137,16 @@ async function startRide(service: StopService) {
 
   startingRide.value = true
   try {
-    await ride.boardBus(service.route, service.direction, stop.properties.id)
+    const vehicleInstanceId =
+      service.tripId ??
+      observedVehicleInstanceId(service.route.routeId, service.direction.id, scheduleClock.value)
+    await ride.boardBus(
+      service.route,
+      service.direction,
+      stop.properties.id,
+      vehicleInstanceId,
+      service.nextArrival ? scheduledArrivalIso(service.nextArrival, scheduleClock.value) : null,
+    )
     emit('rideStarted')
   } finally {
     startingRide.value = false
@@ -142,7 +162,9 @@ async function confirmArrival(service: StopService) {
 
   confirmingRide.value = true
   try {
-    const arrDateTime = new Date(scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24*60*60*1000)
+    const arrDateTime = new Date(
+      scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24 * 60 * 60 * 1000,
+    )
     const [hh, mm] = service.nextArrival.time.split(':').map(Number)
     arrDateTime.setHours(hh ?? 0, mm ?? 0, 0, 0)
 
@@ -152,7 +174,7 @@ async function confirmArrival(service: StopService) {
       stop.properties.id,
       service.tripId,
       arrDateTime.toISOString(),
-      cardOpenedAt.value ?? new Date()
+      cardOpenedAt.value ?? new Date(),
     )
     if (success) {
       confirmedServiceKey.value = serviceKey(service)
@@ -175,22 +197,26 @@ async function reportDelay(service: StopService) {
   if (!stop || !service.tripId || !service.nextArrival) return
 
   try {
-    const arrDateTime = new Date(scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24*60*60*1000)
+    const arrDateTime = new Date(
+      scheduleClock.value.getTime() + service.nextArrival.dayOffset * 24 * 60 * 60 * 1000,
+    )
     const [hh, mm] = service.nextArrival.time.split(':').map(Number)
     arrDateTime.setHours(hh ?? 0, mm ?? 0, 0, 0)
 
     const success = await transit.reportDelay(
-       service.route.routeId,
-       service.direction.id,
-       stop.properties.id,
-       service.tripId,
-       arrDateTime.toISOString(),
-       cardOpenedAt.value ?? new Date()
+      service.route.routeId,
+      service.direction.id,
+      stop.properties.id,
+      service.tripId,
+      arrDateTime.toISOString(),
+      cardOpenedAt.value ?? new Date(),
     )
-    
+
     if (success) {
       delayReportStatus.value = 'Спасибо, сообщение учтено'
-      setTimeout(() => { delayReportStatus.value = null }, 3000)
+      setTimeout(() => {
+        delayReportStatus.value = null
+      }, 3000)
     }
   } catch (err) {
     console.error(err)
@@ -324,26 +350,57 @@ onBeforeUnmount(() => {
               <template v-if="selectedService.nextArrival">
                 <p class="mt-1 flex items-baseline justify-between text-base font-medium">
                   <span>По расписанию: {{ selectedService.nextArrival.timeLabel }}</span>
-                  <span class="text-sm font-normal text-muted-foreground">{{ selectedService.nextArrival.relativeLabel }}</span>
+                  <span class="text-sm font-normal text-muted-foreground">{{
+                    selectedService.nextArrival.relativeLabel
+                  }}</span>
                 </p>
-                <template v-if="selectedService.vehicle && selectedService.vehicle.state !== 'finished' && selectedService.vehicle.state !== 'cancelled'">
+                <template
+                  v-if="
+                    selectedService.vehicle &&
+                    selectedService.vehicle.state !== 'finished' &&
+                    selectedService.vehicle.state !== 'cancelled'
+                  "
+                >
                   <template v-if="selectedService.vehicle.state === 'unconfirmed'">
-                    <p class="mt-1 text-sm text-muted-foreground">Фактическое движение неизвестно</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                      Фактическое движение неизвестно
+                    </p>
                   </template>
                   <template v-else>
                     <p class="mt-1 text-lg font-semibold leading-none text-green-600">
-                      {{ (selectedService.vehicle.state === 'observed' || selectedService.vehicle.state === 'stale') ? 'Подтверждён' : 'Прогнозный' }}
-                      <span v-if="selectedService.vehicle.confirmationCount > 0" class="ml-2 inline-flex items-center justify-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                      {{
+                        selectedService.vehicle.state === 'observed' ||
+                        selectedService.vehicle.state === 'stale'
+                          ? 'Подтверждён'
+                          : 'Прогнозный'
+                      }}
+                      <span
+                        v-if="selectedService.vehicle.confirmationCount > 0"
+                        class="ml-2 inline-flex items-center justify-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+                      >
                         {{ selectedService.vehicle.confirmationCount }}
                       </span>
                     </p>
-                    <p v-if="selectedService.vehicle.lastConfirmedAt" class="mt-1 text-sm text-muted-foreground">
-                      Последнее подтверждение {{ Math.round((scheduleClock.getTime() - new Date(selectedService.vehicle.lastConfirmedAt).getTime()) / 60000) }} минут назад
+                    <p
+                      v-if="selectedService.vehicle.lastConfirmedAt"
+                      class="mt-1 text-sm text-muted-foreground"
+                    >
+                      Последнее подтверждение
+                      {{
+                        Math.round(
+                          (scheduleClock.getTime() -
+                            new Date(selectedService.vehicle.lastConfirmedAt).getTime()) /
+                            60000,
+                        )
+                      }}
+                      минут назад
                     </p>
                   </template>
                 </template>
                 <template v-else>
-                  <p class="mt-1 text-sm text-muted-foreground">Положение рассчитано по расписанию</p>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    Положение рассчитано по расписанию
+                  </p>
                 </template>
               </template>
               <p v-else class="mt-0.5 text-sm text-muted-foreground">Ближайшее время неизвестно</p>
@@ -368,33 +425,36 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="mt-3 flex flex-col gap-2">
-            <Button 
+            <Button
               v-if="confirmedServiceKey === serviceKey(selectedService)"
-              variant="outline" 
-              class="w-full" 
+              variant="outline"
+              class="w-full"
               :disabled="true"
             >
               <Check class="mr-2 size-4 text-green-600" />
               Прибытие подтверждено
             </Button>
-            <Button 
+            <Button
               v-else
-              variant="outline" 
-              class="w-full" 
-              :disabled="confirmingRide" 
+              variant="outline"
+              class="w-full"
+              :disabled="confirmingRide"
               @click="confirmArrival(selectedService)"
             >
               <BusFront class="mr-2 size-4" />
               Подтвердить прибытие
             </Button>
-            <div v-if="delayReportStatus" class="mt-2 text-center text-sm font-medium text-green-600">
+            <div
+              v-if="delayReportStatus"
+              class="mt-2 text-center text-sm font-medium text-green-600"
+            >
               <Check class="mr-1 inline size-4 align-text-bottom" />
               {{ delayReportStatus }}
             </div>
-            <Button 
+            <Button
               v-else-if="selectedService.nextArrival"
-              variant="outline" 
-              class="w-full mt-2" 
+              variant="outline"
+              class="w-full mt-2"
               @click="reportDelay(selectedService)"
             >
               Автобус опаздывает
@@ -412,7 +472,7 @@ onBeforeUnmount(() => {
           v-for="service in selectedStopServices"
           :key="serviceKey(service)"
           class="flex min-h-16 w-full items-center gap-3 border-b border-border px-3 py-2 text-left hover:bg-muted"
-          @click="selectedServiceKey = serviceKey(service); cardOpenedAt = new Date(); transit.selectRoute(routeKey(service))"
+          @click="selectService(service)"
         >
           <span
             class="inline-flex min-w-12 shrink-0 items-center justify-center rounded px-2 py-1 text-sm font-bold text-white"
@@ -430,7 +490,12 @@ onBeforeUnmount(() => {
           </span>
           <span class="shrink-0 text-right">
             <span class="block text-sm font-semibold flex items-center justify-end gap-1">
-              <template v-if="service.vehicle && (service.vehicle.state === 'observed' || service.vehicle.state === 'stale')">
+              <template
+                v-if="
+                  service.vehicle &&
+                  (service.vehicle.state === 'observed' || service.vehicle.state === 'stale')
+                "
+              >
                 <span class="flex size-4 items-center justify-center rounded-full bg-green-100">
                   <Check class="size-3 text-green-700" />
                 </span>

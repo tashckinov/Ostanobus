@@ -62,13 +62,18 @@ const locationButtonStyle = computed(() => ({
 
 onMounted(async () => {
   await Promise.all([transit.initialise(), ride.initialise()])
+  if (transit.apiOnline) transit.startVehiclePolling()
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
-  healthTimer = window.setInterval(transit.refreshApiHealth, 60_000)
+  healthTimer = window.setInterval(async () => {
+    if (await transit.refreshApiHealth()) transit.startVehiclePolling()
+    else transit.stopVehiclePolling()
+  }, 60_000)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('online', handleOnline)
   window.removeEventListener('offline', handleOffline)
+  transit.stopVehiclePolling()
   if (healthTimer !== undefined) window.clearInterval(healthTimer)
 })
 
@@ -90,10 +95,14 @@ function selectSearchResult(stopId: string) {
 }
 
 async function handleOnline() {
-  if (await transit.refreshApiHealth()) await ride.trySync()
+  if (await transit.refreshApiHealth()) {
+    transit.startVehiclePolling()
+    await ride.trySync()
+  }
 }
 
 function handleOffline() {
+  transit.stopVehiclePolling()
   void transit.refreshApiHealth()
 }
 

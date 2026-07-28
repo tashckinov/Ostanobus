@@ -7,6 +7,8 @@ import type { DataSource } from 'typeorm'
 
 import { createApp } from './app.js'
 import { createDataSource } from './data-source.js'
+import { Direction, SegmentStat, VehicleInstance } from './entities.js'
+import { readRoutes } from './route-service.js'
 import { seedDatabase } from './seed.js'
 
 describe('pilot backend', () => {
@@ -89,6 +91,104 @@ describe('pilot backend', () => {
     })
     expect(duplicate.statusCode).toBe(200)
     expect(duplicate.json()).toMatchObject({ accepted: [], duplicates: ['event-test'] })
+  })
+
+  it('turns boarding and stop passage events into a vehicle and segment statistics', async () => {
+    const routes = (await readRoutes(dataSource, 'volgodonsk'))[0]!
+    const direction = routes.directions[0]!
+    const [firstStopId, secondStopId] = direction.stopIds
+    if (!firstStopId || !secondStopId) throw new Error('Seed direction needs two stops')
+    const vehicleInstanceId = `2026-07-28::${routes.routeId}::${direction.id}::10:00`
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/events/sync',
+      payload: {
+        clientId: 'ride-device',
+        events: [
+          {
+            id: 'ride-arrival',
+            type: 'bus_arrival',
+            routeId: routes.routeId,
+            directionId: direction.id,
+            vehicleInstanceId,
+            scheduledArrival: '2026-07-28T07:00:00.000Z',
+            stopId: firstStopId,
+            occurredAt: '2026-07-28T07:02:00.000Z',
+          },
+          {
+            id: 'ride-passage',
+            type: 'stop_passage',
+            routeId: routes.routeId,
+            directionId: direction.id,
+            vehicleInstanceId,
+            scheduledArrival: null,
+            stopId: secondStopId,
+            occurredAt: '2026-07-28T07:06:00.000Z',
+          },
+        ],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      accepted: ['ride-arrival', 'ride-passage'],
+      rejected: [],
+    })
+    expect(
+      await dataSource.getRepository(VehicleInstance).findOneBy({ id: vehicleInstanceId }),
+    ).toMatchObject({
+      state: 'observed',
+      lastConfirmedStopId: secondStopId,
+      delaySeconds: 120,
+    })
+    expect(
+      await dataSource.getRepository(SegmentStat).findOneBy({
+        routeId: routes.routeId,
+        directionId: direction.id,
+        fromStopId: firstStopId,
+        toStopId: secondStopId,
+      }),
+    ).toMatchObject({ medianSeconds: 240, sampleCount: 1 })
+  })
+
+  it('uses segment geometry instead of a stale direction geometry', async () => {
+    const directionRepository = dataSource.getRepository(Direction)
+    const direction = await directionRepository.findOneByOrFail({ routeId: '3k' })
+    const routes = await readRoutes(dataSource, 'volgodonsk')
+    const stopIds = routes[0]!.directions.find((item) => item.id === direction.id)!.stopIds
+    direction.geometry = {
+      type: 'LineString',
+      coordinates: [
+        [1, 1],
+        [2, 2],
+      ],
+    }
+    direction.segments = stopIds.slice(0, -1).map((fromStopId, index) => {
+      const start = [42.1 + index / 1_000, 47.1 + index / 1_000]
+      const end = [42.1 + (index + 1) / 1_000, 47.1 + (index + 1) / 1_000]
+      return {
+        fromStopId,
+        toStopId: stopIds[index + 1]!,
+        status: 'verified',
+        viaPoints: [],
+        geometry: {
+          type: 'LineString',
+          coordinates: [start, end],
+        },
+        distanceMeters: 500,
+      } as const
+    })
+    await directionRepository.save(direction)
+
+    const updated = await readRoutes(dataSource, 'volgodonsk')
+    const updatedDirection = updated[0]!.directions.find((item) => item.id === direction.id)!
+    expect(updatedDirection.geometry?.coordinates).toEqual([
+      [42.1, 47.1],
+      ...stopIds
+        .slice(1)
+        .map((_stopId, index) => [42.1 + (index + 1) / 1_000, 47.1 + (index + 1) / 1_000]),
+    ])
+    expect(updatedDirection.distanceMeters).toBe(500 * (stopIds.length - 1))
   })
 
   it('creates an anonymous support ticket and exposes it to an administrator', async () => {

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { nextScheduledArrival, scheduleLabelsForToday, servicesForStop } from './schedule'
+import {
+  nextScheduledArrival,
+  observedVehicleInstanceId,
+  scheduleLabelsForToday,
+  scheduledArrivalIso,
+  servicesForStop,
+} from './schedule'
 import type { RouteSchedule, TransitRoute } from '@/types/transit'
 
 const dailyInterval: RouteSchedule = {
@@ -43,6 +49,16 @@ describe('schedule arrivals', () => {
       '06:16–23:16 · каждые 20 мин',
     ])
   })
+
+  it('uses the Moscow service date around UTC midnight', () => {
+    const now = new Date('2026-07-27T21:30:00.000Z')
+    const arrival = nextScheduledArrival([dailyInterval], now)
+    expect(arrival).toMatchObject({ time: '06:16', dayOffset: 0 })
+    expect(scheduledArrivalIso(arrival!, now)).toBe('2026-07-28T03:16:00.000Z')
+    expect(observedVehicleInstanceId('3k', 'forward', now)).toBe(
+      '2026-07-28::3k::forward::observed-00:30',
+    )
+  })
 })
 
 describe('stop services', () => {
@@ -72,5 +88,34 @@ describe('stop services', () => {
       direction: { id: 'forward' },
       nextArrival: { time: '06:36', minutesUntil: 15 },
     })
+  })
+
+  it('builds trip ids from the Moscow calendar date', () => {
+    const routes: TransitRoute[] = [
+      {
+        routeId: '3k',
+        number: '3К',
+        color: '#0074dc',
+        directions: [
+          {
+            id: 'forward',
+            name: 'к Артемиде',
+            terminal: 'Артемида',
+            stopIds: ['lazorevyi'],
+            schedules: [dailyInterval],
+          },
+        ],
+      },
+    ]
+
+    const services = servicesForStop(
+      'lazorevyi',
+      routes,
+      [],
+      [],
+      new Date('2026-07-27T21:30:00.000Z'),
+    )
+
+    expect(services[0]?.tripId).toMatch(/^2026-07-28::3k::forward::/)
   })
 })
