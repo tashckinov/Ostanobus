@@ -23,6 +23,7 @@ export const useTransitStore = defineStore('transit', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const apiOnline = ref(false)
+  const serverVersion = ref<string | null>(null)
 
   const selectedStop = computed<StopFeature | null>(
     () => stops.value.features.find((stop) => stop.properties.id === selectedStopId.value) ?? null,
@@ -61,6 +62,7 @@ export const useTransitStore = defineStore('transit', () => {
       routeStops.value = data.routeStops
       forecasts.value = data.forecasts
       apiOnline.value = data.apiOnline
+      serverVersion.value = data.serverVersion ?? null
     } catch (caught) {
       error.value = caught instanceof Error ? caught.message : 'Не удалось загрузить данные'
     } finally {
@@ -92,7 +94,11 @@ export const useTransitStore = defineStore('transit', () => {
   }
 
   async function refreshApiHealth() {
-    apiOnline.value = await checkApiHealth()
+    const health = await checkApiHealth()
+    apiOnline.value = health.online
+    if (health.online && health.version) {
+      serverVersion.value = health.version
+    }
     return apiOnline.value
   }
 
@@ -108,6 +114,7 @@ export const useTransitStore = defineStore('transit', () => {
     loading,
     error,
     apiOnline,
+    serverVersion,
     initialise,
     refreshApiHealth,
     selectStop,

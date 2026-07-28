@@ -13,11 +13,10 @@ import {
   Star,
   X,
 } from '@lucide/vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 
 import Button from '@/components/ui/button/Button.vue'
 import { useRideStore } from '@/stores/ride'
-import { useSettingsStore } from '@/stores/settings'
 import { useTransitStore } from '@/stores/transit'
 
 type DrawerView = 'menu' | 'routes' | 'history' | 'marks' | 'favorites' | 'about' | 'settings'
@@ -31,8 +30,10 @@ const emit = defineEmits<{
 
 const transit = useTransitStore()
 const ride = useRideStore()
-const settings = useSettingsStore()
 const view = ref<DrawerView>('menu')
+
+const appVersion = inject<string>('appVersion', '0.1.0')
+const updateApp = inject<() => void>('updateApp')
 
 const title = computed(() => {
   const titles: Record<DrawerView, string> = {
@@ -236,12 +237,17 @@ onBeforeUnmount(() => {
               </span>
             </div>
             <div class="flex items-center justify-between border-b border-border py-3">
-              <label for="debug-mode" class="text-sm cursor-pointer">Режим отладки (Debug)</label>
-              <input id="debug-mode" v-model="settings.debugMode" type="checkbox" class="cursor-pointer" />
-            </div>
-            <div class="flex items-center justify-between border-b border-border py-3">
-              <label for="time-offset" class="text-sm">Смещение времени (часы)</label>
-              <input id="time-offset" v-model.number="settings.timeOffsetHours" type="number" class="w-16 rounded border border-input bg-background px-2 py-1 text-sm" />
+              <span class="text-sm">Версия приложения</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-medium text-muted-foreground">{{ appVersion }}</span>
+                <button
+                  v-if="transit.serverVersion && transit.serverVersion !== appVersion"
+                  class="rounded bg-primary px-2 py-1 text-xs text-primary-foreground"
+                  @click="updateApp"
+                >
+                  Обновить
+                </button>
+              </div>
             </div>
             <div class="flex items-center gap-3 py-3 text-sm text-muted-foreground">
               <MapPin class="size-4" />

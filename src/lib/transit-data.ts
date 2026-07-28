@@ -17,12 +17,13 @@ export async function loadTransitData() {
   ])
 
   if (!apiIsConfigured() || !navigator.onLine) {
-    return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false }
+    return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false, serverVersion: undefined }
   }
 
   try {
-    if (!(await checkApiHealth())) {
-      return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false }
+    const health = await checkApiHealth()
+    if (!health.online) {
+      return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false, serverVersion: health.version }
     }
 
     const [stopsResponse, routesResponse] = await Promise.all([
@@ -39,9 +40,10 @@ export async function loadTransitData() {
         forecasts: [],
       } satisfies ForecastsData,
       apiOnline: true,
+      serverVersion: health.version,
     }
   } catch {
-    return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false }
+    return { stops: localStops, routeStops: localRouteStops, forecasts, apiOnline: false, serverVersion: undefined }
   }
 }
 

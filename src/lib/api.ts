@@ -10,9 +10,9 @@ export function apiUrl(path: string) {
   return `${configuredApiBase()}${path}`
 }
 
-export async function checkApiHealth(timeoutMs = 5_000) {
+export async function checkApiHealth(timeoutMs = 5_000): Promise<{ online: boolean; version?: string }> {
   if (!apiIsConfigured() || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
-    return false
+    return { online: false }
   }
 
   const controller = new AbortController()
@@ -23,11 +23,11 @@ export async function checkApiHealth(timeoutMs = 5_000) {
       cache: 'no-store',
       signal: controller.signal,
     })
-    if (!response.ok) return false
-    const body = (await response.json()) as { status?: string }
-    return body.status === 'ok'
+    if (!response.ok) return { online: false }
+    const body = (await response.json()) as { status?: string; version?: string }
+    return { online: body.status === 'ok', version: body.version }
   } catch {
-    return false
+    return { online: false }
   } finally {
     globalThis.clearTimeout(timeout)
   }

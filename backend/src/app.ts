@@ -251,10 +251,18 @@ export async function createApp({ dataSource, logger = true }: CreateAppOptions)
     if (!reply.sent) return reply.code(500).send({ error: 'internal_error' })
   })
 
+  const pkg = JSON.parse(
+    await import('node:fs/promises').then((m) =>
+      m.readFile(new URL('../../package.json', import.meta.url), 'utf-8'),
+    ),
+  )
+  const APP_VERSION = pkg.version
+
   app.get('/api/v1/health', async () => ({
     status: 'ok',
     database: dataSource.options.type,
     time: new Date().toISOString(),
+    version: APP_VERSION,
   }))
 
   app.get('/api/v1/stops', async (request) => {
