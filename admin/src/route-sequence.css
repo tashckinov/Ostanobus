@@ -1,0 +1,105 @@
+.combined-sequence-panel {
+  grid-template-rows: auto auto minmax(260px, 1fr) auto auto;
+}
+
+.rebuild-all-route-button {
+  width: 100%;
+  min-height: 38px;
+  border-color: #9fb3c8 !important;
+  background: #fff !important;
+  color: #174a73 !important;
+  font-size: 12px;
+}
+
+.combined-route-sequence {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #d8dde2;
+  background: #fff;
+}
+
+.combined-route-sequence > li {
+  padding: 9px 8px;
+}
+
+.combined-route-sequence > .combined-segment-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  min-height: 48px;
+  margin-left: 18px;
+  border: 0;
+  border-bottom: 1px solid #e2e6ea;
+  border-left: 2px solid #91a3b5;
+  border-radius: 0;
+  background: #f7f9fb;
+  color: #18212b;
+  padding: 7px 8px 7px 12px;
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+}
+
+.combined-route-sequence > .combined-segment-row::before,
+.combined-route-sequence > .combined-segment-row::after {
+  position: absolute;
+  left: -5px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #6f8192;
+  content: '';
+}
+
+.combined-route-sequence > .combined-segment-row::before {
+  top: -4px;
+}
+
+.combined-route-sequence > .combined-segment-row::after {
+  bottom: -4px;
+}
+
+.combined-route-sequence > .combined-segment-row:hover {
+  background: #eef3f7;
+}
+
+.combined-route-sequence > .combined-segment-row:focus-visible,
+.combined-route-sequence > .combined-segment-row.active {
+  border-left-color: #1473e6;
+  background: #f3f8fd;
+  outline: 2px solid #8fbce8;
+  outline-offset: -2px;
+}
+
+.combined-route-sequence > .combined-segment-row > span {
+  grid-row: 1 / 3;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5e9ed;
+  color: #38424c;
+  font-size: 10px;
+}
+
+.combined-route-sequence > .combined-segment-row strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combined-route-sequence > .combined-segment-row small {
+  font-size: 10px;
+}
+
+.combined-route-sequence > .combined-segment-row .segment-travel-time {
+  grid-column: 2 / -1;
+  color: #496477;
+  font-weight: 600;
+}

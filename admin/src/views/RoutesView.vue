@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { api } from '../api'
 import StopScheduleEditor from '../components/StopScheduleEditor.vue'
 import TransitMap from '../components/TransitMap.vue'
-import type { Direction, Route, RouteSegment, Stop } from '../types'
+import type { Direction, Route, RouteSegment, Schedule, Stop } from '../types'
 
 const routes = ref<Route[]>([])
 const stops = ref<Stop[]>([])
@@ -14,20 +14,42 @@ const selectedSegmentId = ref<string | null>(null)
 const selectedMapStopId = ref<string | null>(null)
 const roadAnchorEditingStopId = ref<string | null>(null)
 const rightPanelMode = ref<'order' | 'schedule'>('order')
-const mapMode = ref<'select' | 'via' | 'manual'>('select')
-const manualDraftCoordinates = ref<number[][]>([])
 const saving = ref(false)
 const routing = ref(false)
+const rebuildingAll = ref(false)
+const rebuildProgress = ref('')
 const loading = ref(true)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const dragStopIndex = ref<number | null>(null)
+const travelMinutesBySegmentId = ref(new Map<string, number | null>())
+let travelTimesRequest = 0
 
 const direction = computed(() => edited.value?.directions[directionIndex.value] ?? null)
 const stopById = computed(() => new Map(stops.value.map((stop) => [stop.id, stop])))
 const selectedSegment = computed(
   () => direction.value?.segments.find((segment) => segment.id === selectedSegmentId.value) ?? null,
 )
+const routeSequence = computed(() => {
+  const item = direction.value
+  if (!item) return []
+
+  return item.stopIds.flatMap((stopId, index) => {
+    const nextStopId =
+      item.stopIds[index + 1] ?? (item.routeType === 'circular' ? item.stopIds[0] : null)
+    const segment = nextStopId
+      ? item.segments.find(
+          (candidate) => candidate.fromStopId === stopId && candidate.toStopId === nextStopId,
+        )
+      : null
+    return [
+      { type: 'stop' as const, key: `stop:${stopId}`, stopId, index },
+      ...(segment
+        ? [{ type: 'segment' as const, key: `segment:${segment.id}`, segment, index }]
+        : []),
+    ]
+  })
+})
 const selectedMapStop = computed(() =>
   selectedMapStopId.value ? (stopById.value.get(selectedMapStopId.value) ?? null) : null,
 )
@@ -137,8 +159,6 @@ function resetTools() {
   selectedMapStopId.value = null
   roadAnchorEditingStopId.value = null
   rightPanelMode.value = 'order'
-  mapMode.value = 'select'
-  manualDraftCoordinates.value = []
 }
 
 function cloneRoute(route: Route) {
@@ -148,6 +168,7 @@ function cloneRoute(route: Route) {
   directionIndex.value = 0
   resetTools()
   message.value = ''
+  void refreshTravelTimes()
 }
 
 function createRoute() {
@@ -164,6 +185,7 @@ function createRoute() {
   directionIndex.value = 0
   resetTools()
   message.value = ''
+  travelMinutesBySegmentId.value = new Map()
 }
 
 function backToRoutes() {
@@ -178,6 +200,7 @@ function addDirection() {
   edited.value.directions.push(newDirection())
   directionIndex.value = edited.value.directions.length - 1
   resetTools()
+  void refreshTravelTimes()
 }
 
 function removeDirection() {
@@ -186,17 +209,20 @@ function removeDirection() {
   edited.value.directions.splice(directionIndex.value, 1)
   directionIndex.value = Math.max(0, directionIndex.value - 1)
   resetTools()
+  void refreshTravelTimes()
 }
 
 function changeDirection(index: number) {
   directionIndex.value = index
   resetTools()
+  void refreshTravelTimes()
 }
 
 function setRouteType(routeType: Direction['routeType']) {
   if (!direction.value || direction.value.routeType === routeType) return
   direction.value.routeType = routeType
   rebuildSegments(direction.value)
+  void refreshTravelTimes()
   showMessage(
     routeType === 'circular'
       ? 'Добавлен явный замыкающий сегмент от B к A'
@@ -215,12 +241,18 @@ function selectMapStop(stop: Stop) {
 }
 
 function selectSegment(segmentId: string) {
+  if (
+    selectedSegmentId.value === segmentId &&
+    selectedMapStopId.value === null &&
+    roadAnchorEditingStopId.value === null &&
+    rightPanelMode.value === 'order'
+  ) {
+    return
+  }
   selectedSegmentId.value = segmentId
   selectedMapStopId.value = null
   roadAnchorEditingStopId.value = null
   rightPanelMode.value = 'order'
-  mapMode.value = 'select'
-  manualDraftCoordinates.value = []
 }
 
 function closeStopMenu() {
@@ -316,7 +348,10 @@ function invalidateAdjacentSegments(stopId: string) {
   const item = direction.value
   if (!item) return
   for (const segment of item.segments) {
-    if (segment.fromStopId === stopId || segment.toStopId === stopId) {
+    if (
+      segment.status !== 'fixed' &&
+      (segment.fromStopId === stopId || segment.toStopId === stopId)
+    ) {
       segment.geometry = null
       segment.distanceMeters = null
       segment.status = 'error'
@@ -330,7 +365,7 @@ function moveRoadAnchor(stopId: string, longitude: number, latitude: number) {
   anchor.longitude = longitude
   anchor.latitude = latitude
   invalidateAdjacentSegments(stopId)
-  showMessage('Дорожный якорь перемещён. Соседние сегменты нужно построить заново.')
+  void rebuildAdjacentSegments(stopId)
 }
 
 function resetRoadAnchor() {
@@ -352,17 +387,11 @@ function segmentEndpoint(stopId: string) {
   return stop ? [stop.longitude, stop.latitude] : null
 }
 
-async function buildSelectedSegment() {
-  const segment = selectedSegment.value
-  const item = direction.value
-  if (!segment || !item) return
-  if (segment.status === 'fixed') {
-    showMessage('Сначала снимите фиксацию сегмента', 'error')
-    return
-  }
+async function buildSegment(segment: RouteSegment) {
+  if (segment.status === 'fixed') return false
   const start = segmentEndpoint(segment.fromStopId)
   const end = segmentEndpoint(segment.toStopId)
-  if (!start || !end) return
+  if (!start || !end) return false
 
   routing.value = true
   try {
@@ -375,133 +404,58 @@ async function buildSelectedSegment() {
     segment.distanceMeters = result.distanceMeters
     segment.mode = 'automatic'
     segment.status = 'draft'
-    showMessage(`Построен только выбранный сегмент: ${Math.round(result.distanceMeters)} м`)
+    return true
   } catch (error) {
     segment.status = 'error'
     showMessage(error instanceof Error ? error.message : 'Не удалось построить сегмент', 'error')
+    return false
   } finally {
     routing.value = false
   }
 }
 
-function beginViaMode() {
-  const segment = selectedSegment.value
-  if (!segment) {
-    showMessage('Сначала выберите сегмент линии', 'error')
-    return
-  }
-  if (segment.status === 'fixed') {
-    showMessage('Сначала снимите фиксацию сегмента', 'error')
-    return
-  }
-  mapMode.value = 'via'
-  showMessage('Поставьте промежуточную точку внутри выбранного сегмента')
-}
-
-async function handleMapClick(longitude: number, latitude: number) {
-  const segment = selectedSegment.value
-  if (!segment) return
-  if (mapMode.value === 'via') {
-    segment.viaPoints.push({ longitude, latitude })
-    mapMode.value = 'select'
-    await buildSelectedSegment()
-    return
-  }
-  if (mapMode.value === 'manual') {
-    manualDraftCoordinates.value.push([longitude, latitude])
-  }
-}
-
-function removeVia(index: number) {
-  const segment = selectedSegment.value
-  if (!segment || segment.status === 'fixed') return
-  segment.viaPoints.splice(index, 1)
-  segment.geometry = null
-  segment.distanceMeters = null
-  segment.status = 'error'
-}
-
-function beginManualDrawing() {
-  const segment = selectedSegment.value
-  if (!segment) return
-  if (segment.status === 'fixed') {
-    showMessage('Сначала снимите фиксацию сегмента', 'error')
-    return
-  }
-  const start = segmentEndpoint(segment.fromStopId)
-  if (!start) return
-  mapMode.value = 'manual'
-  manualDraftCoordinates.value = [start]
-  showMessage('Ставьте точки ручной линии по порядку, затем нажмите «Завершить линию»')
-}
-
-function lineDistance(coordinates: number[][]) {
-  const radians = (value: number) => (value * Math.PI) / 180
-  let total = 0
-  for (let index = 1; index < coordinates.length; index += 1) {
-    const left = coordinates[index - 1]!
-    const right = coordinates[index]!
-    const latitudeDelta = radians((right[1] ?? 0) - (left[1] ?? 0))
-    const longitudeDelta = radians((right[0] ?? 0) - (left[0] ?? 0))
-    const latitude = radians(((left[1] ?? 0) + (right[1] ?? 0)) / 2)
-    total += 6_371_000 * Math.sqrt(latitudeDelta ** 2 + (Math.cos(latitude) * longitudeDelta) ** 2)
-  }
-  return Math.round(total)
-}
-
-function finishManualDrawing() {
-  const segment = selectedSegment.value
+async function rebuildAllSegments() {
   const item = direction.value
-  if (!segment || !item) return
-  const end = segmentEndpoint(segment.toStopId)
-  if (!end || manualDraftCoordinates.value.length < 1) return
-  const coordinates = [...manualDraftCoordinates.value, end]
-  if (coordinates.length < 2) return
-  segment.geometry = { type: 'LineString', coordinates }
-  segment.distanceMeters = lineDistance(coordinates)
-  segment.mode = 'manual'
-  segment.status = 'draft'
-  segment.viaPoints = []
-  manualDraftCoordinates.value = []
-  mapMode.value = 'select'
-  showMessage('Ручная геометрия сохранена как черновик')
-}
+  if (!item || rebuildingAll.value) return
 
-function cancelManualDrawing() {
-  manualDraftCoordinates.value = []
-  mapMode.value = 'select'
-}
-
-function toggleSegmentFixed() {
-  const segment = selectedSegment.value
-  if (!segment) return
-  if (segment.status === 'fixed') {
-    if (segment.mode === 'automatic') {
-      segment.geometry = null
-      segment.distanceMeters = null
-      segment.status = 'error'
-      showMessage('Фиксация снята. Автоматический сегмент нужно построить заново.')
-    } else {
-      segment.status = 'draft'
-      showMessage('Фиксация снята. Ручную линию можно изменить.')
+  rebuildingAll.value = true
+  let rebuilt = 0
+  let skipped = 0
+  try {
+    for (let index = 0; index < item.segments.length; index += 1) {
+      const segment = item.segments[index]!
+      rebuildProgress.value = `Строим отрезок ${index + 1} из ${item.segments.length}…`
+      if (segment.status === 'fixed') {
+        skipped += 1
+      } else if (await buildSegment(segment)) {
+        rebuilt += 1
+      } else {
+        skipped += 1
+      }
     }
-    return
+    showMessage(`Маршрут перестроен: ${rebuilt}, пропущено: ${skipped}`)
+  } finally {
+    rebuildingAll.value = false
+    rebuildProgress.value = ''
   }
-  if (!segment.geometry) {
-    showMessage('Сначала постройте или нарисуйте сегмент', 'error')
-    return
-  }
-  segment.status = 'fixed'
-  showMessage('Сегмент проверен и зафиксирован')
 }
 
-function clearSelectedSegment() {
-  const segment = selectedSegment.value
-  if (!segment || segment.status === 'fixed') return
-  segment.geometry = null
-  segment.distanceMeters = null
-  segment.viaPoints = []
-  segment.status = 'error'
+async function rebuildAdjacentSegments(stopId: string) {
+  const item = direction.value
+  if (!item) return
+  const adjacent = item.segments.filter(
+    (segment) =>
+      segment.status !== 'fixed' && (segment.fromStopId === stopId || segment.toStopId === stopId),
+  )
+  let rebuilt = 0
+  for (const segment of adjacent) {
+    if (await buildSegment(segment)) rebuilt += 1
+  }
+  showMessage(
+    rebuilt === adjacent.length
+      ? `Дорожный якорь перемещён. Автоматически перестроено участков: ${rebuilt}.`
+      : `Якорь перемещён. Перестроено ${rebuilt} из ${adjacent.length} участков.`,
+  )
 }
 
 function segmentName(segment: RouteSegment) {
@@ -516,6 +470,110 @@ function segmentStatus(segment: RouteSegment) {
   return segment.mode === 'manual' ? 'Ручной черновик' : 'Автоматический черновик'
 }
 
+function parseTime(value: string | null) {
+  if (!value) return null
+  const [hours, minutes] = value.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  return (hours ?? 0) * 60 + (minutes ?? 0)
+}
+
+function positiveDifference(from: number, to: number) {
+  let difference = to - from
+  if (difference < -720) difference += 1440
+  return difference > 0 && difference <= 180 ? difference : null
+}
+
+function median(values: number[]) {
+  if (!values.length) return null
+  const sorted = [...values].sort((left, right) => left - right)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2
+}
+
+function estimateTravelMinutes(schedules: Schedule[], fromStopId: string, toStopId: string) {
+  const active = schedules.filter((schedule) => schedule.active !== false)
+  const fromExact = active.filter(
+    (schedule) => schedule.stopId === fromStopId && schedule.type === 'exact',
+  )
+  const toExact = active.filter(
+    (schedule) => schedule.stopId === toStopId && schedule.type === 'exact',
+  )
+  const exactDifferences: number[] = []
+
+  for (const day of [1, 2, 3, 4, 5, 6, 7]) {
+    const fromTimes = fromExact
+      .filter((schedule) => schedule.days.includes(day))
+      .map((schedule) => parseTime(schedule.departureTime))
+      .filter((time): time is number => time !== null)
+      .sort((left, right) => left - right)
+    const toTimes = toExact
+      .filter((schedule) => schedule.days.includes(day))
+      .map((schedule) => parseTime(schedule.departureTime))
+      .filter((time): time is number => time !== null)
+      .sort((left, right) => left - right)
+
+    for (let index = 0; index < Math.min(fromTimes.length, toTimes.length); index += 1) {
+      const difference = positiveDifference(fromTimes[index]!, toTimes[index]!)
+      if (difference !== null) exactDifferences.push(difference)
+    }
+  }
+
+  const exactMedian = median(exactDifferences)
+  if (exactMedian !== null) return exactMedian
+
+  const fromIntervals = active.filter(
+    (schedule) => schedule.stopId === fromStopId && schedule.type === 'interval',
+  )
+  const toIntervals = active.filter(
+    (schedule) => schedule.stopId === toStopId && schedule.type === 'interval',
+  )
+  const intervalDifferences: number[] = []
+  for (const from of fromIntervals) {
+    for (const to of toIntervals) {
+      if (!from.days.some((day) => to.days.includes(day))) continue
+      if (from.headwayMinutes && to.headwayMinutes && from.headwayMinutes !== to.headwayMinutes) {
+        continue
+      }
+      const fromStart = parseTime(from.startTime)
+      const toStart = parseTime(to.startTime)
+      if (fromStart === null || toStart === null) continue
+      const difference = positiveDifference(fromStart, toStart)
+      if (difference !== null) intervalDifferences.push(difference)
+    }
+  }
+  return median(intervalDifferences)
+}
+
+async function refreshTravelTimes() {
+  const item = direction.value
+  const requestId = ++travelTimesRequest
+  if (!item) {
+    travelMinutesBySegmentId.value = new Map()
+    return
+  }
+  try {
+    const schedules = await api.schedules(item.id)
+    if (requestId !== travelTimesRequest || direction.value?.id !== item.id) return
+    travelMinutesBySegmentId.value = new Map(
+      item.segments.map((segment) => [
+        segment.id,
+        estimateTravelMinutes(schedules, segment.fromStopId, segment.toStopId),
+      ]),
+    )
+  } catch {
+    if (requestId === travelTimesRequest) {
+      travelMinutesBySegmentId.value = new Map(item.segments.map((segment) => [segment.id, null]))
+    }
+  }
+}
+
+function segmentTravelTime(segment: RouteSegment) {
+  const duration = travelMinutesBySegmentId.value.get(segment.id)
+  return duration == null
+    ? 'Время не рассчитано'
+    : `≈ ${Math.max(1, Math.round(duration))} мин в пути`
+}
+
 function openScheduleEditor() {
   if (!selectedStopCanEditSchedule.value) {
     showMessage('Сначала сохраните маршрут с этой остановкой', 'error')
@@ -527,6 +585,7 @@ function openScheduleEditor() {
 
 function closeScheduleEditor() {
   rightPanelMode.value = 'order'
+  void refreshTravelTimes()
 }
 
 function directionFallback(item: Direction) {
@@ -716,24 +775,17 @@ onMounted(load)
           :via-points="segmentViaPoints"
           :road-anchors="roadAnchors"
           :active-road-anchor="activeRoadAnchor"
-          :manual-draft-coordinates="manualDraftCoordinates"
-          :interaction-mode="mapMode"
+          :manual-draft-coordinates="[]"
+          interaction-mode="select"
           :selected-stop-id="selectedMapStopId"
           :selected-stop-ids="direction?.stopIds"
           :route-color="edited?.color"
           @stop-click="selectMapStop"
           @segment-click="selectSegment"
-          @map-click="handleMapClick"
           @road-anchor-move="moveRoadAnchor"
         />
         <div v-if="edited" class="map-hint">
-          <template v-if="mapMode === 'via'"
-            >Поставьте промежуточную точку в выбранном сегменте.</template
-          >
-          <template v-else-if="mapMode === 'manual'"
-            >Ставьте точки ручной линии по порядку.</template
-          >
-          <template v-else>Нажмите на линию, чтобы выбрать конкретный сегмент.</template>
+          Нажмите на линию, чтобы выбрать конкретный сегмент.
         </div>
 
         <div v-if="edited && selectedMapStop" class="map-stop-actions" @click.stop>
@@ -789,7 +841,7 @@ onMounted(load)
 
       <aside
         v-if="edited && direction"
-        class="panel route-order-panel segment-editor-panel"
+        class="panel route-order-panel segment-editor-panel combined-sequence-panel"
         :class="{ 'route-schedule-panel': rightPanelMode === 'schedule' }"
       >
         <StopScheduleEditor
@@ -804,104 +856,60 @@ onMounted(load)
           <div class="route-order-heading">
             <div>
               <span>Направление {{ directionIndex + 1 }}</span>
-              <strong>Сегменты маршрута</strong>
+              <strong>Остановки и отрезки</strong>
             </div>
             <span>{{ direction.segments.length }}</span>
           </div>
 
-          <div class="segment-list">
-            <button
-              v-for="(segment, index) in direction.segments"
-              :key="segment.id"
-              :class="{ active: segment.id === selectedSegmentId }"
-              @click="selectSegment(segment.id)"
-            >
-              <span>{{ index + 1 }}</span>
-              <strong>{{ segmentName(segment) }}</strong>
-              <small :class="`segment-${segment.status}`">{{ segmentStatus(segment) }}</small>
-            </button>
-          </div>
+          <button
+            class="rebuild-all-route-button secondary"
+            :disabled="rebuildingAll || routing || !direction.segments.length"
+            @click="rebuildAllSegments"
+          >
+            {{ rebuildingAll ? rebuildProgress : 'Перестроить весь маршрут автоматически' }}
+          </button>
 
-          <div v-if="selectedSegment" class="segment-tools">
-            <strong>{{ segmentName(selectedSegment) }}</strong>
-            <span>{{ segmentStatus(selectedSegment) }}</span>
-            <button
-              class="secondary"
-              :disabled="routing || selectedSegment.status === 'fixed'"
-              @click="buildSelectedSegment"
-            >
-              {{ routing ? 'Прокладываем…' : 'Построить этот сегмент автоматически' }}
-            </button>
-            <button
-              class="secondary"
-              :disabled="selectedSegment.status === 'fixed'"
-              @click="beginViaMode"
-            >
-              Добавить промежуточную точку
-            </button>
-            <button
-              v-if="mapMode !== 'manual'"
-              class="secondary"
-              :disabled="selectedSegment.status === 'fixed'"
-              @click="beginManualDrawing"
-            >
-              Нарисовать вручную
-            </button>
-            <div v-else class="manual-actions">
-              <button @click="finishManualDrawing">Завершить линию</button>
-              <button class="secondary" @click="cancelManualDrawing">Отмена</button>
-            </div>
-            <button
-              :class="{ secondary: selectedSegment.status !== 'fixed' }"
-              @click="toggleSegmentFixed"
-            >
-              {{
-                selectedSegment.status === 'fixed' ? 'Снять фиксацию' : 'Проверить и зафиксировать'
-              }}
-            </button>
-            <button
-              class="text-danger"
-              :disabled="selectedSegment.status === 'fixed'"
-              @click="clearSelectedSegment"
-            >
-              Очистить сегмент
-            </button>
-
-            <div v-if="selectedSegment.viaPoints.length" class="segment-via-list">
-              <strong>Промежуточные точки</strong>
-              <div v-for="(_, index) in selectedSegment.viaPoints" :key="index">
-                <span>Промежуточная точка {{ index + 1 }}</span>
-                <button title="Удалить" @click="removeVia(index)">×</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="route-order-heading stops-order-heading">
-            <div>
-              <span>Строгая последовательность</span>
-              <strong>Остановки</strong>
-            </div>
-            <span>{{ direction.stopIds.length }}</span>
-          </div>
-          <ol v-if="direction.stopIds.length" class="waypoints route-waypoints">
-            <li
-              v-for="(stopId, index) in direction.stopIds"
-              :key="stopId"
-              draggable="true"
-              @dragstart="dragStopIndex = index"
-              @dragend="dragStopIndex = null"
-              @dragover.prevent
-              @drop="dropStop(index)"
-            >
-              <span class="drag-handle" title="Перетащить">⋮⋮</span>
-              <span>{{
-                index === 0 ? 'A' : index === direction.stopIds.length - 1 ? 'B' : index + 1
-              }}</span>
-              <strong>{{ stopById.get(stopId)?.name ?? stopId }}</strong>
-              <button title="Выше" @click="moveStop(index, -1)">↑</button>
-              <button title="Ниже" @click="moveStop(index, 1)">↓</button>
-              <button title="Удалить" @click="removeStopById(stopId)">×</button>
-            </li>
+          <ol v-if="routeSequence.length" class="waypoints route-waypoints combined-route-sequence">
+            <template v-for="item in routeSequence" :key="item.key">
+              <li
+                v-if="item.type === 'stop'"
+                draggable="true"
+                @dragstart="dragStopIndex = item.index"
+                @dragend="dragStopIndex = null"
+                @dragover.prevent
+                @drop="dropStop(item.index)"
+              >
+                <span class="drag-handle" title="Перетащить">⋮⋮</span>
+                <span>{{
+                  item.index === 0
+                    ? 'A'
+                    : item.index === direction.stopIds.length - 1
+                      ? 'B'
+                      : item.index + 1
+                }}</span>
+                <strong>{{ stopById.get(item.stopId)?.name ?? item.stopId }}</strong>
+                <button title="Выше" @click.stop="moveStop(item.index, -1)">↑</button>
+                <button title="Ниже" @click.stop="moveStop(item.index, 1)">↓</button>
+                <button title="Удалить" @click.stop="removeStopById(item.stopId)">×</button>
+              </li>
+              <li
+                v-else
+                class="combined-segment-row"
+                :class="{ active: item.segment.id === selectedSegmentId }"
+                role="button"
+                tabindex="0"
+                @click.stop="selectSegment(item.segment.id)"
+                @keydown.enter.prevent="selectSegment(item.segment.id)"
+                @keydown.space.prevent="selectSegment(item.segment.id)"
+              >
+                <span>{{ item.index + 1 }}</span>
+                <strong>{{ segmentName(item.segment) }}</strong>
+                <small :class="`segment-${item.segment.status}`">
+                  {{ segmentStatus(item.segment) }}
+                </small>
+                <small class="segment-travel-time">{{ segmentTravelTime(item.segment) }}</small>
+              </li>
+            </template>
           </ol>
           <div v-else class="empty-state">Добавьте остановки на карте в нужном порядке.</div>
 

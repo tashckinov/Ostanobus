@@ -1006,58 +1006,6 @@ dd {
 .segment-error {
   color: #b42318;
 }
-.segment-tools {
-  display: grid;
-  gap: 7px;
-  border: 1px solid #cbd5df;
-  background: #f8fafc;
-  padding: 10px;
-}
-.segment-tools > strong {
-  overflow: hidden;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.segment-tools > span {
-  color: #68727d;
-  font-size: 10px;
-}
-.segment-tools button {
-  min-height: 32px;
-  padding: 6px 8px;
-  font-size: 11px;
-}
-.manual-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.segment-via-list {
-  display: grid;
-  gap: 4px;
-  border-top: 1px solid #d8dde2;
-  padding-top: 7px;
-}
-.segment-via-list > strong {
-  font-size: 10px;
-}
-.segment-via-list > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 10px;
-}
-.segment-via-list > div button {
-  min-height: 24px;
-  border: 0;
-  background: transparent;
-  color: #b42318;
-  padding: 0 5px;
-}
-.stops-order-heading {
-  margin-top: 3px;
-}
 .single-action {
   grid-template-columns: 1fr;
 }
