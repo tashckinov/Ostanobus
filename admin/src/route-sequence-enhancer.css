@@ -1,5 +1,5 @@
 .combined-sequence-panel {
-  grid-template-rows: auto minmax(260px, 1fr) auto auto auto;
+  grid-template-rows: auto auto minmax(260px, 1fr) auto auto auto;
 }
 
 .combined-source-segments,
@@ -11,20 +11,33 @@
   order: 1;
 }
 
-.combined-sequence-panel > .combined-route-sequence {
+.combined-sequence-panel > .rebuild-all-route-button {
   order: 2;
 }
 
-.combined-sequence-panel > .segment-tools {
+.combined-sequence-panel > .combined-route-sequence {
   order: 3;
 }
 
-.combined-sequence-panel > .notice {
+.combined-sequence-panel > .segment-tools {
   order: 4;
 }
 
-.combined-sequence-panel > .route-actions {
+.combined-sequence-panel > .notice {
   order: 5;
+}
+
+.combined-sequence-panel > .route-actions {
+  order: 6;
+}
+
+.rebuild-all-route-button {
+  width: 100%;
+  min-height: 38px;
+  border-color: #9fb3c8 !important;
+  background: #fff !important;
+  color: #174a73 !important;
+  font-size: 12px;
 }
 
 .combined-route-sequence {
@@ -47,14 +60,15 @@
   gap: 2px 8px;
   min-height: 48px;
   margin-left: 18px;
-  border: 0;
-  border-bottom: 1px solid #e2e6ea;
-  border-left: 2px solid #91a3b5;
-  border-radius: 0;
-  background: #f7f9fb;
-  color: #18212b;
+  border: 0 !important;
+  border-bottom: 1px solid #e2e6ea !important;
+  border-left: 2px solid #91a3b5 !important;
+  border-radius: 0 !important;
+  background: #f7f9fb !important;
+  color: #18212b !important;
   padding: 7px 8px 7px 12px;
   text-align: left;
+  box-shadow: none !important;
 }
 
 .combined-route-sequence > .combined-segment-row::before,
@@ -78,13 +92,15 @@
 }
 
 .combined-route-sequence > .combined-segment-row:hover {
-  background: #eef3f7;
+  background: #eef3f7 !important;
 }
 
 .combined-route-sequence > .combined-segment-row.active {
-  background: #e8f2ff;
-  border-left-color: #1473e6;
-  box-shadow: inset 3px 0 #1473e6;
+  border-left-color: #1473e6 !important;
+  background: #f3f8fd !important;
+  outline: 2px solid #8fbce8;
+  outline-offset: -2px;
+  box-shadow: none !important;
 }
 
 .combined-route-sequence > .combined-segment-row > span {
