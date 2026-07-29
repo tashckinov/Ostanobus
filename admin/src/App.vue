@@ -7,17 +7,27 @@ import EventsView from './views/EventsView.vue'
 import ForecastsView from './views/ForecastsView.vue'
 import HistoryView from './views/HistoryView.vue'
 import LoginView from './views/LoginView.vue'
+import RouteImportView from './views/RouteImportView.vue'
 import RoutesView from './views/RoutesView.vue'
 import StopsView from './views/StopsView.vue'
 import SupportView from './views/SupportView.vue'
 
-type Page = 'dashboard' | 'stops' | 'routes' | 'forecasts' | 'events' | 'history' | 'support'
+type Page =
+  | 'dashboard'
+  | 'stops'
+  | 'routes'
+  | 'route-import'
+  | 'forecasts'
+  | 'events'
+  | 'history'
+  | 'support'
 
 const authenticated = ref(Boolean(getToken()))
 const pages: Array<{ id: Page; label: string }> = [
   { id: 'dashboard', label: 'Обзор' },
   { id: 'stops', label: 'Остановки' },
   { id: 'routes', label: 'Маршруты' },
+  { id: 'route-import', label: 'Импорт маршрута' },
   { id: 'forecasts', label: 'Прогнозы' },
   { id: 'history', label: 'История' },
   { id: 'events', label: 'Отметки' },
@@ -84,6 +94,7 @@ onBeforeUnmount(() => {
       <DashboardView v-if="page === 'dashboard'" />
       <StopsView v-else-if="page === 'stops'" />
       <RoutesView v-else-if="page === 'routes'" />
+      <RouteImportView v-else-if="page === 'route-import'" />
       <ForecastsView v-else-if="page === 'forecasts'" />
       <HistoryView v-else-if="page === 'history'" />
       <EventsView v-else-if="page === 'events'" />
