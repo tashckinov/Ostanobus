@@ -1,4 +1,6 @@
-import type { DataSource } from 'typeorm'
+import { getMetadataArgsStorage, type DataSource } from 'typeorm'
+
+import { DirectionStop } from './entities.js'
 
 type SqliteIndexRow = {
   name: string
@@ -19,6 +21,40 @@ function quoteIdentifier(value: string) {
   return `"${value.replaceAll('"', '""')}"`
 }
 
+function isLegacyDirectionStopIndex(columns: string[]) {
+  return (
+    columns.length === 2 &&
+    columns.includes('directionId') &&
+    columns.includes('stopId')
+  )
+}
+
+/**
+ * Remove the legacy unique index from TypeORM decorator metadata before the
+ * DataSource is initialized. Otherwise synchronize would recreate the index on
+ * every restart and fail as soon as a route legitimately visits one stop more
+ * than once.
+ */
+export function prepareRuntimeSchemaFixes() {
+  const indices = getMetadataArgsStorage().indices
+
+  for (let index = indices.length - 1; index >= 0; index -= 1) {
+    const metadata = indices[index]
+    if (
+      !metadata ||
+      metadata.target !== DirectionStop ||
+      !metadata.unique ||
+      !Array.isArray(metadata.columns)
+    ) {
+      continue
+    }
+
+    if (isLegacyDirectionStopIndex(metadata.columns)) {
+      indices.splice(index, 1)
+    }
+  }
+}
+
 async function dropSqliteDirectionStopUniqueIndex(dataSource: DataSource) {
   const indexes = (await dataSource.query(
     'PRAGMA index_list("direction_stops")',
@@ -35,11 +71,7 @@ async function dropSqliteDirectionStopUniqueIndex(dataSource: DataSource) {
       .sort((left, right) => left.seqno - right.seqno)
       .map((column) => column.name)
 
-    if (
-      names.length === 2 &&
-      names.includes('directionId') &&
-      names.includes('stopId')
-    ) {
+    if (isLegacyDirectionStopIndex(names)) {
       await dataSource.query(`DROP INDEX IF EXISTS ${indexName}`)
     }
   }
@@ -69,13 +101,8 @@ async function dropPostgresDirectionStopUniqueIndex(dataSource: DataSource) {
 }
 
 /**
- * A route can legitimately visit the same physical stop more than once.
- * Direction stop identity is therefore determined by direction + position,
- * not by direction + stop.
- *
- * TypeORM still creates the legacy unique index from old installations during
- * synchronize. Remove it after initialization so existing databases migrate
- * without destructive table recreation.
+ * Drop the index from existing databases after initialization. Direction stop
+ * identity is determined by direction + position, not by direction + stop.
  */
 export async function applyRuntimeSchemaFixes(dataSource: DataSource) {
   if (
