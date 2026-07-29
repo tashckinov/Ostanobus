@@ -14,6 +14,8 @@ const selectedSegmentId = ref<string | null>(null)
 const selectedMapStopId = ref<string | null>(null)
 const roadAnchorEditingStopId = ref<string | null>(null)
 const rightPanelMode = ref<'order' | 'schedule'>('order')
+const mapMode = ref<'select' | 'via' | 'manual'>('select')
+const manualDraftCoordinates = ref<number[][]>([])
 const saving = ref(false)
 const routing = ref(false)
 const rebuildingAll = ref(false)
@@ -159,6 +161,8 @@ function resetTools() {
   selectedMapStopId.value = null
   roadAnchorEditingStopId.value = null
   rightPanelMode.value = 'order'
+  mapMode.value = 'select'
+  manualDraftCoordinates.value = []
 }
 
 function cloneRoute(route: Route) {
@@ -253,6 +257,8 @@ function selectSegment(segmentId: string) {
   selectedMapStopId.value = null
   roadAnchorEditingStopId.value = null
   rightPanelMode.value = 'order'
+  mapMode.value = 'select'
+  manualDraftCoordinates.value = []
 }
 
 function closeStopMenu() {
@@ -412,6 +418,135 @@ async function buildSegment(segment: RouteSegment) {
   } finally {
     routing.value = false
   }
+}
+
+async function buildSelectedSegment() {
+  const segment = selectedSegment.value
+  if (!segment) return
+  if (segment.status === 'fixed') {
+    showMessage('Сначала снимите фиксацию сегмента', 'error')
+    return
+  }
+
+  const built = await buildSegment(segment)
+  if (built) {
+    showMessage(`Построен выбранный отрезок: ${Math.round(segment.distanceMeters ?? 0)} м`)
+  }
+}
+
+function beginViaMode() {
+  const segment = selectedSegment.value
+  if (!segment) return
+  if (segment.status === 'fixed') {
+    showMessage('Сначала снимите фиксацию сегмента', 'error')
+    return
+  }
+  mapMode.value = 'via'
+  showMessage('Поставьте промежуточную точку внутри выбранного отрезка')
+}
+
+async function handleMapClick(longitude: number, latitude: number) {
+  const segment = selectedSegment.value
+  if (!segment) return
+  if (mapMode.value === 'via') {
+    segment.viaPoints.push({ longitude, latitude })
+    mapMode.value = 'select'
+    await buildSelectedSegment()
+    return
+  }
+  if (mapMode.value === 'manual') {
+    manualDraftCoordinates.value.push([longitude, latitude])
+  }
+}
+
+function removeVia(index: number) {
+  const segment = selectedSegment.value
+  if (!segment || segment.status === 'fixed') return
+  segment.viaPoints.splice(index, 1)
+  segment.geometry = null
+  segment.distanceMeters = null
+  segment.status = 'error'
+}
+
+function beginManualDrawing() {
+  const segment = selectedSegment.value
+  if (!segment) return
+  if (segment.status === 'fixed') {
+    showMessage('Сначала снимите фиксацию сегмента', 'error')
+    return
+  }
+  const start = segmentEndpoint(segment.fromStopId)
+  if (!start) return
+  mapMode.value = 'manual'
+  manualDraftCoordinates.value = [start]
+  showMessage('Ставьте точки ручной линии по порядку, затем нажмите «Завершить линию»')
+}
+
+function lineDistance(coordinates: number[][]) {
+  const radians = (value: number) => (value * Math.PI) / 180
+  let total = 0
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const left = coordinates[index - 1]!
+    const right = coordinates[index]!
+    const latitudeDelta = radians((right[1] ?? 0) - (left[1] ?? 0))
+    const longitudeDelta = radians((right[0] ?? 0) - (left[0] ?? 0))
+    const latitude = radians(((left[1] ?? 0) + (right[1] ?? 0)) / 2)
+    total += 6_371_000 * Math.sqrt(latitudeDelta ** 2 + (Math.cos(latitude) * longitudeDelta) ** 2)
+  }
+  return Math.round(total)
+}
+
+function finishManualDrawing() {
+  const segment = selectedSegment.value
+  if (!segment) return
+  const end = segmentEndpoint(segment.toStopId)
+  if (!end || manualDraftCoordinates.value.length < 1) return
+  const coordinates = [...manualDraftCoordinates.value, end]
+  segment.geometry = { type: 'LineString', coordinates }
+  segment.distanceMeters = lineDistance(coordinates)
+  segment.mode = 'manual'
+  segment.status = 'draft'
+  segment.viaPoints = []
+  manualDraftCoordinates.value = []
+  mapMode.value = 'select'
+  showMessage('Ручная геометрия сохранена как черновик')
+}
+
+function cancelManualDrawing() {
+  manualDraftCoordinates.value = []
+  mapMode.value = 'select'
+}
+
+function toggleSegmentFixed() {
+  const segment = selectedSegment.value
+  if (!segment) return
+  if (segment.status === 'fixed') {
+    if (segment.mode === 'automatic') {
+      segment.geometry = null
+      segment.distanceMeters = null
+      segment.status = 'error'
+      showMessage('Фиксация снята. Автоматический отрезок нужно построить заново.')
+    } else {
+      segment.status = 'draft'
+      showMessage('Фиксация снята. Ручную линию можно изменить.')
+    }
+    return
+  }
+  if (!segment.geometry) {
+    showMessage('Сначала постройте или нарисуйте отрезок', 'error')
+    return
+  }
+  segment.status = 'fixed'
+  showMessage('Отрезок проверен и зафиксирован')
+}
+
+function clearSelectedSegment() {
+  const segment = selectedSegment.value
+  if (!segment || segment.status === 'fixed') return
+  segment.geometry = null
+  segment.distanceMeters = null
+  segment.viaPoints = []
+  segment.status = 'error'
 }
 
 async function rebuildAllSegments() {
@@ -775,17 +910,24 @@ onMounted(load)
           :via-points="segmentViaPoints"
           :road-anchors="roadAnchors"
           :active-road-anchor="activeRoadAnchor"
-          :manual-draft-coordinates="[]"
-          interaction-mode="select"
+          :manual-draft-coordinates="manualDraftCoordinates"
+          :interaction-mode="mapMode"
           :selected-stop-id="selectedMapStopId"
           :selected-stop-ids="direction?.stopIds"
           :route-color="edited?.color"
           @stop-click="selectMapStop"
           @segment-click="selectSegment"
+          @map-click="handleMapClick"
           @road-anchor-move="moveRoadAnchor"
         />
         <div v-if="edited" class="map-hint">
-          Нажмите на линию, чтобы выбрать конкретный сегмент.
+          <template v-if="mapMode === 'via'">
+            Поставьте промежуточную точку в выбранном отрезке.
+          </template>
+          <template v-else-if="mapMode === 'manual'">
+            Ставьте точки ручной линии по порядку.
+          </template>
+          <template v-else>Нажмите на линию, чтобы выбрать конкретный отрезок.</template>
         </div>
 
         <div v-if="edited && selectedMapStop" class="map-stop-actions" @click.stop>
@@ -912,6 +1054,62 @@ onMounted(load)
             </template>
           </ol>
           <div v-else class="empty-state">Добавьте остановки на карте в нужном порядке.</div>
+
+          <div v-if="selectedSegment" class="segment-tools">
+            <strong>{{ segmentName(selectedSegment) }}</strong>
+            <span>{{ segmentStatus(selectedSegment) }}</span>
+            <button
+              class="secondary"
+              :disabled="routing || selectedSegment.status === 'fixed'"
+              @click="buildSelectedSegment"
+            >
+              {{ routing ? 'Прокладываем…' : 'Построить этот отрезок автоматически' }}
+            </button>
+            <button
+              class="secondary"
+              :disabled="selectedSegment.status === 'fixed'"
+              @click="beginViaMode"
+            >
+              Добавить промежуточную точку
+            </button>
+            <button
+              v-if="mapMode !== 'manual'"
+              class="secondary"
+              :disabled="selectedSegment.status === 'fixed'"
+              @click="beginManualDrawing"
+            >
+              Нарисовать вручную
+            </button>
+            <div v-else class="manual-actions">
+              <button @click="finishManualDrawing">Завершить линию</button>
+              <button class="secondary" @click="cancelManualDrawing">Отмена</button>
+            </div>
+            <button
+              :class="{ secondary: selectedSegment.status !== 'fixed' }"
+              @click="toggleSegmentFixed"
+            >
+              {{
+                selectedSegment.status === 'fixed'
+                  ? 'Снять фиксацию'
+                  : 'Проверить и зафиксировать'
+              }}
+            </button>
+            <button
+              class="text-danger"
+              :disabled="selectedSegment.status === 'fixed'"
+              @click="clearSelectedSegment"
+            >
+              Очистить отрезок
+            </button>
+
+            <div v-if="selectedSegment.viaPoints.length" class="segment-via-list">
+              <strong>Промежуточные точки</strong>
+              <div v-for="(_, index) in selectedSegment.viaPoints" :key="index">
+                <span>Промежуточная точка {{ index + 1 }}</span>
+                <button title="Удалить" @click="removeVia(index)">×</button>
+              </div>
+            </div>
+          </div>
 
           <p v-if="message" class="notice" :class="{ error: messageType === 'error' }">
             {{ message }}
