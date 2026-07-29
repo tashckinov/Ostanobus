@@ -12,7 +12,6 @@ type ExportSchedule = {
   lineId: string
   threadId: string
   stopId: string
-  currentStopId?: string
   originStopId?: string
   destinationStopId?: string
   destinationName?: string
@@ -75,6 +74,18 @@ const hasImportErrors = computed(
 )
 const scheduleCount = computed(() =>
   draft.value?.directions.reduce((total, item) => total + item.sourceSchedules.length, 0) ?? 0,
+)
+const exactDepartureCount = computed(() =>
+  direction.value?.sourceSchedules.reduce(
+    (total, item) => total + (item.scheduledTimes?.length ?? 0),
+    0,
+  ) ?? 0,
+)
+const intervalCount = computed(() =>
+  direction.value?.sourceSchedules.reduce(
+    (total, item) => total + (item.frequencies?.length ?? 0),
+    0,
+  ) ?? 0,
 )
 const warnings = computed(() => {
   const result: string[] = []
@@ -183,7 +194,8 @@ function inferConfidence(schedules: ExportSchedule[], stopIds: string[]) {
   const timed = schedules.filter((item) => normalizedTimes(item).length > 0).length
   if (
     timed === schedules.length &&
-    ([...originIds].some((id) => id === stopIds[0]) || [...destinationIds].some((id) => id === stopIds.at(-1)))
+    ([...originIds].some((id) => id === stopIds[0]) ||
+      [...destinationIds].some((id) => id === stopIds.at(-1)))
   ) {
     return 'high' as const
   }
@@ -193,10 +205,12 @@ function inferConfidence(schedules: ExportSchedule[], stopIds: string[]) {
 
 function orderSchedules(schedules: ExportSchedule[]) {
   const ordered = [...schedules].sort((left, right) => schedulePosition(left) - schedulePosition(right))
-  const originId = schedules.map((item) => item.originStopId).find((id) => id && schedules.some((s) => s.stopId === id))
+  const originId = schedules
+    .map((item) => item.originStopId)
+    .find((id) => id && schedules.some((schedule) => schedule.stopId === id))
   const destinationId = schedules
     .map((item) => item.destinationStopId)
-    .find((id) => id && schedules.some((s) => s.stopId === id))
+    .find((id) => id && schedules.some((schedule) => schedule.stopId === id))
 
   if (originId) {
     const index = ordered.findIndex((item) => item.stopId === originId)
@@ -303,8 +317,14 @@ async function readFile(event: Event) {
   }
 }
 
-function changeRoute() {
-  buildDraft(selectedLineId.value)
+function selectRoute(lineId: string) {
+  selectedLineId.value = lineId
+  buildDraft(lineId)
+}
+
+function selectDirection(index: number) {
+  selectedDirectionIndex.value = index
+  selectedStopId.value = null
 }
 
 function removeStop(stopId: string) {
@@ -351,6 +371,41 @@ function serviceDay(schedule: ExportSchedule) {
   if (Number.isNaN(date.getTime())) return null
   const day = date.getDay()
   return day === 0 ? 7 : day
+}
+
+function serviceDateLabel(schedule: ExportSchedule) {
+  if (!schedule.serviceDate) return 'Дата не указана'
+  const date = new Date(`${schedule.serviceDate}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return schedule.serviceDate
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'short',
+  }).format(date)
+}
+
+function scheduleForStop(stopId: string) {
+  return direction.value?.sourceSchedules.find((item) => item.stopId === stopId) ?? null
+}
+
+function scheduleModeLabel(schedule: ExportSchedule) {
+  if ((schedule.scheduledTimes?.length ?? 0) > 0) return 'Точное расписание'
+  if ((schedule.frequencies?.length ?? 0) > 0) return 'Интервальное расписание'
+  return 'Нет времени'
+}
+
+function transportLabel(type: string) {
+  if (type === 'bus') return 'Автобус'
+  if (type === 'minibus') return 'Маршрутка'
+  if (type === 'trolleybus') return 'Троллейбус'
+  return type || 'Транспорт'
+}
+
+function confidenceLabel(value: DraftDirection['orderingConfidence']) {
+  if (value === 'high') return 'Порядок подтверждён'
+  if (value === 'medium') return 'Нужно проверить'
+  return 'Низкая уверенность'
 }
 
 async function saveDirectionSchedules(
@@ -520,10 +575,10 @@ onMounted(async () => {
 
 <template>
   <section class="editor-page stopwise-import-page">
-    <header class="page-header">
+    <header class="page-header import-header">
       <div>
         <h1>Импорт по остановкам</h1>
-        <p>Загрузите общую выгрузку, выберите маршрут, проверьте порядок остановок и расписания.</p>
+        <p>Выберите маршрут карточкой, проверьте направления, порядок остановок и расписание.</p>
       </div>
       <label class="import-file-button">
         <input type="file" accept="application/json,.json" @change="readFile" />
@@ -538,45 +593,95 @@ onMounted(async () => {
     </div>
 
     <template v-else-if="draft">
-      <div class="panel import-summary">
-        <div><span>Файл</span><strong>{{ fileName }}</strong></div>
-        <label>
-          Маршрут
-          <select v-model="selectedLineId" @change="changeRoute">
-            <option v-for="candidate in candidates" :key="candidate.route.lineId" :value="candidate.route.lineId">
-              {{ candidate.route.name }} — {{ candidate.stopCount }} ост., {{ candidate.threadCount }} напр.
-            </option>
-          </select>
-        </label>
-        <label>Номер<input v-model="draft.number" /></label>
-        <label>Название<input v-model="draft.name" /></label>
-        <div><span>Найдено</span><strong>{{ selectedCandidate?.stopCount }} остановок · {{ scheduleCount }} записей</strong></div>
-      </div>
+      <section class="panel source-summary">
+        <div>
+          <span>Файл</span>
+          <strong>{{ fileName }}</strong>
+        </div>
+        <div>
+          <span>Город</span>
+          <strong>{{ payload.city || 'Не указан' }}</strong>
+        </div>
+        <div>
+          <span>Выгружено</span>
+          <strong>{{ payload.exportedAt ? new Date(payload.exportedAt).toLocaleString('ru-RU') : 'Не указано' }}</strong>
+        </div>
+        <div>
+          <span>Всего маршрутов</span>
+          <strong>{{ candidates.length }}</strong>
+        </div>
+      </section>
 
-      <div class="panel import-validation">
-        <strong>{{ hasImportErrors ? 'Импорт невозможен' : 'Предварительная проверка' }}</strong>
+      <section class="route-picker-section">
+        <div class="section-heading">
+          <div>
+            <span>1. Выберите маршрут</span>
+            <strong>Маршруты из выгрузки</strong>
+          </div>
+          <span>{{ candidates.length }}</span>
+        </div>
+        <div class="route-card-grid">
+          <button
+            v-for="candidate in candidates"
+            :key="candidate.route.lineId"
+            class="route-card"
+            :class="{ active: selectedLineId === candidate.route.lineId }"
+            @click="selectRoute(candidate.route.lineId)"
+          >
+            <span class="route-badge">{{ candidate.route.name }}</span>
+            <div class="route-card-copy">
+              <strong>{{ transportLabel(candidate.route.type) }}</strong>
+              <span>{{ candidate.stopCount }} остановок</span>
+              <span>{{ candidate.threadCount }} направл.</span>
+            </div>
+            <small>{{ candidate.route.lineId }}</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel route-details">
+        <div class="route-title-block">
+          <span>2. Проверьте маршрут</span>
+          <strong>Маршрут № {{ draft.number }}</strong>
+          <small>{{ selectedCandidate?.stopCount }} остановок · {{ scheduleCount }} записей расписания</small>
+        </div>
+        <label>
+          Номер
+          <input v-model="draft.number" />
+        </label>
+        <label>
+          Название
+          <input v-model="draft.name" />
+        </label>
+      </section>
+
+      <section class="validation-strip" :class="{ error: hasImportErrors }">
+        <div>
+          <strong>{{ hasImportErrors ? 'Импорт невозможен' : 'Проверка данных' }}</strong>
+          <span>{{ warnings.length }} замечаний</span>
+        </div>
         <ul>
           <li v-for="warning in warnings" :key="warning">{{ warning }}</li>
         </ul>
+      </section>
+
+      <div class="direction-tabs">
+        <button
+          v-for="(item, index) in draft.directions"
+          :key="item.id"
+          :class="{ active: selectedDirectionIndex === index }"
+          @click="selectDirection(index)"
+        >
+          <span>{{ index + 1 }}</span>
+          <div>
+            <strong>{{ item.name }}</strong>
+            <small>{{ item.stopIds.length }} остановок</small>
+          </div>
+          <em :class="item.orderingConfidence">{{ confidenceLabel(item.orderingConfidence) }}</em>
+        </button>
       </div>
 
-      <div class="import-workspace">
-        <aside class="panel directions-panel">
-          <strong>Направления</strong>
-          <button
-            v-for="(item, index) in draft.directions"
-            :key="item.id"
-            :class="{ active: selectedDirectionIndex === index }"
-            @click="selectedDirectionIndex = index; selectedStopId = null"
-          >
-            <span>{{ index + 1 }}</span>
-            <div>
-              <strong>{{ item.name }}</strong>
-              <small>{{ item.stopIds.length }} остановок · {{ item.orderingConfidence }}</small>
-            </div>
-          </button>
-        </aside>
-
+      <div class="import-main-grid">
         <div class="import-map">
           <TransitMap
             :stops="draft.stops"
@@ -588,9 +693,12 @@ onMounted(async () => {
           />
         </div>
 
-        <aside class="panel stops-panel">
-          <div class="stops-heading">
-            <div><span>Порядок</span><strong>{{ direction?.name }}</strong></div>
+        <aside class="panel stop-order-panel">
+          <div class="panel-heading">
+            <div>
+              <span>Порядок остановок</span>
+              <strong>{{ direction?.name }}</strong>
+            </div>
             <span>{{ direction?.stopIds.length }}</span>
           </div>
           <ol>
@@ -600,11 +708,20 @@ onMounted(async () => {
               :class="{ selected: selectedStopId === stopId }"
               @click="selectedStopId = stopId"
             >
-              <span>{{ index + 1 }}</span>
-              <div><strong>{{ stopById.get(stopId)?.name ?? stopId }}</strong><small>{{ stopId }}</small></div>
+              <span class="stop-index">{{ index + 1 }}</span>
+              <div>
+                <strong>{{ stopById.get(stopId)?.name ?? stopId }}</strong>
+                <small>{{ stopId }}</small>
+              </div>
               <div class="stop-controls">
                 <button :disabled="index === 0" title="Выше" @click.stop="moveStop(index, -1)">↑</button>
-                <button :disabled="index === (direction?.stopIds.length ?? 0) - 1" title="Ниже" @click.stop="moveStop(index, 1)">↓</button>
+                <button
+                  :disabled="index === (direction?.stopIds.length ?? 0) - 1"
+                  title="Ниже"
+                  @click.stop="moveStop(index, 1)"
+                >
+                  ↓
+                </button>
                 <button class="remove" title="Удалить" @click.stop="removeStop(stopId)">×</button>
               </div>
             </li>
@@ -617,59 +734,160 @@ onMounted(async () => {
         </aside>
       </div>
 
-      <div class="panel import-footer">
+      <section class="panel schedule-section">
+        <div class="schedule-heading">
+          <div>
+            <span>3. Проверьте расписание</span>
+            <strong>{{ direction?.name }}</strong>
+          </div>
+          <div class="schedule-stats">
+            <span><strong>{{ exactDepartureCount }}</strong> точных отправлений</span>
+            <span><strong>{{ intervalCount }}</strong> интервалов</span>
+          </div>
+        </div>
+
+        <div class="schedule-table">
+          <article v-for="(stopId, index) in direction?.stopIds" :key="stopId" class="schedule-row">
+            <div class="schedule-stop">
+              <span>{{ index + 1 }}</span>
+              <div>
+                <strong>{{ stopById.get(stopId)?.name ?? stopId }}</strong>
+                <small>{{ serviceDateLabel(scheduleForStop(stopId) ?? {}) }}</small>
+              </div>
+            </div>
+            <template v-if="scheduleForStop(stopId)">
+              <div class="schedule-mode">
+                <strong>{{ scheduleModeLabel(scheduleForStop(stopId)!) }}</strong>
+                <small>threadId {{ scheduleForStop(stopId)!.threadId }}</small>
+              </div>
+              <div v-if="scheduleForStop(stopId)!.scheduledTimes?.length" class="time-chip-list">
+                <span v-for="time in scheduleForStop(stopId)!.scheduledTimes" :key="time">{{ time }}</span>
+              </div>
+              <div v-else-if="scheduleForStop(stopId)!.frequencies?.length" class="frequency-list">
+                <span v-for="frequency in scheduleForStop(stopId)!.frequencies" :key="`${frequency.begin}-${frequency.end}`">
+                  {{ frequency.begin }}–{{ frequency.end }} · каждые {{ Math.round(frequency.intervalSeconds / 60) }} мин
+                </span>
+              </div>
+              <div v-else class="schedule-empty">Время отсутствует</div>
+            </template>
+            <div v-else class="schedule-empty">Для остановки нет записи расписания</div>
+          </article>
+        </div>
+      </section>
+
+      <footer class="panel import-footer">
         <label class="schedule-toggle">
           <input v-model="importSchedules" type="checkbox" />
-          <span>Импортировать расписания для дня недели из serviceDate</span>
+          <span>
+            <strong>Импортировать расписания</strong>
+            <small>День недели определяется по serviceDate каждой записи</small>
+          </span>
         </label>
         <p v-if="message" :class="messageType === 'error' ? 'error-text' : 'success-text'">{{ message }}</p>
         <button :disabled="hasImportErrors || importing" @click="importRoute">
           {{ importing ? 'Импорт…' : 'Маршрут проверен — загрузить' }}
         </button>
-      </div>
+      </footer>
     </template>
   </section>
 </template>
 
 <style scoped>
 .stopwise-import-page { min-height: 100%; }
-.import-file-button { display: inline-flex; align-items: center; min-height: 42px; padding: 0 18px; background: #111827; color: #fff; cursor: pointer; font-weight: 700; }
+.import-header { border-bottom: 1px solid #e2e8f0; padding-bottom: 18px; }
+.import-file-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 18px; background: #111827; color: #fff; font-weight: 700; cursor: pointer; }
 .import-file-button input { display: none; }
-.empty-import { min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center; }
-.empty-import span, .import-summary span, .stops-heading span { color: #64748b; font-size: 12px; }
-.import-summary { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) 100px minmax(200px, 1fr) 180px; gap: 14px; align-items: end; margin-bottom: 14px; }
-.import-summary > div, .import-summary label { display: grid; gap: 6px; }
-.import-validation { margin-bottom: 14px; }
-.import-validation ul { margin: 8px 0 0; padding-left: 20px; color: #9a6700; }
-.import-workspace { display: grid; grid-template-columns: 270px minmax(420px, 1fr) 380px; gap: 14px; min-height: 650px; }
-.directions-panel, .stops-panel { min-height: 0; overflow: auto; }
-.directions-panel > button { width: 100%; display: flex; gap: 10px; text-align: left; align-items: center; margin-top: 8px; padding: 10px; border: 1px solid #e2e8f0; background: #fff; color: #111827; }
-.directions-panel > button.active { border-color: #111827; background: #f8fafc; }
-.directions-panel > button > span { min-width: 28px; height: 28px; display: grid; place-items: center; background: #e2e8f0; }
-.directions-panel button div { display: grid; gap: 3px; }
-.directions-panel small, .stops-panel small { color: #64748b; }
-.import-map { min-height: 650px; overflow: hidden; border: 1px solid #dbe2ea; }
-.import-map :deep(.map) { min-height: 650px; height: 100%; }
-.stops-heading { display: flex; justify-content: space-between; align-items: center; }
-.stops-heading > div { display: grid; gap: 3px; }
-.stops-panel ol { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; }
-.stops-panel li { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; padding: 8px; border: 1px solid #e2e8f0; cursor: pointer; }
-.stops-panel li.selected { border-color: #111827; background: #f8fafc; }
-.stops-panel li > span { color: #64748b; font-size: 12px; }
-.stops-panel li > div { display: grid; gap: 2px; min-width: 0; }
-.stop-controls { display: flex !important; grid-auto-flow: column; gap: 3px !important; }
-.stop-controls button { min-width: 28px; min-height: 28px; padding: 0; background: #f1f5f9; color: #111827; }
-.stop-controls button.remove { color: #b91c1c; font-size: 18px; }
+.empty-import { min-height: 260px; display: grid; place-content: center; gap: 10px; text-align: center; }
+.empty-import span { color: #64748b; }
+.source-summary { display: grid; grid-template-columns: 2fr 1fr 1.4fr .7fr; gap: 18px; margin-bottom: 20px; }
+.source-summary div { display: grid; gap: 5px; min-width: 0; }
+.source-summary span, .section-heading span, .route-title-block span, .panel-heading span, .schedule-heading span { color: #64748b; font-size: 12px; }
+.source-summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-picker-section { margin-bottom: 20px; }
+.section-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 10px; }
+.section-heading div { display: grid; gap: 3px; }
+.section-heading strong { font-size: 18px; }
+.route-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.route-card { min-height: 112px; display: grid; grid-template-columns: auto 1fr; gap: 10px; text-align: left; background: #fff; color: #111827; border: 1px solid #dbe2ea; padding: 14px; }
+.route-card:hover { border-color: #94a3b8; }
+.route-card.active { border: 2px solid #111827; padding: 13px; background: #f8fafc; }
+.route-badge { min-width: 48px; height: 34px; display: grid; place-items: center; border: 2px solid #111827; font-weight: 800; font-size: 16px; }
+.route-card-copy { display: grid; gap: 2px; }
+.route-card-copy span, .route-card small { color: #64748b; font-size: 12px; }
+.route-card small { grid-column: 1 / -1; }
+.route-details { display: grid; grid-template-columns: minmax(240px, 1fr) 130px minmax(260px, 1.2fr); align-items: end; gap: 14px; margin-bottom: 12px; }
+.route-title-block { display: grid; gap: 3px; }
+.route-title-block > strong { font-size: 20px; }
+.route-title-block small { color: #64748b; }
+.route-details label { display: grid; gap: 6px; color: #64748b; font-size: 12px; }
+.validation-strip { display: grid; grid-template-columns: 220px 1fr; gap: 18px; padding: 14px 16px; margin-bottom: 16px; border-left: 4px solid #d97706; background: #fffbeb; }
+.validation-strip.error { border-left-color: #b91c1c; background: #fef2f2; }
+.validation-strip > div { display: grid; gap: 3px; align-content: start; }
+.validation-strip > div span { color: #64748b; font-size: 12px; }
+.validation-strip ul { margin: 0; padding-left: 18px; color: #92400e; }
+.validation-strip.error ul { color: #991b1b; }
+.direction-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.direction-tabs button { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; text-align: left; background: #fff; color: #111827; border: 1px solid #dbe2ea; padding: 12px; }
+.direction-tabs button.active { border: 2px solid #111827; padding: 11px; background: #f8fafc; }
+.direction-tabs button > span { width: 30px; height: 30px; display: grid; place-items: center; background: #e2e8f0; font-weight: 700; }
+.direction-tabs button div { display: grid; gap: 3px; }
+.direction-tabs small { color: #64748b; }
+.direction-tabs em { font-style: normal; font-size: 11px; padding: 4px 7px; background: #fef3c7; color: #92400e; }
+.direction-tabs em.high { background: #dcfce7; color: #166534; }
+.direction-tabs em.low { background: #fee2e2; color: #991b1b; }
+.import-main-grid { display: grid; grid-template-columns: minmax(520px, 1fr) 360px; gap: 12px; min-height: 620px; margin-bottom: 12px; }
+.import-map { min-height: 620px; overflow: hidden; border: 1px solid #dbe2ea; background: #eef2f6; }
+.import-map :deep(.map) { height: 100%; min-height: 620px; }
+.stop-order-panel { min-height: 0; overflow: auto; }
+.panel-heading, .schedule-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.panel-heading > div, .schedule-heading > div:first-child { display: grid; gap: 3px; }
+.stop-order-panel ol { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 6px; }
+.stop-order-panel li { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; border: 1px solid #e2e8f0; padding: 8px; cursor: pointer; }
+.stop-order-panel li.selected { border-color: #111827; background: #f8fafc; }
+.stop-index { color: #64748b; font-size: 12px; }
+.stop-order-panel li div { display: grid; gap: 2px; min-width: 0; }
+.stop-order-panel li small { color: #64748b; }
+.stop-controls { display: flex !important; gap: 4px; }
+.stop-controls button { min-width: 28px; min-height: 28px; padding: 0; background: #fff; color: #111827; border: 1px solid #cbd5e1; }
+.stop-controls button.remove { color: #b91c1c; }
 .selected-stop { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
 .selected-stop span { color: #64748b; font-size: 12px; }
-.import-footer { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
-.import-footer > button { margin-left: auto; }
-.schedule-toggle { display: flex; align-items: center; gap: 8px; }
+.schedule-section { margin-bottom: 12px; }
+.schedule-heading { margin-bottom: 14px; }
+.schedule-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.schedule-stats span { padding: 7px 10px; background: #f1f5f9; color: #475569; }
+.schedule-table { display: grid; gap: 6px; }
+.schedule-row { display: grid; grid-template-columns: minmax(230px, .9fr) minmax(180px, .65fr) minmax(300px, 1.45fr); gap: 14px; align-items: start; padding: 12px; border: 1px solid #e2e8f0; }
+.schedule-stop { display: grid; grid-template-columns: 28px 1fr; gap: 8px; }
+.schedule-stop > span { width: 26px; height: 26px; display: grid; place-items: center; background: #e2e8f0; font-size: 12px; font-weight: 700; }
+.schedule-stop div, .schedule-mode { display: grid; gap: 3px; }
+.schedule-stop small, .schedule-mode small { color: #64748b; }
+.time-chip-list { display: flex; flex-wrap: wrap; gap: 5px; max-height: 112px; overflow: auto; }
+.time-chip-list span { padding: 4px 7px; background: #eef2ff; border: 1px solid #c7d2fe; font-variant-numeric: tabular-nums; }
+.frequency-list { display: grid; gap: 5px; }
+.frequency-list span { padding: 7px 9px; background: #ecfdf5; border-left: 3px solid #10b981; }
+.schedule-empty { color: #94a3b8; font-size: 13px; }
+.import-footer { display: flex; align-items: center; gap: 16px; position: sticky; bottom: 0; z-index: 5; border-top: 2px solid #111827; }
+.schedule-toggle { display: flex; gap: 10px; align-items: start; }
+.schedule-toggle span { display: grid; gap: 2px; }
+.schedule-toggle small { color: #64748b; }
+.import-footer p { margin: 0; margin-left: auto; }
+.import-footer > button { margin-left: auto; min-width: 250px; }
 .error-text { color: #b91c1c; }
 .success-text { color: #166534; }
-@media (max-width: 1250px) {
-  .import-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .import-workspace { grid-template-columns: 240px minmax(420px, 1fr); }
-  .stops-panel { grid-column: 1 / -1; max-height: 440px; }
+@media (max-width: 1300px) {
+  .source-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .import-main-grid { grid-template-columns: 1fr; }
+  .stop-order-panel { max-height: 520px; }
+  .schedule-row { grid-template-columns: 1fr 1fr; }
+  .schedule-row > :last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .route-details, .validation-strip, .schedule-row { grid-template-columns: 1fr; }
+  .source-summary { grid-template-columns: 1fr; }
+  .direction-tabs button { grid-template-columns: 34px 1fr; }
+  .direction-tabs em { grid-column: 2; justify-self: start; }
+  .import-footer { align-items: stretch; flex-direction: column; }
+  .import-footer > button { margin-left: 0; width: 100%; }
 }
 </style>
