@@ -16,6 +16,7 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
         __APP_VERSION__: 'readonly',
+        GeoJSON: 'readonly',
       },
       parserOptions: {
         parser: tseslint.parser,
