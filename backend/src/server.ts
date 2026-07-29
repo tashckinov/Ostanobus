@@ -8,9 +8,13 @@ import fastifyStatic from '@fastify/static'
 
 import { createApp } from './app.js'
 import { createDataSource } from './data-source.js'
-import { applyRuntimeSchemaFixes } from './schema-fixes.js'
+import {
+  applyRuntimeSchemaFixes,
+  prepareRuntimeSchemaFixes,
+} from './schema-fixes.js'
 import { seedDatabase } from './seed.js'
 
+prepareRuntimeSchemaFixes()
 const dataSource = createDataSource()
 await dataSource.initialize()
 await applyRuntimeSchemaFixes(dataSource)
