@@ -53,18 +53,22 @@
   padding: 9px 8px;
 }
 
-.combined-route-sequence > .combined-segment-row {
+.combined-route-sequence > button.combined-segment-row,
+.segment-list > button.combined-segment-row {
   position: relative;
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) auto;
   gap: 2px 8px;
+  width: auto !important;
   min-height: 48px;
   margin-left: 18px;
   border: 0 !important;
   border-bottom: 1px solid #e2e6ea !important;
   border-left: 2px solid #91a3b5 !important;
   border-radius: 0 !important;
+  appearance: none;
   background: #f7f9fb !important;
+  background-color: #f7f9fb !important;
   color: #18212b !important;
   padding: 7px 8px 7px 12px;
   text-align: left;
@@ -91,16 +95,28 @@
   bottom: -4px;
 }
 
-.combined-route-sequence > .combined-segment-row:hover {
+.combined-route-sequence > button.combined-segment-row:hover,
+.segment-list > button.combined-segment-row:hover {
   background: #eef3f7 !important;
+  background-color: #eef3f7 !important;
 }
 
-.combined-route-sequence > .combined-segment-row.active {
-  border-left-color: #1473e6 !important;
+.combined-route-sequence > button.combined-segment-row.active,
+.segment-list > button.combined-segment-row.active,
+button.combined-segment-row.active {
+  border: 1px solid #8fbce8 !important;
+  border-left: 3px solid #1473e6 !important;
   background: #f3f8fd !important;
-  outline: 2px solid #8fbce8;
-  outline-offset: -2px;
+  background-color: #f3f8fd !important;
+  color: #18212b !important;
+  outline: none !important;
   box-shadow: none !important;
+}
+
+button.combined-segment-row.active strong,
+button.combined-segment-row.active small,
+button.combined-segment-row.active span {
+  color: inherit !important;
 }
 
 .combined-route-sequence > .combined-segment-row > span {
