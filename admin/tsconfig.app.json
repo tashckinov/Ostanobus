@@ -13,5 +13,8 @@
     "jsx": "preserve",
     "types": ["vite/client"]
   },
+  "vueCompilerOptions": {
+    "strictTemplates": false
+  },
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }
