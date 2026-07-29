@@ -19,7 +19,8 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
 
   function openVehicleMenu(routeNumber: string) {
     closeVehicleMenu()
-    const route = transit.routeStops.routes.find((item) => item.number === routeNumber)
+    const normalizedNumber = routeNumber.split('·')[0]?.trim()
+    const route = transit.routeStops.routes.find((item) => item.number.trim() === normalizedNumber)
     if (!route) return
 
     const overlay = document.createElement('div')
@@ -59,18 +60,19 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
     panel.querySelector<HTMLButtonElement>('[data-close-vehicle]')!.onclick = closeVehicleMenu
   }
 
-  document.addEventListener(
-    'click',
-    (event) => {
-      const target = event.target as HTMLElement
-      const marker = target.closest<HTMLElement>('.bus-badge-container')
-      if (!marker) return
-      const label = marker.getAttribute('aria-label') ?? ''
-      const routeNumber = label.replace(/^Автобус\s+/, '').trim()
-      if (routeNumber) window.setTimeout(() => openVehicleMenu(routeNumber), 0)
-    },
-    true,
-  )
+  function handleVehiclePointer(event: Event) {
+    const target = event.target as HTMLElement | null
+    const marker = target?.closest<HTMLElement>('.bus-badge-container')
+    if (!marker) return
+    event.preventDefault()
+    event.stopPropagation()
+    const badgeText = marker.querySelector<HTMLElement>('.bus-badge')?.textContent?.trim()
+    const ariaText = marker.getAttribute('aria-label')?.replace(/^Автобус\s+/, '').trim()
+    const routeNumber = badgeText || ariaText
+    if (routeNumber) openVehicleMenu(routeNumber)
+  }
+
+  document.addEventListener('pointerup', handleVehiclePointer, true)
 
   function enhanceDrawer() {
     const drawer = document.querySelector<HTMLElement>('aside[role="dialog"]')
@@ -127,6 +129,7 @@ export function initRuntimeUiEnhancer(pinia: Pinia) {
   enhanceDrawer()
 
   return () => {
+    document.removeEventListener('pointerup', handleVehiclePointer, true)
     disposeStopActions()
     drawerObserver.disconnect()
     closeVehicleMenu()
