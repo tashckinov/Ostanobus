@@ -7,7 +7,7 @@ import EventsView from './views/EventsView.vue'
 import ForecastsView from './views/ForecastsView.vue'
 import HistoryView from './views/HistoryView.vue'
 import LoginView from './views/LoginView.vue'
-import RouteImportView from './views/RouteExportImportView.vue'
+import StopwiseRouteImportView from './views/StopwiseRouteImportView.vue'
 import RoutesView from './views/RoutesView.vue'
 import StopsView from './views/StopsView.vue'
 import SupportView from './views/SupportView.vue'
@@ -94,7 +94,7 @@ onBeforeUnmount(() => {
       <DashboardView v-if="page === 'dashboard'" />
       <StopsView v-else-if="page === 'stops'" />
       <RoutesView v-else-if="page === 'routes'" />
-      <RouteImportView v-else-if="page === 'route-import'" />
+      <StopwiseRouteImportView v-else-if="page === 'route-import'" />
       <ForecastsView v-else-if="page === 'forecasts'" />
       <HistoryView v-else-if="page === 'history'" />
       <EventsView v-else-if="page === 'events'" />
